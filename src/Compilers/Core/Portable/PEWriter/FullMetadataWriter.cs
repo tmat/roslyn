@@ -53,7 +53,7 @@ namespace Microsoft.Cci
             : base(heaps, context, messageProvider, allowMissingMethodBodies, deterministic, cancellationToken)
         {
             // EDMAURER make some intelligent guesses for the initial sizes of these things.
-            int numMethods = this.module.HintNumberOfMethodDefinitions;
+            int numMethods = this.module?.HintNumberOfMethodDefinitions ?? 0;
             int numTypeDefsGuess = numMethods / 6;
             int numFieldDefsGuess = numTypeDefsGuess * 4;
             int numPropertyDefsGuess = numMethods / 4;

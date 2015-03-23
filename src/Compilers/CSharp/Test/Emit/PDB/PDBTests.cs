@@ -2,18 +2,44 @@
 
 using System;
 using System.Globalization;
-using System.IO;
 using System.Threading;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
+using Microsoft.CodeAnalysis.Emit;
+using System.IO;
+using Roslyn.Test.PdbUtilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests.PDB
 {
     public class PDBTests : CSharpPDBTestBase
     {
+        [Fact]
+        public void EmptyPdb()
+        {
+            var stream = new System.IO.MemoryStream();
+            var context = new EmitContext();
+            var mdWriter = Cci.FullMetadataWriter.Create(context, null, true, false, default(CancellationToken));
+
+            var writer = new Cci.PdbWriter(() => stream, "file_name2");
+            writer.SetMetadataEmitter(mdWriter);
+            var dd = writer.GetDebugDirectory();
+            writer.Dispose();
+
+            // <Pdb> stream @ 0x0A0C.
+            // offsets = { 0x0A0C, 0x180c }
+            File.WriteAllBytes(@"c:\temp\_\Empty2.pdb", stream.ToArray());
+        }
+
+        [Fact]
+        public void Read()
+        {
+            var s = File.OpenRead(@"c:\temp\_\Empty.pdb");
+            Token2SourceLineExporter.F(s);
+        }
+
         #region Method Bodies
 
         [Fact]

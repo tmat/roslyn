@@ -1212,6 +1212,11 @@ namespace Roslyn.Test.PdbUtilities
             return "0x" + result;
         }
 
+        public static void F(Stream read)
+        {
+            LoadTokenToSourceMapping(read);
+        }
+
         private static Dictionary<uint, PdbTokenLine> LoadTokenToSourceMapping(Stream read)
         {
             var tokenToSourceMapping = new Dictionary<uint, PdbTokenLine>();

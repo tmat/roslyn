@@ -85,9 +85,9 @@ namespace Microsoft.Cci
 
             // EDMAURER provide some reasonable size estimates for these that will avoid
             // much of the reallocation that would occur when growing these from empty.
-            _signatureIndex = new Dictionary<ISignature, uint>(module.HintNumberOfMethodDefinitions); //ignores field signatures
+            _signatureIndex = new Dictionary<ISignature, uint>(module?.HintNumberOfMethodDefinitions ?? 0); //ignores field signatures
 
-            _numTypeDefsEstimate = module.HintNumberOfMethodDefinitions / 6;
+            _numTypeDefsEstimate = _signatureIndex.Count / 6;
             _exportedTypeIndex = new Dictionary<ITypeReference, uint>(_numTypeDefsEstimate);
             _exportedTypeList = new List<ITypeReference>(_numTypeDefsEstimate);
 
