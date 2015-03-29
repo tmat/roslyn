@@ -1605,6 +1605,16 @@ namespace Microsoft.Cci
                 return SignatureTypeCode.Single;
             }
 
+            if (val.GetType() == typeof(decimal))
+            {
+                return Constants.SignatureTypeCode_Decimal;
+            }
+
+            if (val.GetType() == typeof(DateTime))
+            {
+                return Constants.SignatureTypeCode_DateTime;
+            }
+
             throw ExceptionUtilities.UnexpectedValue(val);
         }
 
@@ -2627,6 +2637,9 @@ namespace Microsoft.Cci
 
         private ConstantRow CreateConstantRow(object value, uint parent)
         {
+            // ECMA-335 spec doesn't allow decimal/DateTime in this table.
+            Debug.Assert(!(value is decimal) && !(value is DateTime));
+
             return new ConstantRow
             {
                 Type = (byte)GetConstantTypeCode(value),

@@ -47,6 +47,11 @@ namespace Microsoft.Cci
                 this.Visit(module.GetResources(Context));
             }
 
+            foreach (AssemblyReferenceAlias alias in module.GetAssemblyReferenceAliases(Context))
+            {
+                Visit(alias.Assembly);
+            }
+
             VisitImports(module.GetImports(Context));
         }
 

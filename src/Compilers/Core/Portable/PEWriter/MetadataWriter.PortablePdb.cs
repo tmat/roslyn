@@ -202,7 +202,7 @@ namespace Microsoft.Cci
             // <import> ::= AliasAssemblyReference <alias> <target-assembly>
             writer.WriteByte((byte)ImportDefinitionKind.AliasAssemblyReference);
             writer.WriteCompressedUInt(debugHeapsOpt.GetBlobIndexUtf8(alias.Name));
-            writer.WriteCompressedUInt(GetAssemblyRefIndex(alias.Assembly)); // TODO: index in release build            
+            writer.WriteCompressedUInt(GetAssemblyRefIndex(alias.Assembly));     
         }
 
         private void SerializeImport(BinaryWriter writer, UsedNamespaceOrType import)

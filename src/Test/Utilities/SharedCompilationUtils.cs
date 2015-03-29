@@ -120,19 +120,29 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
         internal static string GetPdbXml(Compilation compilation, string qualifiedMethodName = "")
         {
             string actual = null;
-            using (var exebits = new MemoryStream())
+            using (var peStream = new MemoryStream())
             {
-                using (var pdbbits = new MemoryStream())
+                using (var pdbStream = new MemoryStream())
                 {
-                    compilation.Emit(exebits, pdbbits);
+                    compilation.Emit(peStream, pdbStream);
 
-                    pdbbits.Position = 0;
-                    exebits.Position = 0;
+                    pdbStream.Position = 0;
+                    peStream.Position = 0;
 
-                    actual = PdbToXmlConverter.ToXml(pdbbits, exebits, PdbToXmlOptions.ResolveTokens | PdbToXmlOptions.ThrowOnError, methodName: qualifiedMethodName);
+                    actual = PdbToXmlConverter.ToXml(pdbStream, peStream, PdbToXmlOptions.ResolveTokens | PdbToXmlOptions.ThrowOnError, methodName: qualifiedMethodName);
                 }
 
-                ValidateDebugDirectory(exebits, compilation.AssemblyName + ".pdb");
+                ValidateDebugDirectory(peStream, compilation.AssemblyName + ".pdb");
+            }
+
+            using (var peStream = new MemoryStream())
+            {
+                using (var pdbStream = new MemoryStream())
+                {
+                    compilation.Emit(peStream, pdbStream, options: EmitOptions.Default.WithDebugInformationFormat(DebugInformationFormat.PortablePdb));
+                }
+
+                ValidateDebugDirectory(peStream, compilation.AssemblyName + ".pdb");
             }
 
             return actual;

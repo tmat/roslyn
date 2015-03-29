@@ -23,6 +23,10 @@ namespace Microsoft.Cci
         // Not exposed by the metadata reader since they are abstracted away and presented as SignatureTypeCode.TypeHandle
         public const SignatureTypeCode SignatureTypeCode_Class = (SignatureTypeCode)0x12;
         public const SignatureTypeCode SignatureTypeCode_ValueType = (SignatureTypeCode)0x11;
+
+        // TODO: move to System.Reflection.Metadata
+        public const SignatureTypeCode SignatureTypeCode_Decimal = (SignatureTypeCode)0x22;
+        public const SignatureTypeCode SignatureTypeCode_DateTime = (SignatureTypeCode)0x23;
     }
 
     internal enum HeapSizeFlag : byte
