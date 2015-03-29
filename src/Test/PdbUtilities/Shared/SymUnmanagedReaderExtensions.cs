@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.CodeAnalysis;
 using Roslyn.Utilities;
 
 namespace Microsoft.DiaSymReader
@@ -376,6 +377,23 @@ namespace Microsoft.DiaSymReader
         public static ImmutableArray<ISymUnmanagedScope> GetScopes(this ISymUnmanagedScope scope)
         {
             return ToImmutableOrEmpty(GetScopesInternal(scope));
+        }
+
+        public static ImmutableArray<ISymUnmanagedScope> GetAllScopes(this ISymUnmanagedMethod method)
+        {
+            var builder = ArrayBuilder<ISymUnmanagedScope>.GetInstance();
+            GetAllScopesRecursive(builder, method.GetRootScope());
+            return builder.ToImmutableAndFree();
+        }
+
+        private static void GetAllScopesRecursive(ArrayBuilder<ISymUnmanagedScope> builder, ISymUnmanagedScope scope)
+        {
+            builder.Add(scope);
+
+            foreach (var child in scope.GetScopes())
+            {
+                GetAllScopesRecursive(builder, child);
+            }
         }
 
         private static ISymUnmanagedScope[] GetScopesInternal(ISymUnmanagedScope scope)

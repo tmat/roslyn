@@ -27,6 +27,8 @@ namespace Microsoft.Cci
         // TODO: move to System.Reflection.Metadata
         public const SignatureTypeCode SignatureTypeCode_Decimal = (SignatureTypeCode)0x22;
         public const SignatureTypeCode SignatureTypeCode_DateTime = (SignatureTypeCode)0x23;
+        public const ConstantTypeCode ConstantTypeCode_Decimal = (ConstantTypeCode)SignatureTypeCode_Decimal;
+        public const ConstantTypeCode ConstantTypeCode_DateTime = (ConstantTypeCode)SignatureTypeCode_DateTime;
     }
 
     internal enum HeapSizeFlag : byte

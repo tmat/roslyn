@@ -14,9 +14,12 @@ using System.Text;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.DiaSymReader;
 using PDB::Roslyn.Test.PdbUtilities;
+using PDB::Microsoft.DiaSymReader;
 using Roslyn.Test.Utilities;
 using Xunit;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Microsoft.CodeAnalysis.Test.Utilities
 {
@@ -120,32 +123,268 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
         internal static string GetPdbXml(Compilation compilation, string qualifiedMethodName = "")
         {
             string actual = null;
-            using (var peStream = new MemoryStream())
-            {
-                using (var pdbStream = new MemoryStream())
-                {
-                    compilation.Emit(peStream, pdbStream);
+            var nativePEStream = new MemoryStream();
+            var nativePdbStream = new MemoryStream();
+            compilation.Emit(nativePEStream, nativePdbStream);
 
-                    pdbStream.Position = 0;
-                    peStream.Position = 0;
+            nativePdbStream.Position = 0;
+            nativePEStream.Position = 0;
 
-                    actual = PdbToXmlConverter.ToXml(pdbStream, peStream, PdbToXmlOptions.ResolveTokens | PdbToXmlOptions.ThrowOnError, methodName: qualifiedMethodName);
-                }
+            actual = PdbToXmlConverter.ToXml(nativePdbStream, nativePEStream, PdbToXmlOptions.ResolveTokens | PdbToXmlOptions.ThrowOnError, methodName: qualifiedMethodName);
+            ValidateDebugDirectory(nativePEStream, compilation.AssemblyName + ".pdb");
 
-                ValidateDebugDirectory(peStream, compilation.AssemblyName + ".pdb");
-            }
+            var portablePEStream = new MemoryStream();
+            var portablePdbStream = new MemoryStream();
+            compilation.Emit(portablePEStream, portablePdbStream, options: EmitOptions.Default.WithDebugInformationFormat(DebugInformationFormat.PortablePdb));
 
-            using (var peStream = new MemoryStream())
-            {
-                using (var pdbStream = new MemoryStream())
-                {
-                    compilation.Emit(peStream, pdbStream, options: EmitOptions.Default.WithDebugInformationFormat(DebugInformationFormat.PortablePdb));
-                }
-
-                ValidateDebugDirectory(peStream, compilation.AssemblyName + ".pdb");
-            }
+            // TODO: determinism
+            // PE streams shall be equal:
+            // AssertEx.Equal(nativePEStream.ToArray(), portablePEStream.ToArray());
+            ValidateDebugDirectory(portablePEStream, compilation.AssemblyName + ".pdb");
+            
+            ValidatePortablePdb(nativePdbStream, portablePdbStream.ToArray(), portablePEStream);
 
             return actual;
+        }
+
+        private static unsafe void ValidatePortablePdb(Stream symStream, byte[] pdbImage, Stream peStream)
+        {
+            fixed (byte* pdbPtr = pdbImage)
+            {
+                var pdbReader = new MetadataReader(pdbPtr, pdbImage.Length);
+
+                peStream.Position = 0;
+                symStream.Position = 0;
+
+                using (PEReader peReader = new PEReader(peStream))
+                using (SymReader symReader = new SymReader(symStream))
+                {
+                    var mdReader = peReader.GetMetadataReader();
+
+                    ValidateDocuments(symReader, pdbReader);
+                    ValidateSequencePoints(symReader, pdbReader, mdReader);
+                    ValidateLocalScopes(symReader, pdbReader, mdReader);
+                    ValidateAsyncMethods(symReader, pdbReader, mdReader);
+                }
+            }
+        }
+
+        private static void ValidateDocuments(ISymUnmanagedReader symReader, MetadataReader pdbReader)
+        {
+            var symDocumentByName = symReader.GetDocuments().ToDictionary(sd => sd.GetName(), sd => sd);
+            Assert.Equal(symDocumentByName.Count, pdbReader.Documents.Count);
+
+            foreach (var documentHandle in pdbReader.Documents)
+            {
+                var document = pdbReader.GetDocument(documentHandle);
+                var name = document.GetNameString();
+                var symDocument = symDocumentByName[name];
+
+                var hash = pdbReader.GetBlobContent(document.Hash);
+                var symHash = symDocument.GetChecksum();
+                Assert.Equal(symHash, hash);
+
+                var language = pdbReader.GetGuid(document.Language);
+                var symLanguage = symDocument.GetLanguage();
+                Assert.Equal(symLanguage, language);
+
+                var hashAlgorithm = document.HashAlgorithm;
+                var symHashAlgorithm = symDocument.GetHashAlgorithm();
+                Assert.Equal(symLanguage, language);
+            }
+        }
+
+        private static void ValidateSequencePoints(ISymUnmanagedReader symReader, MetadataReader pdbReader, MetadataReader mdReader)
+        {
+            foreach (var methodDefHandle in mdReader.MethodDefinitions)
+            {
+                var methodBody = pdbReader.GetMethodBody(methodDefHandle);
+                var symMethod = symReader.GetMethod(MetadataTokens.GetToken(mdReader, methodDefHandle));
+
+                var sequencePointReader = pdbReader.GetSequencePointsReader(methodBody.SequencePoints);
+                var symSequencePointReader = symMethod.GetSequencePoints().GetEnumerator();
+
+                while (sequencePointReader.MoveNext())
+                {
+                    Assert.True(symSequencePointReader.MoveNext());
+
+                    var sequencePoint = sequencePointReader.Current;
+                    var symSequencePoint = symSequencePointReader.Current;
+
+                    Assert.Equal(sequencePoint.StartLine, symSequencePoint.StartLine);
+                    Assert.Equal(sequencePoint.StartColumn, symSequencePoint.StartColumn);
+                    Assert.Equal(sequencePoint.EndLine, symSequencePoint.EndLine);
+                    Assert.Equal(sequencePoint.EndColumn, symSequencePoint.EndColumn);
+
+                    var documentName = pdbReader.GetDocument(sequencePoint.Document).GetNameString();
+                    var symDocumentName = symSequencePoint.Document.GetName();
+                    Assert.Equal(documentName, documentName);
+                }
+
+                Assert.False(symSequencePointReader.MoveNext());
+            }
+        }
+
+        private static void ValidateLocalScopes(ISymUnmanagedReader symReader, MetadataReader pdbReader, MetadataReader mdReader)
+        {
+            foreach (var localScopesByMethod in pdbReader.LocalScopes.GroupBy(lsh => pdbReader.GetLocalScope(lsh).Method))
+            {
+                var methodDefHandle = localScopesByMethod.Key;
+
+                var symLocalScopes = symReader.GetMethod(MetadataTokens.GetToken(methodDefHandle)).GetAllScopes();
+                Assert.Equal(symLocalScopes.Length, localScopesByMethod.Count());
+
+                int i = 0;
+                foreach (var localScopeHandle in localScopesByMethod)
+                {
+                    var symLocalScope = symLocalScopes[i++];
+                    var localScope = pdbReader.GetLocalScope(localScopeHandle);
+
+                    Assert.Equal(symLocalScope.GetStartOffset(), localScope.StartOffset);
+                    Assert.Equal(symLocalScope.GetEndOffset(), localScope.StartOffset + localScope.Length); // TODO: adjust for VB
+
+                    ValidateLocalVariables(pdbReader, symLocalScope.GetLocals(), localScope.GetLocalVariables());
+                    ValidateLocalConstants(pdbReader, symLocalScope.GetConstants(), localScope.GetLocalConstants());
+
+                    // TODO: group namespaces, VB, C# forwards...
+                    //var symImportScopes = symLocalScope.GetNamespaces();
+                    //var importScopeHandle = localScope.ImportScope;
+                    //while (!importScopeHandle.IsNil)
+                    //{
+                    //    var importScope = pdbReader.GetImportScope(importScopeHandle);
+
+                    //    importScopeHandle = importScope.Parent;
+                    //}
+                }
+            }
+        }
+
+        private static void ValidateLocalVariables(MetadataReader pdbReader, ImmutableArray<ISymUnmanagedVariable> symVariables, LocalVariableHandleCollection variables)
+        {
+            Assert.Equal(symVariables.Length, variables.Count);
+
+            int v = 0;
+            foreach (var variableHandle in variables)
+            {
+                var symVariable = symVariables[v++];
+                var variable = pdbReader.GetLocalVariable(variableHandle);
+
+                Assert.Equal(symVariable.GetName(), pdbReader.GetString(variable.Name));
+                Assert.Equal(symVariable.GetSlot(), variable.Index);
+                Assert.Equal(symVariable.GetAttributes(), (int)variable.Attributes);
+            }
+        }
+
+        private static void ValidateLocalConstants(MetadataReader pdbReader, ImmutableArray<ISymUnmanagedConstant> symConstants, LocalConstantHandleCollection constants)
+        {
+            Assert.Equal(symConstants.Length, constants.Count);
+
+            int c = 0;
+            foreach (var constantHandle in constants)
+            {
+                var symConstant = symConstants[c++];
+                var constant = pdbReader.GetLocalConstant(constantHandle);
+
+                Assert.Equal(symConstant.GetName(), pdbReader.GetString(constant.Name));
+
+                // C# and VB don't produce custom typed constants
+                Assert.NotEqual(0, (int)constant.TypeCode);
+
+                var value = GetConstantValue(pdbReader, constant.TypeCode, constant.Value);
+                var symValue = symConstant.GetValue();
+                Assert.Equal(symValue, value);
+            }
+        }
+
+        private static object GetConstantValue(MetadataReader mdReader, ConstantTypeCode typeCode, BlobHandle handle)
+        {
+            // Partition II section 22.9:
+            //
+            // Type shall be exactly one of: ELEMENT_TYPE_BOOLEAN, ELEMENT_TYPE_CHAR, ELEMENT_TYPE_I1, 
+            // ELEMENT_TYPE_U1, ELEMENT_TYPE_I2, ELEMENT_TYPE_U2, ELEMENT_TYPE_I4, ELEMENT_TYPE_U4, 
+            // ELEMENT_TYPE_I8, ELEMENT_TYPE_U8, ELEMENT_TYPE_R4, ELEMENT_TYPE_R8, or ELEMENT_TYPE_STRING; 
+            // or ELEMENT_TYPE_CLASS with a Value of zero  (23.1.16)
+
+            // In addition reads Decimal and DateTime types used in debug metadata.
+
+            BlobReader reader = mdReader.GetBlobReader(handle);
+            switch (typeCode)
+            {
+                case ConstantTypeCode.Boolean:
+                    return reader.ReadByte();
+
+                case ConstantTypeCode.Char:
+                    return reader.ReadChar();
+
+                case ConstantTypeCode.SByte:
+                    return reader.ReadSByte();
+
+                case ConstantTypeCode.Int16:
+                    return reader.ReadInt16();
+
+                case ConstantTypeCode.Int32:
+                    return reader.ReadInt32();
+
+                case ConstantTypeCode.Int64:
+                    return reader.ReadInt64();
+
+                case ConstantTypeCode.Byte:
+                    return reader.ReadByte();
+
+                case ConstantTypeCode.UInt16:
+                    return reader.ReadUInt16();
+
+                case ConstantTypeCode.UInt32:
+                    return reader.ReadUInt32();
+
+                case ConstantTypeCode.UInt64:
+                    return reader.ReadUInt64();
+
+                case ConstantTypeCode.Single:
+                    return reader.ReadSingle();
+
+                case ConstantTypeCode.Double:
+                    return reader.ReadDouble();
+
+                case ConstantTypeCode.String:
+                    // A null string constant is represented as an ELEMENT_TYPE_CLASS.
+                    return (reader.Length == 0) ? "" : reader.ReadUTF16(reader.Length);
+
+                case ConstantTypeCode.NullReference:
+                    // TODO: Error checking; verify that the value is all zero bytes;
+                    return ConstantValue.Null;
+
+                case Cci.Constants.ConstantTypeCode_Decimal:
+                    var signAndScale = reader.ReadByte();
+                    return new decimal(
+                        reader.ReadInt32(), 
+                        reader.ReadInt32(), 
+                        reader.ReadInt32(), 
+                        isNegative: (signAndScale & 0x80) != 0,
+                        scale: (byte)(signAndScale & 0x7f));
+
+                case Cci.Constants.ConstantTypeCode_DateTime:
+                    return new DateTime(reader.ReadInt64());
+
+                default:
+                    throw new BadImageFormatException("Invalid constant type code");
+            }
+        }
+
+        private static void ValidateAsyncMethods(ISymUnmanagedReader symReader, MetadataReader pdbReader, MetadataReader mdReader)
+        {
+            var symAsyncMethodCount = mdReader.MethodDefinitions.Count(
+                h => symReader.GetMethod(MetadataTokens.GetToken(h)).AsAsync() != null);
+
+            Assert.Equal(symAsyncMethodCount, pdbReader.AsyncMethods.Count);
+
+            // TODO:
+            //foreach (var asyncMethodHandle in pdbReader.AsyncMethods)
+            //{
+            //    var asyncMethod = pdbReader.GetAsyncMethod(asyncMethodHandle);
+            //    var symAsyncMethod = symReader.GetMethod(MetadataTokens.GetToken(asyncMethod.MoveNextMethod)).AsAsync();
+            //    Assert.NotNull(symAsyncMethod);
+            //}
         }
 
         private static void ValidateDebugDirectory(MemoryStream peStream, string pdbPath)
