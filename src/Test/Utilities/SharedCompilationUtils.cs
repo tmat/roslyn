@@ -20,6 +20,7 @@ using PDB::Microsoft.DiaSymReader;
 using Roslyn.Test.Utilities;
 using Xunit;
 using System.Reflection.Metadata.Ecma335;
+using System.Diagnostics;
 
 namespace Microsoft.CodeAnalysis.Test.Utilities
 {
@@ -172,12 +173,33 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
         private static void ValidateDocuments(ISymUnmanagedReader symReader, MetadataReader pdbReader)
         {
             var symDocumentByName = symReader.GetDocuments().ToDictionary(sd => sd.GetName(), sd => sd);
+
+            if (symDocumentByName.Count == 0)
+            {
+                // special case: single document with an empty name
+                // SymReader doesn't create documents with empty names
+                Assert.Equal(1, pdbReader.Documents.Count);
+                Assert.Equal("", pdbReader.GetDocument(pdbReader.Documents.Single()).GetNameString());
+                return;
+            }
+
             Assert.Equal(symDocumentByName.Count, pdbReader.Documents.Count);
 
+            var names = new HashSet<string>();
             foreach (var documentHandle in pdbReader.Documents)
             {
                 var document = pdbReader.GetDocument(documentHandle);
+
+                // Spec: Name shall not be nil
+                Assert.False(document.Name.IsNil);
+
                 var name = document.GetNameString();
+
+                // Spec: There shall be no duplicate rows in the Document table, based upon document name.
+                Assert.True(names.Add(name));
+
+                Assert.Equal(1, pdbReader.Documents.Count);
+
                 var symDocument = symDocumentByName[name];
 
                 var hash = pdbReader.GetBlobContent(document.Hash);
@@ -200,6 +222,13 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             {
                 var methodBody = pdbReader.GetMethodBody(methodDefHandle);
                 var symMethod = symReader.GetMethod(MetadataTokens.GetToken(mdReader, methodDefHandle));
+
+                Assert.Equal(symMethod == null, methodBody.SequencePoints.IsNil);
+
+                if (methodBody.SequencePoints.IsNil)
+                {
+                    continue;
+                }
 
                 var sequencePointReader = pdbReader.GetSequencePointsReader(methodBody.SequencePoints);
                 var symSequencePointReader = symMethod.GetSequencePoints().GetEnumerator();
@@ -225,16 +254,32 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             }
         }
 
-        private static void ValidateLocalScopes(ISymUnmanagedReader symReader, MetadataReader pdbReader, MetadataReader mdReader)
+        private unsafe static void ValidateLocalScopes(ISymUnmanagedReader symReader, MetadataReader pdbReader, MetadataReader mdReader)
         {
+            decimal d = 1.0M;
+            decimal* ptr = &d;
+            
+
             foreach (var localScopesByMethod in pdbReader.LocalScopes.GroupBy(lsh => pdbReader.GetLocalScope(lsh).Method))
             {
                 var methodDefHandle = localScopesByMethod.Key;
 
                 var symLocalScopes = symReader.GetMethod(MetadataTokens.GetToken(methodDefHandle)).GetAllScopes();
-                Assert.Equal(symLocalScopes.Length, localScopesByMethod.Count());
 
-                int i = 0;
+                Assert.Equal(symLocalScopes.Length - 1, localScopesByMethod.Count());
+
+                if (symLocalScopes.Length == 1)
+                {
+                    Assert.Empty(symLocalScopes[0].GetLocals());
+                    Assert.Empty(symLocalScopes[0].GetConstants());
+                    continue;
+                }
+
+                // root scope:
+                Assert.Equal(symLocalScopes[0].GetStartOffset(), symLocalScopes[1].GetStartOffset());
+                Assert.Equal(symLocalScopes[0].GetEndOffset(), symLocalScopes[1].GetEndOffset());
+
+                int i = 1;
                 foreach (var localScopeHandle in localScopesByMethod)
                 {
                     var symLocalScope = symLocalScopes[i++];
@@ -296,6 +341,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             }
         }
 
+        // TODO: use impl from MetadataReader
         private static object GetConstantValue(MetadataReader mdReader, ConstantTypeCode typeCode, BlobHandle handle)
         {
             // Partition II section 22.9:

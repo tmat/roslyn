@@ -113,15 +113,15 @@ namespace Microsoft.Cci
                 uint sequencePointsBlob = SerializeSequencePoints(body.GetSequencePoints(), documentIndex);
                 _methodBodyTable.Add(new MethodBodyRow { SequencePoints = sequencePointsBlob });
 
-                // TODO: order by nesting
+                // scopes are already ordered by StartOffset ascending then by EndOffset descending (the longest scope first)
                 foreach (LocalScope scope in body.LocalScopes)
                 {
                     _localScopeTable.Add(new LocalScopeRow
                     {
                         Method = (uint)methodRid,
                         ImportScope = (uint)importScopeRid,
-                        VariableList = (uint)_localVariableTable.Count,
-                        ConstantList = (uint)_localConstantTable.Count,
+                        VariableList = (uint)_localVariableTable.Count + 1,
+                        ConstantList = (uint)_localConstantTable.Count + 1,
                         StartOffset = (uint)scope.StartOffset,
                         Length = (uint)scope.Length
                     });
@@ -577,10 +577,7 @@ namespace Microsoft.Cci
 
         private uint SerializeDocumentName(string name)
         {
-            if (name.Length == 0)
-            {
-                return 0;
-            }
+            Debug.Assert(name != null);
 
             MemoryStream sig = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(sig);
