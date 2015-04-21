@@ -14,7 +14,7 @@
     <FileAlignment>512</FileAlignment>
     <CodePage>ReplaceMe</CodePage>
     <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
+    <DebugType>portable</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>

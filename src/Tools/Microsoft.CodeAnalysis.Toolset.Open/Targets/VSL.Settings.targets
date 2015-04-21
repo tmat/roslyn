@@ -159,7 +159,7 @@
         <DebugSymbols>true</DebugSymbols>
         <DefineDebug>true</DefineDebug>
         <DefineTrace>true</DefineTrace>
-        <DebugType>full</DebugType>
+        <DebugType>portable</DebugType>
       </PropertyGroup>
       <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <DefineTrace>true</DefineTrace>
@@ -185,7 +185,7 @@
       </PropertyGroup>
       <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
         <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
+        <DebugType>portable</DebugType>
         <DefineConstants>DEBUG;TRACE</DefineConstants>
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
       </PropertyGroup>

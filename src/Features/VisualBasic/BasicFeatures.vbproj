@@ -47,7 +47,7 @@
     <DefineTrace>true</DefineTrace>
     <RemoveIntegerChecks>true</RemoveIntegerChecks>
     <Optimize>false</Optimize>
-    <DebugType>full</DebugType>
+    <DebugType>portable</DebugType>
     <DocumentationFile>Microsoft.CodeAnalysis.VisualBasic.Features.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
