@@ -134,7 +134,6 @@
     <Compile Include="ImmutableArrayTestExtensions.cs" />
     <Compile Include="SourceWithMarkedNodes.cs" />
     <Compile Include="MarkupTestFile.cs" />
-    <Compile Include="MetadataCacheTestHelpers.cs" />
     <Compile Include="MetadataReader\CustomAttributeRow.cs" />
     <Compile Include="MetadataReader\EncValidation.cs" />
     <Compile Include="MetadataReader\MetadataReaderUtils.cs" />
