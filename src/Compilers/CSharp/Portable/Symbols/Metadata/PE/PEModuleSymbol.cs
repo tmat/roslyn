@@ -19,31 +19,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
     /// <summary>
     /// Represents a net-module imported from a PE. Can be a primary module of an assembly.
     /// </summary>
-    internal sealed class PEModuleSymbol : NonMissingModuleSymbol
+    internal sealed class PEModuleSymbol : MetadataModuleSymbol
     {
-        /// <summary>
-        /// Owning AssemblySymbol. This can be a PEAssemblySymbol or a SourceAssemblySymbol.
-        /// </summary>
-        private readonly AssemblySymbol _assemblySymbol;
-        private readonly int _ordinal;
-
-        /// <summary>
-        /// A Module object providing metadata.
-        /// </summary>
         private readonly PEModule _module;
-
-        /// <summary>
-        /// Global namespace.
-        /// </summary>
-        private readonly PENamespaceSymbol _globalNamespace;
-
-        /// <summary>
-        /// Cache the symbol for well-known type System.Type because we use it frequently
-        /// (for attributes).
-        /// </summary>
-        private NamedTypeSymbol _lazySystemTypeSymbol;
-        private NamedTypeSymbol _lazyEventRegistrationTokenSymbol;
-        private NamedTypeSymbol _lazyEventRegistrationTokenTableSymbol;
+        private readonly PEGlobalNamespaceSymbol _globalNamespace;
 
         /// <summary>
         /// The same value as ConcurrentDictionary.DEFAULT_CAPACITY
@@ -57,7 +36,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         /// as we load types from the module.
         /// </summary>
         internal readonly ConcurrentDictionary<TypeDefinitionHandle, TypeSymbol> TypeHandleToTypeMap =
-                                    new ConcurrentDictionary<TypeDefinitionHandle, TypeSymbol>(concurrencyLevel: 2, capacity: DefaultTypeMapCapacity);
+            new ConcurrentDictionary<TypeDefinitionHandle, TypeSymbol>(concurrencyLevel: 2, capacity: DefaultTypeMapCapacity);
 
         /// <summary>
         /// This is a map from TypeRef row id to the target <see cref="TypeSymbol"/>. 
@@ -66,27 +45,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         /// by <see cref="MetadataDecoder"/> as we resolve TypeRefs from the module.
         /// </summary>
         internal readonly ConcurrentDictionary<TypeReferenceHandle, TypeSymbol> TypeRefHandleToTypeMap =
-                                    new ConcurrentDictionary<TypeReferenceHandle, TypeSymbol>(concurrencyLevel: 2, capacity: DefaultTypeMapCapacity);
+            new ConcurrentDictionary<TypeReferenceHandle, TypeSymbol>(concurrencyLevel: 2, capacity: DefaultTypeMapCapacity);
 
-        internal readonly ImmutableArray<MetadataLocation> MetadataLocation;
-
-        internal readonly MetadataImportOptions ImportOptions;
-
-        /// <summary>
-        /// Module's custom attributes
-        /// </summary>
-        private ImmutableArray<CSharpAttributeData> _lazyCustomAttributes;
-
-        /// <summary>
-        /// Module's assembly attributes
-        /// </summary>
-        private ImmutableArray<CSharpAttributeData> _lazyAssemblyAttributes;
-
-        // Type names from module
-        private ICollection<string> _lazyTypeNames;
-
-        // Namespace names from module
-        private ICollection<string> _lazyNamespaceNames;
 
         internal PEModuleSymbol(PEAssemblySymbol assemblySymbol, PEModule module, MetadataImportOptions importOptions, int ordinal)
             : this((AssemblySymbol)assemblySymbol, module, importOptions, ordinal)
@@ -107,148 +67,88 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         }
 
         private PEModuleSymbol(AssemblySymbol assemblySymbol, PEModule module, MetadataImportOptions importOptions, int ordinal)
+            : base(assemblySymbol, importOptions, ordinal)
         {
-            Debug.Assert((object)assemblySymbol != null);
             Debug.Assert(module != null);
 
-            _assemblySymbol = assemblySymbol;
-            _ordinal = ordinal;
             _module = module;
-            this.ImportOptions = importOptions;
             _globalNamespace = new PEGlobalNamespaceSymbol(this);
-
-            this.MetadataLocation = ImmutableArray.Create<MetadataLocation>(new MetadataLocation(this));
         }
 
-        internal override int Ordinal
+        internal override Machine Machine => _module.Machine;
+        internal override bool Bit32Required => _module.Bit32Required;
+        internal PEModule Module => _module;
+        public override NamespaceSymbol GlobalNamespace => _globalNamespace;
+        public override string Name => _module.Name;
+        private static EntityHandle Token => EntityHandle.ModuleDefinition;
+
+        internal void OnNewTypeDeclarationsLoaded(Dictionary<string, ImmutableArray<PENamedTypeSymbol>> typesDict)
         {
-            get
+            var assembly = ContainingAssembly;
+            bool keepLookingForDeclaredCorTypes = (Ordinal == 0 && assembly.KeepLookingForDeclaredSpecialTypes);
+
+            foreach (var types in typesDict.Values)
             {
-                return _ordinal;
-            }
-        }
-
-        internal override Machine Machine
-        {
-            get
-            {
-                return _module.Machine;
-            }
-        }
-
-        internal override bool Bit32Required
-        {
-            get
-            {
-                return _module.Bit32Required;
-            }
-        }
-
-        internal PEModule Module
-        {
-            get
-            {
-                return _module;
-            }
-        }
-
-        public override NamespaceSymbol GlobalNamespace
-        {
-            get { return _globalNamespace; }
-        }
-
-        public override string Name
-        {
-            get
-            {
-                return _module.Name;
-            }
-        }
-
-        private static EntityHandle Token
-        {
-            get
-            {
-                return EntityHandle.ModuleDefinition;
-            }
-        }
-
-        public override Symbol ContainingSymbol
-        {
-            get
-            {
-                return _assemblySymbol;
-            }
-        }
-
-        public override AssemblySymbol ContainingAssembly
-        {
-            get
-            {
-                return _assemblySymbol;
-            }
-        }
-
-        public override ImmutableArray<Location> Locations
-        {
-            get
-            {
-                return this.MetadataLocation.Cast<MetadataLocation, Location>();
-            }
-        }
-
-        public override ImmutableArray<CSharpAttributeData> GetAttributes()
-        {
-            if (_lazyCustomAttributes.IsDefault)
-            {
-                this.LoadCustomAttributes(Token, ref _lazyCustomAttributes);
-            }
-            return _lazyCustomAttributes;
-        }
-
-        internal ImmutableArray<CSharpAttributeData> GetAssemblyAttributes()
-        {
-            if (_lazyAssemblyAttributes.IsDefault)
-            {
-                ArrayBuilder<CSharpAttributeData> moduleAssemblyAttributesBuilder = null;
-
-                string corlibName = ContainingAssembly.CorLibrary.Name;
-                EntityHandle assemblyMSCorLib = Module.GetAssemblyRef(corlibName);
-                if (!assemblyMSCorLib.IsNil)
+                foreach (var type in types)
                 {
-                    foreach (var qualifier in Cci.MetadataWriter.dummyAssemblyAttributeParentQualifier)
-                    {
-                        EntityHandle typerefAssemblyAttributesGoHere =
-                                    Module.GetTypeRef(
-                                        assemblyMSCorLib,
-                                        Cci.MetadataWriter.dummyAssemblyAttributeParentNamespace,
-                                        Cci.MetadataWriter.dummyAssemblyAttributeParentName + qualifier);
+                    bool added;
+                    added = TypeHandleToTypeMap.TryAdd(type.Handle, type);
+                    Debug.Assert(added);
 
-                        if (!typerefAssemblyAttributesGoHere.IsNil)
-                        {
-                            try
-                            {
-                                foreach (var customAttributeHandle in Module.GetCustomAttributesOrThrow(typerefAssemblyAttributesGoHere))
-                                {
-                                    if (moduleAssemblyAttributesBuilder == null)
-                                    {
-                                        moduleAssemblyAttributesBuilder = new ArrayBuilder<CSharpAttributeData>();
-                                    }
-                                    moduleAssemblyAttributesBuilder.Add(new PEAttributeData(this, customAttributeHandle));
-                                }
-                            }
-                            catch (BadImageFormatException)
-                            { }
-                        }
+                    // Register newly loaded COR types
+                    if (keepLookingForDeclaredCorTypes && type.SpecialType != SpecialType.None)
+                    {
+                        assembly.RegisterDeclaredSpecialType(type);
+                        keepLookingForDeclaredCorTypes = assembly.KeepLookingForDeclaredSpecialTypes;
                     }
                 }
-
-                ImmutableInterlocked.InterlockedCompareExchange(
-                    ref _lazyAssemblyAttributes,
-                    (moduleAssemblyAttributesBuilder != null) ? moduleAssemblyAttributesBuilder.ToImmutableAndFree() : ImmutableArray<CSharpAttributeData>.Empty,
-                    default(ImmutableArray<CSharpAttributeData>));
             }
-            return _lazyAssemblyAttributes;
+        }
+
+        protected override void LoadModuleCustomAttributes(ref ImmutableArray<CSharpAttributeData> lazyCustomAttributes)
+        {
+            LoadCustomAttributes(Token, ref lazyCustomAttributes);
+        }
+
+        protected override void LoadAssemblyCustomAttributes(ref ImmutableArray<CSharpAttributeData> lazyCustomAttributes)
+        {
+            ArrayBuilder<CSharpAttributeData> moduleAssemblyAttributesBuilder = null;
+
+            string corlibName = ContainingAssembly.CorLibrary.Name;
+            EntityHandle assemblyMSCorLib = Module.GetAssemblyRef(corlibName);
+            if (!assemblyMSCorLib.IsNil)
+            {
+                foreach (var qualifier in Cci.MetadataWriter.dummyAssemblyAttributeParentQualifier)
+                {
+                    EntityHandle typerefAssemblyAttributesGoHere =
+                                Module.GetTypeRef(
+                                    assemblyMSCorLib,
+                                    Cci.MetadataWriter.dummyAssemblyAttributeParentNamespace,
+                                    Cci.MetadataWriter.dummyAssemblyAttributeParentName + qualifier);
+
+                    if (!typerefAssemblyAttributesGoHere.IsNil)
+                    {
+                        try
+                        {
+                            foreach (var customAttributeHandle in Module.GetCustomAttributesOrThrow(typerefAssemblyAttributesGoHere))
+                            {
+                                if (moduleAssemblyAttributesBuilder == null)
+                                {
+                                    moduleAssemblyAttributesBuilder = new ArrayBuilder<CSharpAttributeData>();
+                                }
+                                moduleAssemblyAttributesBuilder.Add(new PEAttributeData(this, customAttributeHandle));
+                            }
+                        }
+                        catch (BadImageFormatException)
+                        { }
+                    }
+                }
+            }
+
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref lazyCustomAttributes,
+                (moduleAssemblyAttributesBuilder != null) ? moduleAssemblyAttributesBuilder.ToImmutableAndFree() : ImmutableArray<CSharpAttributeData>.Empty,
+                default(ImmutableArray<CSharpAttributeData>));
         }
 
         internal void LoadCustomAttributes(EntityHandle token, ref ImmutableArray<CSharpAttributeData> customAttributes)
@@ -366,7 +266,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 default(AttributeDescription));
         }
 
-
         internal bool HasAnyCustomAttributes(EntityHandle token)
         {
             try
@@ -413,232 +312,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             return result;
         }
 
-        internal void OnNewTypeDeclarationsLoaded(
-            Dictionary<string, ImmutableArray<PENamedTypeSymbol>> typesDict)
-        {
-            bool keepLookingForDeclaredCorTypes = (_ordinal == 0 && _assemblySymbol.KeepLookingForDeclaredSpecialTypes);
-
-            foreach (var types in typesDict.Values)
-            {
-                foreach (var type in types)
-                {
-                    bool added;
-                    added = TypeHandleToTypeMap.TryAdd(type.Handle, type);
-                    Debug.Assert(added);
-
-                    // Register newly loaded COR types
-                    if (keepLookingForDeclaredCorTypes && type.SpecialType != SpecialType.None)
-                    {
-                        _assemblySymbol.RegisterDeclaredSpecialType(type);
-                        keepLookingForDeclaredCorTypes = _assemblySymbol.KeepLookingForDeclaredSpecialTypes;
-                    }
-                }
-            }
-        }
-
-        internal override ICollection<string> TypeNames
-        {
-            get
-            {
-                if (_lazyTypeNames == null)
-                {
-                    Interlocked.CompareExchange(ref _lazyTypeNames, _module.TypeNames.AsCaseSensitiveCollection(), null);
-                }
-
-                return _lazyTypeNames;
-            }
-        }
-
-        internal override ICollection<string> NamespaceNames
-        {
-            get
-            {
-                if (_lazyNamespaceNames == null)
-                {
-                    Interlocked.CompareExchange(ref _lazyNamespaceNames, _module.NamespaceNames.AsCaseSensitiveCollection(), null);
-                }
-
-                return _lazyNamespaceNames;
-            }
-        }
-
-        internal override ImmutableArray<byte> GetHash(AssemblyHashAlgorithm algorithmId)
-        {
-            return _module.GetHash(algorithmId);
-        }
-
-        internal DocumentationProvider DocumentationProvider
-        {
-            get
-            {
-                var assembly = _assemblySymbol as PEAssemblySymbol;
-                if ((object)assembly != null)
-                {
-                    return assembly.DocumentationProvider;
-                }
-                else
-                {
-                    return DocumentationProvider.Default;
-                }
-            }
-        }
-
-
-        internal NamedTypeSymbol EventRegistrationToken
-        {
-            get
-            {
-                if ((object)_lazyEventRegistrationTokenSymbol == null)
-                {
-                    Interlocked.CompareExchange(ref _lazyEventRegistrationTokenSymbol,
-                                                GetTypeSymbolForWellKnownType(
-                                                    WellKnownType.System_Runtime_InteropServices_WindowsRuntime_EventRegistrationToken
-                                                    ),
-                                                null);
-                    Debug.Assert((object)_lazyEventRegistrationTokenSymbol != null);
-                }
-                return _lazyEventRegistrationTokenSymbol;
-            }
-        }
-
-
-        internal NamedTypeSymbol EventRegistrationTokenTable_T
-        {
-            get
-            {
-                if ((object)_lazyEventRegistrationTokenTableSymbol == null)
-                {
-                    Interlocked.CompareExchange(ref _lazyEventRegistrationTokenTableSymbol,
-                                                GetTypeSymbolForWellKnownType(
-                                                    WellKnownType.System_Runtime_InteropServices_WindowsRuntime_EventRegistrationTokenTable_T
-                                                    ),
-                                                null);
-                    Debug.Assert((object)_lazyEventRegistrationTokenTableSymbol != null);
-                }
-                return _lazyEventRegistrationTokenTableSymbol;
-            }
-        }
-
-        internal NamedTypeSymbol SystemTypeSymbol
-        {
-            get
-            {
-                if ((object)_lazySystemTypeSymbol == null)
-                {
-                    Interlocked.CompareExchange(ref _lazySystemTypeSymbol,
-                                                GetTypeSymbolForWellKnownType(WellKnownType.System_Type),
-                                                null);
-                    Debug.Assert((object)_lazySystemTypeSymbol != null);
-                }
-                return _lazySystemTypeSymbol;
-            }
-        }
-
-        private NamedTypeSymbol GetTypeSymbolForWellKnownType(WellKnownType type)
-        {
-            MetadataTypeName emittedName = MetadataTypeName.FromFullName(type.GetMetadataName(), useCLSCompliantNameArityEncoding: true);
-            // First, check this module
-            NamedTypeSymbol currentModuleResult = this.LookupTopLevelMetadataType(ref emittedName);
-
-            if (IsAcceptableSystemTypeSymbol(currentModuleResult))
-            {
-                // It doesn't matter if there's another of this type in a referenced assembly -
-                // we prefer the one in the current module.
-                return currentModuleResult;
-            }
-
-            // If we didn't find it in this module, check the referenced assemblies
-            NamedTypeSymbol referencedAssemblyResult = null;
-            foreach (AssemblySymbol assembly in this.GetReferencedAssemblySymbols())
-            {
-                NamedTypeSymbol currResult = assembly.LookupTopLevelMetadataType(ref emittedName, digThroughForwardedTypes: true);
-                if (IsAcceptableSystemTypeSymbol(currResult))
-                {
-                    if ((object)referencedAssemblyResult == null)
-                    {
-                        referencedAssemblyResult = currResult;
-                    }
-                    else
-                    {
-                        // CONSIDER: setting result to null will result in a MissingMetadataTypeSymbol 
-                        // being returned.  Do we want to differentiate between no result and ambiguous
-                        // results?  There doesn't seem to be an existing error code for "duplicate well-
-                        // known type".
-                        if (referencedAssemblyResult != currResult)
-                        {
-                            referencedAssemblyResult = null;
-                        }
-                        break;
-                    }
-                }
-            }
-
-            if ((object)referencedAssemblyResult != null)
-            {
-                Debug.Assert(IsAcceptableSystemTypeSymbol(referencedAssemblyResult));
-                return referencedAssemblyResult;
-            }
-
-            Debug.Assert((object)currentModuleResult != null);
-            return currentModuleResult;
-        }
-
-        private static bool IsAcceptableSystemTypeSymbol(NamedTypeSymbol candidate)
-        {
-            return candidate.Kind != SymbolKind.ErrorType || !(candidate is MissingMetadataTypeSymbol);
-        }
-
-        internal override bool HasAssemblyCompilationRelaxationsAttribute
-        {
-            get
-            {
-                var assemblyAttributes = GetAssemblyAttributes();
-                return assemblyAttributes.IndexOfAttribute(this, AttributeDescription.CompilationRelaxationsAttribute) >= 0;
-            }
-        }
-
-        internal override bool HasAssemblyRuntimeCompatibilityAttribute
-        {
-            get
-            {
-                var assemblyAttributes = GetAssemblyAttributes();
-                return assemblyAttributes.IndexOfAttribute(this, AttributeDescription.RuntimeCompatibilityAttribute) >= 0;
-            }
-        }
-
-        internal override CharSet? DefaultMarshallingCharSet
-        {
-            get
-            {
-                // not used by the compiler
-                throw ExceptionUtilities.Unreachable;
-            }
-        }
-
-        internal sealed override CSharpCompilation DeclaringCompilation // perf, not correctness
-        {
-            get { return null; }
-        }
-
-        internal NamedTypeSymbol LookupTopLevelMetadataType(ref MetadataTypeName emittedName, out bool isNoPiaLocalType)
-        {
-            NamedTypeSymbol result;
-            PENamespaceSymbol scope = (PENamespaceSymbol)this.GlobalNamespace.LookupNestedNamespace(emittedName.NamespaceSegments);
-
-            if ((object)scope == null)
-            {
-                // We failed to locate the namespace
-                isNoPiaLocalType = false;
-                result = new MissingMetadataTypeSymbol.TopLevel(this, ref emittedName);
-            }
-            else
-            {
-                result = scope.LookupMetadataType(ref emittedName, out isNoPiaLocalType);
-                Debug.Assert((object)result != null);
-            }
-
-            return result;
-        }
+        protected override IdentifierCollection GetTypeNames() => _module.TypeNames;
+        protected override IdentifierCollection GetNamespaceNames() => _module.NamespaceNames;
+        internal override ImmutableArray<byte> GetHash(AssemblyHashAlgorithm algorithmId) => _module.GetHash(algorithmId);
 
         /// <summary>
         /// If this module forwards the given type to another assembly, return that assembly;
@@ -649,7 +325,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         /// <remarks>
         /// The returned assembly may also forward the type.
         /// </remarks>
-        internal AssemblySymbol GetAssemblyForForwardedType(ref MetadataTypeName fullName)
+        internal override AssemblySymbol GetAssemblyForForwardedType(ref MetadataTypeName fullName)
         {
             try
             {
@@ -663,7 +339,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
         }
 
-        internal IEnumerable<NamedTypeSymbol> GetForwardedTypes()
+        internal override IEnumerable<NamedTypeSymbol> GetForwardedTypes()
         {
             foreach (KeyValuePair<string, AssemblyReferenceHandle> forwarder in Module.GetForwardedTypes())
             {

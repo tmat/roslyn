@@ -14,7 +14,7 @@ namespace Microsoft.CodeAnalysis.CSharp.DocumentationComments
     {
         internal static string GetDocumentationComment(
             Symbol symbol,
-            PEModuleSymbol containingPEModule,
+            MetadataModuleSymbol containingMetadataModule,
             CultureInfo preferredCulture,
             CancellationToken cancellationToken,
             ref Tuple<CultureInfo, string> lazyDocComment)
@@ -26,7 +26,7 @@ namespace Microsoft.CodeAnalysis.CSharp.DocumentationComments
                     ref lazyDocComment,
                     Tuple.Create(
                         preferredCulture,
-                        containingPEModule.DocumentationProvider.GetDocumentationForSymbol(
+                        containingMetadataModule.DocumentationProvider.GetDocumentationForSymbol(
                             symbol.GetDocumentationCommentId(), preferredCulture, cancellationToken)),
                     null);
             }
@@ -38,7 +38,7 @@ namespace Microsoft.CodeAnalysis.CSharp.DocumentationComments
             }
 
             // We've already cached a different culture - create a fresh version.
-            return containingPEModule.DocumentationProvider.GetDocumentationForSymbol(
+            return containingMetadataModule.DocumentationProvider.GetDocumentationForSymbol(
                 symbol.GetDocumentationCommentId(), preferredCulture, cancellationToken);
         }
     }

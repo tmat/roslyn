@@ -14,20 +14,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
     /// Namespaces that differ only by casing in name are not merged.
     /// </summary>
     /// <remarks></remarks>
-    internal sealed class PENestedNamespaceSymbol
-        : PENamespaceSymbol
+    internal sealed class PENestedNamespaceSymbol : PENamespaceSymbol
     {
         /// <summary>
         /// The parent namespace. There is always one, Global namespace contains all
         /// top level namespaces. 
         /// </summary>
-        /// <remarks></remarks>
         private readonly PENamespaceSymbol _containingNamespaceSymbol;
 
         /// <summary>
         /// The name of the namespace.
         /// </summary>
-        /// <remarks></remarks>
         private readonly string _name;
 
         /// <summary>
@@ -42,7 +39,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         /// This member is initialized by constructor and is cleared in EnsureAllMembersLoaded 
         /// as soon as symbols for children are created.
         /// </summary>
-        /// <remarks></remarks>
         private IEnumerable<IGrouping<string, TypeDefinitionHandle>> _typesByNS;
 
         /// <summary>
@@ -68,7 +64,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             PENamespaceSymbol containingNamespace,
             IEnumerable<IGrouping<string, TypeDefinitionHandle>> typesByNS)
         {
-            Debug.Assert(name != null && name.Length > 0);
+            Debug.Assert(!string.IsNullOrEmpty(name));
             Debug.Assert((object)containingNamespace != null);
             Debug.Assert(typesByNS != null);
 
@@ -77,63 +73,23 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             _typesByNS = typesByNS;
         }
 
-        public override Symbol ContainingSymbol
-        {
-            get { return _containingNamespaceSymbol; }
-        }
-
-        internal override PEModuleSymbol ContainingPEModule
-        {
-            get { return _containingNamespaceSymbol.ContainingPEModule; }
-        }
-
-        public override string Name
-        {
-            get
-            {
-                return _name;
-            }
-        }
-
-        public override bool IsGlobalNamespace
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        public override AssemblySymbol ContainingAssembly
-        {
-            get
-            {
-                return ContainingPEModule.ContainingAssembly;
-            }
-        }
-
-        internal override ModuleSymbol ContainingModule
-        {
-            get
-            {
-                return _containingNamespaceSymbol.ContainingPEModule;
-            }
-        }
+        public override Symbol ContainingSymbol => _containingNamespaceSymbol;
+        internal override PEModuleSymbol ContainingPEModule => _containingNamespaceSymbol.ContainingPEModule;
+        public override string Name => _name;
+        public override bool IsGlobalNamespace => false;
+        public override AssemblySymbol ContainingAssembly => ContainingPEModule.ContainingAssembly;
+        internal override ModuleSymbol ContainingModule => _containingNamespaceSymbol.ContainingPEModule;
 
         protected override void EnsureAllMembersLoaded()
         {
             var typesByNS = _typesByNS;
 
-            if (lazyTypes == null || lazyNamespaces == null)
+            if (!Initialized)
             {
-                System.Diagnostics.Debug.Assert(typesByNS != null);
+                Debug.Assert(typesByNS != null);
                 LoadAllMembers(typesByNS);
                 Interlocked.Exchange(ref _typesByNS, null);
             }
-        }
-
-        internal sealed override CSharpCompilation DeclaringCompilation // perf, not correctness
-        {
-            get { return null; }
         }
     }
 }

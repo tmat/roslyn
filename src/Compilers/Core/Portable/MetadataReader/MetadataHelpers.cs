@@ -686,25 +686,25 @@ namespace Microsoft.CodeAnalysis
         ///           calculated for the child namespace. 
         /// </param>
         /// <remarks></remarks>
-        public static void GetInfoForImmediateNamespaceMembers(
+        public static void GetInfoForImmediateNamespaceMembers<TTypeDefinition>(
             int namespaceNameLength,
-            IEnumerable<IGrouping<string, TypeDefinitionHandle>> typesByNS,
+            IEnumerable<IGrouping<string, TTypeDefinition>> typesByNS,
             StringComparer nameComparer,
-            out IEnumerable<IGrouping<string, TypeDefinitionHandle>> types,
-            out IEnumerable<KeyValuePair<string, IEnumerable<IGrouping<string, TypeDefinitionHandle>>>> namespaces)
+            out IEnumerable<IGrouping<string, TTypeDefinition>> types,
+            out IEnumerable<KeyValuePair<string, IEnumerable<IGrouping<string, TTypeDefinition>>>> namespaces)
         {
             Debug.Assert(typesByNS != null);
             Debug.Assert(namespaceNameLength >= 0);
 
             // A list of groups of TypeDef row ids for types immediately contained within this namespace.
-            var nestedTypes = new List<IGrouping<string, TypeDefinitionHandle>>();
+            var nestedTypes = new List<IGrouping<string, TTypeDefinition>>();
 
             // A list accumulating information about namespaces immediately contained within this namespace.
             // For each pair:
             //   Key - contains simple name of a child namespace.
             //   Value – contains a sequence similar to the one passed to this function, but
             //           calculated for the child namespace. 
-            var nestedNamespaces = new List<KeyValuePair<string, IEnumerable<IGrouping<string, TypeDefinitionHandle>>>>();
+            var nestedNamespaces = new List<KeyValuePair<string, IEnumerable<IGrouping<string, TTypeDefinition>>>>();
 
             var enumerator = typesByNS.GetEnumerator();
 
@@ -719,7 +719,7 @@ namespace Microsoft.CodeAnalysis
 
                     // A list accumulating information about types within the last encountered child namespace.
                     // The list is similar to the sequence passed to this function.
-                    List<IGrouping<string, TypeDefinitionHandle>> typesInLastChildNamespace = null;
+                    List<IGrouping<string, TTypeDefinition>> typesInLastChildNamespace = null;
 
                     // if there are any types in this namespace,
                     // they will be in the first several groups if their key length 
@@ -762,11 +762,11 @@ namespace Microsoft.CodeAnalysis
                             {
                                 Debug.Assert(typesInLastChildNamespace.Count != 0);
                                 nestedNamespaces.Add(
-                                    new KeyValuePair<string, IEnumerable<IGrouping<string, TypeDefinitionHandle>>>(
+                                    new KeyValuePair<string, IEnumerable<IGrouping<string, TTypeDefinition>>>(
                                         lastChildNamespaceName, typesInLastChildNamespace));
                             }
 
-                            typesInLastChildNamespace = new List<IGrouping<string, TypeDefinitionHandle>>();
+                            typesInLastChildNamespace = new List<IGrouping<string, TTypeDefinition>>();
                             lastChildNamespaceName = childNamespaceName;
 
                             typesInLastChildNamespace.Add(pair);
@@ -779,7 +779,7 @@ namespace Microsoft.CodeAnalysis
                     {
                         Debug.Assert(typesInLastChildNamespace.Count != 0);
                         nestedNamespaces.Add(
-                            new KeyValuePair<string, IEnumerable<IGrouping<string, TypeDefinitionHandle>>>(
+                            new KeyValuePair<string, IEnumerable<IGrouping<string, TTypeDefinition>>>(
                                 lastChildNamespaceName, typesInLastChildNamespace));
                     }
 

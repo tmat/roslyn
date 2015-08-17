@@ -482,6 +482,18 @@ namespace Microsoft.CodeAnalysis
             return name;
         }
 
+        public string TryGetTypeDefName(TypeDefinitionHandle handle)
+        {
+            try
+            {
+                return GetTypeDefNameOrThrow(handle);
+            }
+            catch (BadImageFormatException)
+            {
+                return null;
+            }
+        }
+
         /// <exception cref="BadImageFormatException">An exception from metadata reader.</exception>
         public string GetTypeDefNamespaceOrThrow(TypeDefinitionHandle typeDef)
         {
@@ -498,6 +510,18 @@ namespace Microsoft.CodeAnalysis
         public TypeAttributes GetTypeDefFlagsOrThrow(TypeDefinitionHandle typeDef)
         {
             return MetadataReader.GetTypeDefinition(typeDef).Attributes;
+        }
+
+        public TypeAttributes? TryGetTypeDefFlags(TypeDefinitionHandle handle)
+        {
+            try
+            {
+                return GetTypeDefFlagsOrThrow(handle);
+            }
+            catch (BadImageFormatException)
+            {
+                return null;
+            }
         }
 
         /// <exception cref="BadImageFormatException">An exception from metadata reader.</exception>
