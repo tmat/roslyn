@@ -32,6 +32,14 @@
     <Reference Include="Microsoft.DiaSymReader.dll">
       <HintPath>$(NuGetPackagesPath)\Microsoft.DiaSymReader.1.0.5\lib\net45\Microsoft.DiaSymReader.dll</HintPath>
     </Reference>
+    <Reference Include="System.IO.FileSystem.dll">
+        <HintPath>$(NuGetPackagesPath)\System.IO.FileSystem.4.0.0\ref\dotnet\System.IO.FileSystem.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.IO.FileSystem.Primitives.dll">
+        <HintPath>$(NuGetPackagesPath)\System.IO.FileSystem.Primitives.4.0.0\ref\dotnet\System.IO.FileSystem.Primitives.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\Compilers\Core\Portable\InternalUtilities\ImmutableArrayExtensions.cs">
