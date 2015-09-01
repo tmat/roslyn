@@ -33,8 +33,6 @@
 
     <SignAssembly Condition="'$(SignAssembly)' == ''">true</SignAssembly>
 
-    <NuGetPackagesPath Condition="'$(NuGetPackagesPath)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\packages'))</NuGetPackagesPath>
-
     <UseRoslynAnalyzers Condition="'$(UseRoslynAnalyzers)' == ''">true</UseRoslynAnalyzers>
 
     <RoslynSemanticVersion Condition="'$(RoslynSemanticVersion)' == ''">1.1.0</RoslynSemanticVersion>
@@ -82,8 +80,8 @@
   <!-- Import the global NuGet packages -->
   <PropertyGroup>
     <ToolsetCompilerPackageName>Microsoft.Net.Compilers</ToolsetCompilerPackageName>
-    <ToolsetCompilerPropsFilePath>$(NuGetPackagesPath)\Microsoft.Net.Compilers.1.1.0-beta1-20150825-02\build\Microsoft.Net.Compilers.props</ToolsetCompilerPropsFilePath>
-    <RoslynDiagnosticsPropsFilePath>$(NuGetPackagesPath)\Microsoft.Net.RoslynDiagnostics.1.1.1-beta1-20150818-01\build\Microsoft.Net.RoslynDiagnostics.props</RoslynDiagnosticsPropsFilePath>
+    <ToolsetCompilerPropsFilePath>$(NuGetPackageRoot)\Microsoft.Net.Compilers.1.1.0-beta1-20150825-02\build\Microsoft.Net.Compilers.props</ToolsetCompilerPropsFilePath>
+    <RoslynDiagnosticsPropsFilePath>$(NuGetPackageRoot)\Microsoft.Net.RoslynDiagnostics.1.1.1-beta1-20150818-01\build\Microsoft.Net.RoslynDiagnostics.props</RoslynDiagnosticsPropsFilePath>
     <AdditionalFileItemNames>$(AdditionalFileItemNames);PublicAPI</AdditionalFileItemNames>
   </PropertyGroup>
 
@@ -130,7 +128,7 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <AddAdditionalExplicitAssemblyReferences>false</AddAdditionalExplicitAssemblyReferences>
     <NoStdLib>true</NoStdLib>
-    <FrameworkPathOverride>$(NuGetPackagesPath)\Microsoft.NetFX20.1.0.3\lib\net20</FrameworkPathOverride>
+    <FrameworkPathOverride>$(NuGetPackageRoot)\Microsoft.NetFX20.1.0.3\lib\net20</FrameworkPathOverride>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(ProjectLanguage)' == 'CSharp' AND '$(TargetNetFX20)' == 'true'">
@@ -244,7 +242,7 @@
   <PropertyGroup>
     <CopyVSReferencesToOutput>True</CopyVSReferencesToOutput>
     <AuthenticodeCertificateName>MicrosoftSHA1</AuthenticodeCertificateName>
-    <FakeSignToolPath>$(MSBuildThisFileDirectory)..\..\packages\FakeSign.0.9.2\tools\FakeSign.exe</FakeSignToolPath>
+    <FakeSignToolPath>$(NuGetPackageRoot)\FakeSign.0.9.2\tools\FakeSign.exe</FakeSignToolPath>
   </PropertyGroup>
 
   <Choose>

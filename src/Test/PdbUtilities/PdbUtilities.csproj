@@ -58,22 +58,22 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Reflection.Metadata">
-      <HintPath>..\..\..\packages\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll</HintPath>
     </Reference>
     <Reference Include="System.Collections.Immutable, Version=$(SystemCollectionsImmutableAssemblyVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.DiaSymReader">
-      <HintPath>..\..\..\packages\Microsoft.DiaSymReader.1.0.5\lib\net45\Microsoft.DiaSymReader.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\Microsoft.DiaSymReader.1.0.5\lib\net45\Microsoft.DiaSymReader.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\..\packages\Microsoft.DiaSymReader.Native.$(MicrosoftDiaSymReaderNativeVersion)\lib\any~windows\x86\Microsoft.DiaSymReader.Native.x86.dll">
+    <Content Include="$(NuGetPackageRoot)\Microsoft.DiaSymReader.Native.$(MicrosoftDiaSymReaderNativeVersion)\lib\any~windows\x86\Microsoft.DiaSymReader.Native.x86.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="..\..\..\packages\Microsoft.DiaSymReader.Native.$(MicrosoftDiaSymReaderNativeVersion)\lib\any~windows\amd64\Microsoft.DiaSymReader.Native.amd64.dll">
+    <Content Include="$(NuGetPackageRoot)\Microsoft.DiaSymReader.Native.$(MicrosoftDiaSymReaderNativeVersion)\lib\any~windows\amd64\Microsoft.DiaSymReader.Native.amd64.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>

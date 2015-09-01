@@ -61,14 +61,14 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
   </PropertyGroup>
   <ItemGroup Label="Libraries">
-    <Reference Include="$(NuGetPackagesPath)\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll">
+    <Reference Include="$(NuGetPackageRoot)\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll">
       <Private>True</Private>
     </Reference>
-    <Reference Include="$(NuGetPackagesPath)\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll">
+    <Reference Include="$(NuGetPackageRoot)\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll">
       <Private>True</Private>
     </Reference>
     <Reference Include="xunit">
-      <HintPath>$(NuGetPackagesPath)\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

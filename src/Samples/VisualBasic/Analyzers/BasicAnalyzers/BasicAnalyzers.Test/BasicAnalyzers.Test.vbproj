@@ -42,7 +42,7 @@
     <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <PropertyGroup>
-    <PackagesDir Condition="Exists('..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.0.0')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\..\packages'))</PackagesDir>
+    <PackagesDir Condition="Exists('$(NuGetPackageRoot)\Microsoft.CodeAnalysis.Analyzers.1.0.0')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\..\packages'))</PackagesDir>
     <PackagesDir Condition="'$(PackagesDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\..\..\..\..\..\packages'))</PackagesDir>
   </PropertyGroup>
   <ItemGroup>

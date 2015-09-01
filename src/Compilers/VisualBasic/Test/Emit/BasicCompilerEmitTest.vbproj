@@ -50,11 +50,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup Label="File References">
-    <Reference Include="..\..\..\..\..\packages\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll" />
-    <Reference Include="..\..\..\..\..\packages\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll" />
-    <Reference Include="..\..\..\..\..\packages\Microsoft.DiaSymReader.1.0.5\lib\net45\Microsoft.DiaSymReader.dll" />
+    <Reference Include="$(NuGetPackageRoot)\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll" />
+    <Reference Include="$(NuGetPackageRoot)\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll" />
+    <Reference Include="$(NuGetPackageRoot)\Microsoft.DiaSymReader.1.0.5\lib\net45\Microsoft.DiaSymReader.dll" />
     <Reference Include="xunit">
-      <HintPath>..\..\..\..\..\packages\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
     </Reference>
   </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
@@ -84,7 +84,7 @@
   <ItemGroup>
     <Reference Include="Microsoft.CodeAnalysis.Test.Resources.Proprietary, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\packages\Microsoft.CodeAnalysis.Test.Resources.Proprietary.1.1.0-beta1-20150824-02\lib\net45\Microsoft.CodeAnalysis.Test.Resources.Proprietary.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\Microsoft.CodeAnalysis.Test.Resources.Proprietary.1.1.0-beta1-20150824-02\lib\net45\Microsoft.CodeAnalysis.Test.Resources.Proprietary.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />

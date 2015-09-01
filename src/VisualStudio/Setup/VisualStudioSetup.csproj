@@ -182,36 +182,36 @@
     <Reference Include="System" />
     <Reference Include="Esent.Interop">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\ManagedEsent.1.9.2.0\lib\net40\Esent.Interop.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\ManagedEsent.1.9.2.0\lib\net40\Esent.Interop.dll</HintPath>
     </Reference>
     <Reference Include="System.Collections.Immutable">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
       <Private>True</Private>
       <!-- Included in the VSIX because it makes our setup authoring (DevDivInsertionFiles) easier. -->
       <ForceIncludeInVSIX>true</ForceIncludeInVSIX>
     </Reference>
     <Reference Include="System.Reflection.Metadata">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll</HintPath>
       <!-- Included in the VSIX because it makes our setup authoring (DevDivInsertionFiles) easier. -->
       <ForceIncludeInVSIX>true</ForceIncludeInVSIX>
     </Reference>
     <Reference Include="System.Composition.Convention">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\Microsoft.Composition.$(MicrosoftCompositionVersion)\lib\portable-net45+win8+wp8+wpa81\System.Composition.Convention.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\Microsoft.Composition.$(MicrosoftCompositionVersion)\lib\portable-net45+win8+wp8+wpa81\System.Composition.Convention.dll</HintPath>
       <!-- Included in the VSIX because it makes our setup authoring (DevDivInsertionFiles) easier. -->
       <ForceIncludeInVSIX>true</ForceIncludeInVSIX>
     </Reference>
     <Reference Include="System.Composition.Hosting">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\Microsoft.Composition.$(MicrosoftCompositionVersion)\lib\portable-net45+win8+wp8+wpa81\System.Composition.Hosting.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\Microsoft.Composition.$(MicrosoftCompositionVersion)\lib\portable-net45+win8+wp8+wpa81\System.Composition.Hosting.dll</HintPath>
       <!-- Included in the VSIX because it makes our setup authoring (DevDivInsertionFiles) easier. -->
       <ForceIncludeInVSIX>true</ForceIncludeInVSIX>
     </Reference>
     <Reference Include="System.Composition.TypedParts">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\packages\Microsoft.Composition.$(MicrosoftCompositionVersion)\lib\portable-net45+win8+wp8+wpa81\System.Composition.TypedParts.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\Microsoft.Composition.$(MicrosoftCompositionVersion)\lib\portable-net45+win8+wp8+wpa81\System.Composition.TypedParts.dll</HintPath>
       <!-- Included in the VSIX because it makes our setup authoring (DevDivInsertionFiles) easier. -->
       <ForceIncludeInVSIX>true</ForceIncludeInVSIX>
     </Reference>

@@ -24,10 +24,10 @@
   <ItemGroup Label="File References">
     <Reference Include="$(OutDir)Microsoft.VisualStudio.Debugger.Engine.dll" />
     <Reference Include="System.Reflection.Metadata">
-      <HintPath>..\..\..\..\..\packages\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\System.Reflection.Metadata.$(SystemReflectionMetadataVersion)\lib\portable-net45+win8\System.Reflection.Metadata.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.DiaSymReader">
-      <HintPath>..\..\..\..\..\packages\Microsoft.DiaSymReader.1.0.5\lib\net45\Microsoft.DiaSymReader.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\Microsoft.DiaSymReader.1.0.5\lib\net45\Microsoft.DiaSymReader.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup Label="Project References">
@@ -54,7 +54,7 @@
   <ItemGroup>
     <Reference Include="System.Collections.Immutable">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\packages\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)\System.Collections.Immutable.$(SystemCollectionsImmutableVersion)\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
