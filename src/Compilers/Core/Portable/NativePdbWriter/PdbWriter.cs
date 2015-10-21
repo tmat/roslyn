@@ -82,7 +82,7 @@ namespace Microsoft.Cci
             }
         }
 
-        internal ContentId ContentIdFromLog()
+        internal byte[] GetLogHash()
         {
             Debug.Assert(_logData != null);
 
@@ -104,7 +104,7 @@ namespace Microsoft.Cci
             Debug.Assert(remaining == 0);
 
             _logData.Clear();
-            return ContentId.FromHash(_hashAlgorithm.Hash.ToImmutableArray());
+            return _hashAlgorithm.Hash;
         }
 
         internal void Close()
@@ -813,7 +813,7 @@ namespace Microsoft.Cci
 
                 if (_deterministic)
                 {
-                    var deterministicSymWriter = symWriter as ISymUnmanagedWriter6;
+                    var deterministicSymWriter = symWriter as ISymUnmanagedWriter7;
                     if (deterministicSymWriter == null)
                     {
                         throw new NotSupportedException(CodeAnalysisResources.SymWriterNotDeterministic);
@@ -839,20 +839,19 @@ namespace Microsoft.Cci
         {
             if (_deterministic)
             {
-                // Call to GetDebugInfo fails for SymWriter initialized using InitializeDeterministic.
-                // We already have all the info we need though.
-                var id = _callLogger.ContentIdFromLog();
+                // rewrite GUID and timestamp in the PDB with hash of a has of the log content:
+                byte[] hash = _callLogger.GetLogHash();
                 try
                 {
-                    Debug.Assert(BitConverter.IsLittleEndian);
-                    ((ISymUnmanagedWriter100)_symWriter).SetSignature(BitConverter.ToUInt32(id.Stamp, 0), new Guid(id.Guid));
+                    fixed (byte* hashPtr = &hash[0])
+                    {
+                        ((ISymUnmanagedWriter7)_symWriter).UpdateSignatureByHashingContent(hashPtr, hash.Length);
+                    }
                 }
                 catch (Exception ex)
                 {
                     throw new PdbWritingException(ex);
                 }
-
-                return id;
             }
 
             // See symwrite.cpp - the data byte[] doesn't depend on the content of metadata tables or IL.
