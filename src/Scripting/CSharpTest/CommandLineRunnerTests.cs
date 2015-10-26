@@ -12,54 +12,22 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.Scripting.CSharp.UnitTests
 {
-    public class CommandLineRunnerTests : TestBase
+    public partial class CommandLineRunnerTests : TestBase
     {
         private static readonly string CompilerVersion =
             typeof(CSharpInteractiveCompiler).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
 
-        private static CommandLineRunner CreateRunner(string[] args = null, string input = "", string responseFile = null)
+        private static CommandLineRunner CreateRunner(string[] args = null, string input = "", string responseFile = null, string baseDirectory = null)
         {
             var io = new TestConsoleIO(input);
 
             var compiler = new CSharpInteractiveCompiler(
                 responseFile,
-                AppContext.BaseDirectory,
+                baseDirectory ?? AppContext.BaseDirectory,
                 args ?? Array.Empty<string>(),
                 new NotImplementedAnalyzerLoader());
 
             return new CommandLineRunner(io, compiler, CSharpScriptCompiler.Instance, CSharpObjectFormatter.Instance);
-        }
-
-        [Fact]
-        public void Await()
-        {
-            var runner = CreateRunner(input:
-@"async Task<int[]> GetStuffAsync()
-{
-  return new int[] { 1, 2, 3, 4, 5 };
-}
-from x in await GetStuffAsync()
-where x > 2
-select x * x
-");
-            runner.RunInteractive();
-
-            Assert.Equal(
-$@"Microsoft (R) Visual C# Interactive Compiler version {CompilerVersion}
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-> async Task<int[]> GetStuffAsync()
-. {{
-.   return new int[] {{ 1, 2, 3, 4, 5 }};
-. }}
-«Yellow»
-(1,19): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
-«Gray»
-> from x in await GetStuffAsync()
-. where x > 2
-. select x * x
-Enumerable.WhereSelectArrayIterator<int, int> {{ 9, 16, 25 }}
-> ", runner.Console.Out.ToString());
         }
 
         [Fact]

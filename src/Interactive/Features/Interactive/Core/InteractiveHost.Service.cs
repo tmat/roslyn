@@ -769,14 +769,10 @@ namespace Microsoft.CodeAnalysis.Interactive
                 }
 
                 // force build so exception is thrown now if errors are found.
-                try
+                var diagnostics = script.Build();
+                DisplayInteractiveErrors(diagnostics, Console.Error);
+                if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
                 {
-                    script.Build();
-                }
-                catch (CompilationErrorException e)
-                {
-                    DisplayInteractiveErrors(e.Diagnostics, Console.Error);
-                    return null;
                 }
 
                 // TODO: Do we want to do this? 

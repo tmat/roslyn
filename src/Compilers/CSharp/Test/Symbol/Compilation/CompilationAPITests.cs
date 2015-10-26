@@ -1989,7 +1989,7 @@ public class C { public static FrameworkName Foo() { return null; }}";
         }
 
         /// <summary>
-        /// Previous submission has to have no errors.
+        /// It's ok to create subsequent submission even if the previous one has errors.
         /// </summary>
         [Fact]
         public void PreviousSubmissionWithError()
@@ -1999,7 +1999,7 @@ public class C { public static FrameworkName Foo() { return null; }}";
                 // (1,9): error CS0029: Cannot implicitly convert type 'string' to 'int'
                 Diagnostic(ErrorCode.ERR_NoImplicitConv, @"""x""").WithArguments("string", "int"));
 
-            Assert.Throws<InvalidOperationException>(() => CreateSubmission("a + 1", previous: s0));
+            CreateSubmission("a + 1", previous: s0);
         }
     }
 }

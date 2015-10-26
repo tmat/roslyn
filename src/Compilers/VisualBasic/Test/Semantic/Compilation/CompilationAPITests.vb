@@ -1485,7 +1485,7 @@ End Class
             Assert.False(c3.ReferenceManagerEquals(c2))
         End Sub
 
-        <Fact(Skip:="790235")>
+        <Fact(Skip:="https://github.com/dotnet/roslyn/issues/5300")>
         Public Sub ReferenceManagerReuse_WithSyntaxTrees()
             Dim ta = Parse("Imports System")
             Dim tb = Parse("Imports System", options:=TestOptions.Script)
@@ -1800,7 +1800,7 @@ End Sub
         End Sub
 
         ''' <summary>
-        ''' Previous submission has to have no errors.
+        ''' It's ok to create subsequent submission even if the previous one has errors.
         ''' </summary>
         <Fact>
         Public Sub PreviousSubmissionWithError()
@@ -1809,7 +1809,7 @@ End Sub
             s0.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_UndefinedType1, "X").WithArguments("X"))
 
-            Assert.Throws(Of InvalidOperationException)(Function() CreateSubmission("?a + 1", previous:=s0))
+            CreateSubmission("?a + 1", previous:=s0)
         End Sub
     End Class
 End Namespace

@@ -66,6 +66,7 @@
     <Compile Include="CommandLine\CommandLineRunner.cs" />
     <Compile Include="CommandLine\ConsoleIO.cs" />
     <Compile Include="CommandLine\NotImplementedAnalyzerLoader.cs" />
+    <Compile Include="CommandLine\ReplUtilities.cs" />
     <Compile Include="Resolvers\RuntimeMetadataReferenceResolver.cs" />
     <Compile Include="AssemblyLoader\InteractiveAssemblyLoader.cs" />
     <Compile Include="AssemblyLoader\MetadataShadowCopy.cs" />

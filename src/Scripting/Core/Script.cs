@@ -11,6 +11,7 @@ using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Roslyn.Utilities;
 using Microsoft.CodeAnalysis.Scripting.Hosting;
+using System.Runtime.CompilerServices;
 
 namespace Microsoft.CodeAnalysis.Scripting
 {
@@ -165,11 +166,15 @@ namespace Microsoft.CodeAnalysis.Scripting
         /// Forces the script through the build step.
         /// If not called directly, the build step will occur on the first call to Run.
         /// </summary>
-        public void Build(CancellationToken cancellationToken = default(CancellationToken)) =>
+        /// <returns>All diagnostics (errors, warnigns, etc.) produced during compilation of the script.</returns>
+        /// <remarks>
+        /// If the script has multiple parts (chained thru <see cref="ContinueWith(string, ScriptOptions)"/>) returns diagnostics for all the parts.
+        /// </remarks>
+        public ImmutableArray<Diagnostic> Build(CancellationToken cancellationToken = default(CancellationToken)) =>
             CommonBuild(cancellationToken);
 
-        internal abstract void CommonBuild(CancellationToken cancellationToken);
-        internal abstract Func<object[], Task> CommonGetExecutor(CancellationToken cancellationToken);
+        internal abstract ImmutableArray<Diagnostic> CommonBuild(CancellationToken cancellationToken);
+        internal abstract Func<object[], Task> CommonGetExecutorAndDiagnostics(out ImmutableArray<Diagnostic> diagnostics, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the references that need to be assigned to the compilation.
@@ -270,15 +275,8 @@ namespace Microsoft.CodeAnalysis.Scripting
         internal override Script WithCodeInternal(string code) => WithCode(code);
         internal override Script WithGlobalsTypeInternal(Type globalsType) => WithGlobalsType(globalsType);
 
-        /// <exception cref="CompilationErrorException">Compilation has errors.</exception>
-        internal override void CommonBuild(CancellationToken cancellationToken)
-        {
-            GetPrecedingExecutors(cancellationToken);
-            GetExecutor(cancellationToken);
-        }
-
-        internal override Func<object[], Task> CommonGetExecutor(CancellationToken cancellationToken)
-            => GetExecutor(cancellationToken);
+        internal override Func<object[], Task> CommonGetExecutorAndDiagnostics(out ImmutableArray<Diagnostic> diagnostics, CancellationToken cancellationToken)
+            => GetExecutorAndDiagnostics(out diagnostics, cancellationToken);
 
         internal override Task<object> CommonEvaluateAsync(object globals, CancellationToken cancellationToken) =>
             EvaluateAsync(globals, cancellationToken).CastAsync<T, object>();
@@ -289,32 +287,96 @@ namespace Microsoft.CodeAnalysis.Scripting
         internal override Task<ScriptState> CommonContinueAsync(ScriptState previousState, CancellationToken cancellationToken) =>
             ContinueAsync(previousState, cancellationToken).CastAsync<ScriptState<T>, ScriptState>();
 
+        internal override ImmutableArray<Diagnostic> CommonBuild(CancellationToken cancellationToken)
+        {
+            ImmutableArray<ImmutableArray<Diagnostic>> precedingDiagnostics;
+            GetPrecedingExecutors(out precedingDiagnostics, cancellationToken);
+
+            ImmutableArray<Diagnostic> currentDiagnostics;
+            GetExecutorAndDiagnostics(out currentDiagnostics, cancellationToken);
+
+            return MergeDiagnostics(precedingDiagnostics, currentDiagnostics);
+        }
+
         /// <exception cref="CompilationErrorException">Compilation has errors.</exception>
-        private Func<object[], Task<T>> GetExecutor(CancellationToken cancellationToken)
+        private void GetExecutorsThrowing(out ImmutableArray<Func<object[], Task>> preceding, out Func<object[], Task<T>> current, CancellationToken cancellationToken)
+        {
+            ImmutableArray<Diagnostic> currentDiagnostics;
+            ImmutableArray<ImmutableArray<Diagnostic>> precedingDiagnostics;
+
+            // We must build executors in order, preceding first then current:
+            preceding = GetPrecedingExecutors(out precedingDiagnostics, cancellationToken);
+            current = GetExecutorAndDiagnostics(out currentDiagnostics, cancellationToken);
+
+            ThrowOnError(precedingDiagnostics, currentDiagnostics);
+        }
+
+        private void ThrowOnError(ImmutableArray<ImmutableArray<Diagnostic>> preceding, ImmutableArray<Diagnostic> current)
+        {
+            Diagnostic firstError = TryGetFirstError(preceding, current);
+            if (firstError != null)
+            {
+                throw new CompilationErrorException(
+                    Compiler.DiagnosticFormatter.Format(firstError, CultureInfo.CurrentCulture),
+                    MergeDiagnostics(preceding, current));
+            }
+        }
+
+        private ImmutableArray<Diagnostic> MergeDiagnostics(ImmutableArray<ImmutableArray<Diagnostic>> preceding, ImmutableArray<Diagnostic> current)
+        {
+            var allDiagnostics = ArrayBuilder<Diagnostic>.GetInstance();
+
+            foreach (var diagnostics in preceding)
+            {
+                allDiagnostics.AddRange(diagnostics);
+            }
+
+            allDiagnostics.AddRange(current);
+
+            return allDiagnostics.ToImmutableAndFree();
+        }
+
+        private Diagnostic TryGetFirstError(ImmutableArray<ImmutableArray<Diagnostic>> preceding, ImmutableArray<Diagnostic> current)
+        {
+            foreach (var diagnostics in preceding)
+            {
+                Diagnostic firstError = diagnostics.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
+                if (firstError != null)
+                {
+                    return firstError;
+                }
+            }
+
+            return current.FirstOrDefault(d => d.Severity == DiagnosticSeverity.Error);
+        }
+
+        private Func<object[], Task<T>> GetExecutorAndDiagnostics(out ImmutableArray<Diagnostic> diagnostics, CancellationToken cancellationToken)
         {
             if (_lazyExecutor == null)
             {
-                Interlocked.CompareExchange(ref _lazyExecutor, Builder.CreateExecutor<T>(Compiler, GetCompilation(), cancellationToken), null);
+                var executorAndDiagnostics = Builder.CreateExecutor<T>(GetCompilation(), cancellationToken);
+                if (Interlocked.CompareExchange(ref _lazyExecutor, executorAndDiagnostics.Item1, null) == null)
+                {
+                    diagnostics = executorAndDiagnostics.Item2;
+                }
             }
 
             return _lazyExecutor;
         }
 
-        /// <exception cref="CompilationErrorException">Compilation has errors.</exception>
         private ImmutableArray<Func<object[], Task>> GetPrecedingExecutors(CancellationToken cancellationToken)
         {
-            if (_lazyPrecedingExecutors.IsDefault)
+            if (_lazyPrecedingExecutors == null)
             {
                 var preceding = TryGetPrecedingExecutors(null, cancellationToken);
-                Debug.Assert(!preceding.IsDefault);
+                Debug.Assert(preceding != null);
                 InterlockedOperations.Initialize(ref _lazyPrecedingExecutors, preceding);
             }
 
             return _lazyPrecedingExecutors;
         }
 
-        /// <exception cref="CompilationErrorException">Compilation has errors.</exception>
-        private ImmutableArray<Func<object[], Task>> TryGetPrecedingExecutors(Script lastExecutedScriptInChainOpt, CancellationToken cancellationToken)
+        private ImmutableArray<Func<object[], Task>> TryGetPrecedingExecutors(Script lastExecutedScriptInChainOpt, ArrayBuilder<Diagnostic> diagnostics, CancellationToken cancellationToken)
         {
             Script script = Previous;
             if (script == lastExecutedScriptInChainOpt)
@@ -342,7 +404,9 @@ namespace Microsoft.CodeAnalysis.Scripting
             // so that assemblies created for the submissions are loaded in the correct order.
             for (int i = scriptsReversed.Count - 1; i >= 0; i--)
             {
-                executors.Add(scriptsReversed[i].CommonGetExecutor(cancellationToken));
+                ImmutableArray<Diagnostic> scriptDiagnostics;
+                executors.Add(scriptsReversed[i].CommonGetExecutorAndDiagnostics(out scriptDiagnostics, cancellationToken));
+                diagnostics.AddRange();
             }
 
             return executors.ToImmutableAndFree();
@@ -379,8 +443,10 @@ namespace Microsoft.CodeAnalysis.Scripting
             ValidateGlobals(globals, GlobalsType);
 
             var executionState = ScriptExecutionState.Create(globals);
-            var precedingExecutors = GetPrecedingExecutors(cancellationToken);
-            var currentExecutor = GetExecutor(cancellationToken);
+
+            Func<object[], Task<T>> currentExecutor;
+            ImmutableArray<Func<object[], Task>> precedingExecutors;
+            GetExecutorsThrowing(out precedingExecutors, out currentExecutor, cancellationToken);
 
             return RunSubmissionsAsync(executionState, precedingExecutors, currentExecutor, cancellationToken);
         }
@@ -389,12 +455,15 @@ namespace Microsoft.CodeAnalysis.Scripting
         /// Creates a delegate that will run this script from the beginning when invoked.
         /// </summary>
         /// <remarks>
-        /// The delegate doesn't hold on this script or its compilation.
+        /// The delegate doesn't hold on this script, its compilation or diagnostics.
         /// </remarks>
+        /// <exception cref="CompilationErrorException">Script has compilation errors.</exception>
         public ScriptRunner<T> CreateDelegate(CancellationToken cancellationToken = default(CancellationToken))
         {
-            var precedingExecutors = GetPrecedingExecutors(cancellationToken);
-            var currentExecutor = GetExecutor(cancellationToken);
+            Func<object[], Task<T>> currentExecutor;
+            ImmutableArray<Func<object[], Task>> precedingExecutors;
+            GetExecutorsThrowing(out precedingExecutors, out currentExecutor, cancellationToken);
+
             var globalsType = GlobalsType;
 
             return (globals, token) =>
@@ -414,6 +483,7 @@ namespace Microsoft.CodeAnalysis.Scripting
         /// <returns>A <see cref="ScriptState"/> that represents the state after running the script, including all declared variables and return value.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="previousState"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="previousState"/> is not a previous execution state of this script.</exception>
+        /// <exception cref="CompilationErrorException">Script has compilation errors.</exception>
         public new Task<ScriptState<T>> ContinueAsync(ScriptState previousState, CancellationToken cancellationToken = default(CancellationToken))
         {
             // The following validation and executor contruction may throw;
@@ -430,16 +500,20 @@ namespace Microsoft.CodeAnalysis.Scripting
                 return Task.FromResult((ScriptState<T>)previousState);
             }
 
-            var precedingExecutors = TryGetPrecedingExecutors(previousState.Script, cancellationToken);
-            if (precedingExecutors.IsDefault)
+            // We must build executors in order, preceding first then current:
+            var precedingExecutorsAndDiagnostics = TryGetPrecedingExecutors(previousState.Script, cancellationToken);
+            if (precedingExecutorsAndDiagnostics == null)
             {
                 throw new ArgumentException(ScriptingResources.StartingStateIncompatible, nameof(previousState));
             }
 
-            var currentExecutor = GetExecutor(cancellationToken);
-            ScriptExecutionState newExecutionState = previousState.ExecutionState.FreezeAndClone();
+            ImmutableArray<Diagnostic> currentDiagnostics;
+            var currentExecutor = GetExecutorAndDiagnostics(out currentDiagnostics, cancellationToken);
 
-            return RunSubmissionsAsync(newExecutionState, precedingExecutors, currentExecutor, cancellationToken);
+            ThrowOnError(precedingExecutorsAndDiagnostics.Item2, currentDiagnostics);
+
+            ScriptExecutionState newExecutionState = previousState.ExecutionState.FreezeAndClone();
+            return RunSubmissionsAsync(newExecutionState, precedingExecutorsAndDiagnostics.Item1, currentExecutor, cancellationToken);
         }
 
         private async Task<ScriptState<T>> RunSubmissionsAsync(ScriptExecutionState executionState, ImmutableArray<Func<object[], Task>> precedingExecutors, Func<object[], Task> currentExecutor, CancellationToken cancellationToken)

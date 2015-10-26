@@ -11,8 +11,7 @@
 namespace Microsoft.CodeAnalysis.Scripting {
     using System;
     using System.Reflection;
-
-
+    
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -143,20 +142,20 @@ namespace Microsoft.CodeAnalysis.Scripting {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to + additional {0} error.
-        /// </summary>
-        internal static string PlusAdditionalError {
-            get {
-                return ResourceManager.GetString("PlusAdditionalError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to + additional {0} errors.
+        ///   Looks up a localized string similar to + additional {0} error(s).
         /// </summary>
         internal static string PlusAdditionalErrors {
             get {
                 return ResourceManager.GetString("PlusAdditionalErrors", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to + additional {0} warning(s).
+        /// </summary>
+        internal static string PlusAdditionalWarnings {
+            get {
+                return ResourceManager.GetString("PlusAdditionalWarnings", resourceCulture);
             }
         }
         

@@ -3,6 +3,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.CSharp;
 using Roslyn.Test.Utilities;
 using Roslyn.Utilities;
 using Xunit;
@@ -14,14 +15,112 @@ namespace Microsoft.CodeAnalysis.Scripting.CSharp.Test
     public class ScriptTests : TestBase
     {
         [Fact]
-        public void TestCreateScript()
+        public void CreateScript()
         {
             var script = CSharpScript.Create("1 + 2");
             Assert.Equal("1 + 2", script.Code);
         }
 
         [Fact]
-        public async Task TestGetCompilation()
+        public void NoCode()
+        {
+            var s = CSharpScript.Create("using System;");
+            s.GetCompilation().GetDiagnostics().Verify();
+            s.RunAsync().Wait();
+        }
+
+        [Fact]
+        public void CompilationErrors_Parse()
+        {
+            var s = CSharpScript.Create("{");
+
+            s.Build().Verify(
+                // (1,2): error CS1513: } expected
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
+
+            Assert.Throws<CompilationErrorException>(() => s.RunAsync().Wait());
+        }
+
+        [Fact]
+        public void CompilationErrors_Semantic()
+        {
+            var s = CSharpScript.Create("Foo()");
+
+            s.Build().Verify(
+                // (1,1): error CS0103: The name 'Foo' does not exist in the current context
+                Diagnostic(ErrorCode.ERR_NameNotInContext, "Foo").WithArguments("Foo"));
+
+            Assert.Throws<CompilationErrorException>(() => s.RunAsync().Wait());
+        }
+
+        [Fact]
+        public void CompilationErrors_Emit()
+        {
+            var identifier = new string('X', 4000);
+
+            var s = CSharpScript.Create($"int {identifier} = 1;");
+
+            s.GetCompilation().GetDiagnostics().Verify();
+            s.Build().Verify(
+                Diagnostic(ErrorCode.ERR_MetadataNameTooLong, identifier).WithArguments(identifier));
+
+            Assert.Throws<CompilationErrorException>(() => s.RunAsync().Wait());
+        }
+
+        [Fact]
+        public void CompilationWarnings()
+        {
+            var s = CSharpScript.Create<Task<int>>("System.Threading.Tasks.Task.FromResult(1)");
+
+            s.GetCompilation().GetDiagnostics().Verify(
+                // (1,1): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
+                Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "System.Threading.Tasks.Task.FromResult(1)"));
+
+            s.Build().Verify(
+                // (1,1): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
+                Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "System.Threading.Tasks.Task.FromResult(1)"));
+
+            Assert.Equal(1, s.RunAsync().Result.ReturnValue.Result);
+        }
+
+        [Fact]
+        public void PreviousErrorsAndWarnings()
+        {
+            var s = CSharpScript.
+                Create("Foo()").
+                ContinueWith("System.Threading.Tasks.Task.FromResult(1)").
+                ContinueWith("Bar()").
+                ContinueWith("System.Threading.Tasks.Task.FromResult(2)");
+
+            var expected = new[]
+            {
+                // (1,1): error CS0103: The name 'Foo' does not exist in the current context
+                Diagnostic(ErrorCode.ERR_NameNotInContext, "Foo").WithArguments("Foo"),
+                // (1,1): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
+                Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "System.Threading.Tasks.Task.FromResult(1)"),
+                // (1,1): error CS0103: The name 'Bar' does not exist in the current context
+                Diagnostic(ErrorCode.ERR_NameNotInContext, "Bar").WithArguments("Bar"),
+                // (1,1): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
+                Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "System.Threading.Tasks.Task.FromResult(2)")
+            };
+
+            s.Build().Verify(expected);
+
+            CompilationErrorException exception = null;
+            try
+            {
+                s.RunAsync().Wait();
+            }
+            catch (CompilationErrorException e)
+            {
+                exception = e;
+            }
+
+            exception.Diagnostics.Verify(expected);
+        }
+
+        [Fact]
+        public async Task GetCompilation()
         {
             var state = await CSharpScript.RunAsync("1 + 2", globals: new ScriptTests());
             var compilation = state.Script.GetCompilation();
@@ -29,7 +128,7 @@ namespace Microsoft.CodeAnalysis.Scripting.CSharp.Test
         }
 
         [Fact]
-        public void TestCreateScriptDelegate()
+        public void CreateScriptDelegate()
         {
             // create a delegate for the entire script
             var script = CSharpScript.Create("1 + 2");
@@ -40,7 +139,7 @@ namespace Microsoft.CodeAnalysis.Scripting.CSharp.Test
         }
 
         [Fact]
-        public void TestCreateScriptDelegateWithGlobals()
+        public void CreateScriptDelegateWithGlobals()
         {
             // create a delegate for the entire script
             var script = CSharpScript.Create<int>("X + Y", globalsType: typeof(Globals));

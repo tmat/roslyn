@@ -132,14 +132,16 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
         {
             options = options.WithPath(scriptPath).WithIsInteractive(false);
             var script = Script.CreateInitialScript<object>(_scriptCompiler, code, options, globals.GetType(), assemblyLoaderOpt: null);
-            try
+
+            // When executing script report errors and warnings according to the settings specified on command line (warnings suppression, etc.).
+            var diagnostics = script.Build(globals.CancellationToken);
+            if (_compiler.ReportErrors(diagnostics, _console.Out, errorLogger))
+            {
+                globals.ExitCode = CommonCompiler.Failed;
+            }
+            else
             {
                 script.RunAsync(globals, globals.CancellationToken).Wait();
-            }
-            catch (CompilationErrorException e)
-            {
-                _compiler.ReportErrors(e.Diagnostics, _console.Out, errorLogger);
-                globals.ExitCode = CommonCompiler.Failed;
             }
         }
 
@@ -199,16 +201,15 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
 
                 var newCompilation = newScript.GetCompilation();
 
-                try
-                {
-                    newScript.Build(cancellationToken);
+                var diagnostics = newScript.Build(cancellationToken);
 
-                    // display warnings:
-                    DisplayDiagnostics(newCompilation.GetDiagnostics(cancellationToken).Where(d => d.Severity == DiagnosticSeverity.Warning));
-                }
-                catch (CompilationErrorException e)
+                // CLI REPL: 
+                // Display warnings even when there are no errors.
+                // Unlike editor-based REPL we don't have means to communicate warnings thru squiggles, so print them out.
+
+                DisplayDiagnostics(diagnostics);
+                if (diagnostics.HasAnyErrors())
                 {
-                    DisplayDiagnostics(e.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error || d.Severity == DiagnosticSeverity.Warning));
                     continue;
                 }
 
@@ -311,31 +312,13 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
 
         private void DisplayDiagnostics(IEnumerable<Diagnostic> diagnostics)
         {
-            const int MaxDisplayCount = 5;
-
-            var errorsAndWarnings = diagnostics.ToArray();
-           
-            // by severity, then by location
-            var ordered = errorsAndWarnings.OrderBy((d1, d2) =>
-            {
-                int delta = (int)d2.Severity - (int)d1.Severity;
-                return (delta != 0) ? delta : d1.Location.SourceSpan.Start - d2.Location.SourceSpan.Start;
-            });
-
             var oldColor = _console.ForegroundColor;
             try
             {
-                foreach (var diagnostic in ordered.Take(MaxDisplayCount))
+                foreach (var textAndColor in ReplUtilities.FormatDiagnostics(diagnostics))
                 {
-                    _console.ForegroundColor = (diagnostic.Severity == DiagnosticSeverity.Error) ? ConsoleColor.Red : ConsoleColor.Yellow;
-                    _console.Out.WriteLine(diagnostic.ToString());
-                }
-
-                if (errorsAndWarnings.Length > MaxDisplayCount)
-                {
-                    int notShown = errorsAndWarnings.Length - MaxDisplayCount;
-                    _console.ForegroundColor = ConsoleColor.DarkRed;
-                    _console.Out.WriteLine(string.Format((notShown == 1) ? ScriptingResources.PlusAdditionalError : ScriptingResources.PlusAdditionalError, notShown));
+                    _console.ForegroundColor = textAndColor.Item2;
+                    _console.Out.WriteLine(textAndColor.Item1);
                 }
             }
             finally

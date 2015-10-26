@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -65,49 +66,14 @@ namespace Microsoft.CodeAnalysis.Scripting
             return id;
         }
 
-        /// <exception cref="CompilationErrorException">Compilation has errors.</exception>
-        internal Func<object[], Task<T>> CreateExecutor<T>(ScriptCompiler compiler, Compilation compilation, CancellationToken cancellationToken)
+        internal Tuple<Func<object[], Task<T>>, ImmutableArray<Diagnostic>> CreateExecutor<T>(Compilation compilation, CancellationToken cancellationToken)
         {
             var diagnostics = DiagnosticBag.GetInstance();
-            try
-            {
-                // get compilation diagnostics first.
-                diagnostics.AddRange(compilation.GetParseDiagnostics());
-                ThrowIfAnyCompilationErrors(diagnostics, compiler.DiagnosticFormatter);
-                diagnostics.Clear();
+            var invoker = Build<T>(compilation, diagnostics, cancellationToken);
 
-                var executor = Build<T>(compilation, diagnostics, cancellationToken);
-
-                // emit can fail due to compilation errors or because there is nothing to emit:
-                ThrowIfAnyCompilationErrors(diagnostics, compiler.DiagnosticFormatter);
-
-                if (executor == null)
-                {
-                    executor = (s) => Task.FromResult(default(T));
-                }
-
-                return executor;
-            }
-            finally
-            {
-                diagnostics.Free();
-            }
-        }
-
-        private static void ThrowIfAnyCompilationErrors(DiagnosticBag diagnostics, DiagnosticFormatter formatter)
-        {
-            if (diagnostics.IsEmptyWithoutResolution)
-            {
-                return;
-            }
-            var filtered = diagnostics.AsEnumerable().Where(d => d.Severity == DiagnosticSeverity.Error).AsImmutable();
-            if (filtered.IsEmpty)
-            {
-                return;
-            }
-            throw new CompilationErrorException(
-                formatter.Format(filtered[0], CultureInfo.CurrentCulture),
-                filtered);
+            return Tuple.Create(
+                invoker ?? new Func<object[], Task<T>>(s => Task.FromResult(default(T))), 
+                diagnostics.ToReadOnlyAndFree());
         }
 
         /// <summary>
@@ -133,6 +99,8 @@ namespace Microsoft.CodeAnalysis.Scripting
 
                 diagnostics.AddRange(emitResult.Diagnostics);
 
+                // If the submission doesn't have any code, Success is false.
+                // We will check diagnostics for any errors.
                 if (!emitResult.Success)
                 {
                     return null;

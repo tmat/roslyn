@@ -52,7 +52,7 @@ Microsoft.CodeAnalysis.Scripting.ObjectFormattingOptions.ObjectFormattingOptions
 Microsoft.CodeAnalysis.Scripting.ObjectFormattingOptions.QuoteStrings.get -> bool
 Microsoft.CodeAnalysis.Scripting.ObjectFormattingOptions.UseHexadecimalNumbers.get -> bool
 Microsoft.CodeAnalysis.Scripting.Script
-Microsoft.CodeAnalysis.Scripting.Script.Build(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+Microsoft.CodeAnalysis.Scripting.Script.Build(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>
 Microsoft.CodeAnalysis.Scripting.Script.Code.get -> string
 Microsoft.CodeAnalysis.Scripting.Script.ContinueAsync(Microsoft.CodeAnalysis.Scripting.ScriptState previousState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.CodeAnalysis.Scripting.ScriptState>
 Microsoft.CodeAnalysis.Scripting.Script.ContinueWith(string code, Microsoft.CodeAnalysis.Scripting.ScriptOptions options = null) -> Microsoft.CodeAnalysis.Scripting.Script<object>
