@@ -1171,7 +1171,7 @@ public class E { }
             var script = CSharpScript.Create(@"new C()", 
                 ScriptOptions.Default.WithReferences(libRef.WithAliases(new[] { "Hidden" })).WithImports("Hidden::N"));
 
-            script.Build().Verify();
+            script.Compile().Verify();
         }
 
         #endregion
@@ -1473,54 +1473,27 @@ new List<ArgumentException>()
                 globalsType: typeof(CommandLineScriptGlobals)).GetCompilation();
 
             scriptCompilation.VerifyDiagnostics(
-                    // (1,8): error CS0234: The type or namespace name 'CodeAnalysis' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)
-                    Diagnostic(ErrorCode.ERR_DottedTypeNameNotFoundInNS, "Microsoft.CodeAnalysis").WithArguments("CodeAnalysis", "Microsoft"));
+                // (1,8): error CS0234: The type or namespace name 'CodeAnalysis' does not exist in the namespace 'Microsoft' (are you missing an assembly reference?)
+                Diagnostic(ErrorCode.ERR_DottedTypeNameNotFoundInNS, "Microsoft.CodeAnalysis").WithArguments("CodeAnalysis", "Microsoft"));
 
-            scriptCompilation.VerifyAssemblyAliases(
-                "mscorlib: global,<host>",
-                "Microsoft.CodeAnalysis.Scripting: <host>",
-                "System.Collections.Immutable: <implicit>,<host>",
-                "Microsoft.CodeAnalysis: <implicit>,<host>",
-                "System.Diagnostics.Tools: <implicit>,<host>",
-                "System.Resources.ResourceManager: <implicit>,<host>",
-                "System.Console: <implicit>,<host>",
-                "System.Diagnostics.StackTrace: <implicit>,<host>",
-                "System.IO.FileSystem: <implicit>,<host>",
-                "System.Linq: <implicit>,<host>",
-                "System.Text.Encoding: <implicit>,<host>",
-                "System.IO.FileSystem.Primitives: <implicit>,<host>",
-                "System.Reflection.Extensions: <implicit>,<host>",
-                "System.Core: <implicit>,<host>",
-                "System: <implicit>,<host>",
-                "System.Xml: <implicit>,<host>",
-                "System.Numerics: <implicit>,<host>",
-                "System.Security: <implicit>,<host>",
-                "System.Data.SqlXml: <implicit>,<host>",
-                "System.Configuration: <implicit>,<host>",
-                "System.Runtime: <implicit>,<host>",
-                "System.Diagnostics.Debug: <implicit>,<host>",
-                "System.Runtime.InteropServices: <implicit>,<host>",
-                "System.Reflection.Metadata: <implicit>,<host>",
-                "System.IO: <implicit>,<host>",
-                "System.Collections: <implicit>,<host>",
-                "System.Threading.Tasks: <implicit>,<host>",
-                "System.Reflection.Primitives: <implicit>,<host>",
-                "System.Reflection: <implicit>,<host>",
-                "System.Globalization: <implicit>,<host>",
-                "System.Runtime.Extensions: <implicit>,<host>",
-                "System.Runtime.Numerics: <implicit>,<host>",
-                "System.Runtime.Serialization.Json: <implicit>,<host>",
-                "System.Collections.Concurrent: <implicit>,<host>",
-                "System.Xml.ReaderWriter: <implicit>,<host>",
-                "System.Xml.XDocument: <implicit>,<host>",
-                "System.Dynamic.Runtime: <implicit>,<host>",
-                "System.Threading: <implicit>,<host>",
-                "System.Text.Encoding.Extensions: <implicit>,<host>",
-                "System.Xml.Linq: <implicit>,<host>",
-                "System.Runtime.Serialization: <implicit>,<host>",
-                "System.ServiceModel.Internals: <implicit>,<host>",
-                "SMDiagnostics: <implicit>,<host>",
-                "System.ComponentModel.Composition: <implicit>,<host>");
+            foreach (var assemblyAndAliases in scriptCompilation.GetBoundReferenceManager().GetReferencedAssemblyAliases())
+            {
+                switch (assemblyAndAliases.Item1.Identity.Name)
+                {
+                    case "mscorlib":
+                        AssertEx.SetEqual(new[] { "global", "<host>" }, assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis.Scripting":
+                        AssertEx.SetEqual(new[] { "<host>" }, assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis":
+                    default:
+                        AssertEx.SetEqual(new[] { "<implicit>", "<host>" },  assemblyAndAliases.Item2);
+                        break;
+                }
+            }
         }
 
         [Fact]
@@ -1579,10 +1552,37 @@ new List<ArgumentException>()
                 "SMDiagnostics: <implicit>,<host>,global",
                 "System.Linq.Expressions: <implicit>,global",
                 "System.Threading.Tasks.Parallel: <implicit>,global",
-                "System.Console: <implicit>,<host>,global",
                 "System.Diagnostics.StackTrace: <implicit>,<host>,global",
                 "System.IO.FileSystem: <implicit>,<host>,global",
                 "System.IO.FileSystem.Primitives: <implicit>,<host>,global");
+
+            foreach (var assemblyAndAliases in scriptCompilation.GetBoundReferenceManager().GetReferencedAssemblyAliases())
+            {
+                switch (assemblyAndAliases.Item1.Identity.Name)
+                {
+                    case "mscorlib":
+                        AssertEx.SetEqual(new[] { "global", "<host>" }, assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis.Scripting":
+                        AssertEx.SetEqual(new[] { "<host>", "global" }, assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis.CSharp.Scripting":
+                        AssertEx.SetEqual(new string[0], assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis.CSharp":
+                        AssertEx.SetEqual(new[] { "<implicit>", "global" }, assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis":
+                    case "System.IO":
+                    case "System.Collections.Immutable":
+                        AssertEx.SetEqual(new[] { "<implicit>", "<host>", "global" }, assemblyAndAliases.Item2);
+                        break;
+                }
+            }
         }
 
         [Fact]
@@ -1604,7 +1604,6 @@ typeof(Microsoft.CodeAnalysis.Scripting.Script)
                 "Microsoft.CodeAnalysis: <implicit>,global,<host>",
                 "System.Diagnostics.Tools: <implicit>,global,<host>",
                 "System.Resources.ResourceManager: <implicit>,global,<host>",
-                "System.Console: <implicit>,global,<host>",
                 "System.Diagnostics.StackTrace: <implicit>,global,<host>",
                 "System.IO.FileSystem: <implicit>,global,<host>",
                 "System.Linq: <implicit>,global,<host>",
@@ -1646,6 +1645,34 @@ typeof(Microsoft.CodeAnalysis.Scripting.Script)
                 "System.AppContext: <implicit>,global",
                 "System.Linq.Expressions: <implicit>,global",
                 "System.Threading.Tasks.Parallel: <implicit>,global");
+
+            foreach (var assemblyAndAliases in scriptCompilation.GetBoundReferenceManager().GetReferencedAssemblyAliases())
+            {
+                switch (assemblyAndAliases.Item1.Identity.Name)
+                {
+                    case "mscorlib":
+                        AssertEx.SetEqual(new[] { "global", "<host>" }, assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis.CSharp.Scripting":
+                        AssertEx.SetEqual(new string[0], assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis.Scripting":
+                        AssertEx.SetEqual(new[] { "global", "<host>" }, assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis.CSharp":
+                        AssertEx.SetEqual(new[] { "<implicit>", "global" }, assemblyAndAliases.Item2);
+                        break;
+
+                    case "Microsoft.CodeAnalysis":
+                    case "System.IO":
+                    case "System.Collections.Immutable":
+                        AssertEx.SetEqual(new[] { "<implicit>", "global", "<host>" }, assemblyAndAliases.Item2);
+                        break;
+                }
+            }
         }
 
         #endregion
