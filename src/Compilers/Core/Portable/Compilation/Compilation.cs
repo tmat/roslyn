@@ -498,23 +498,83 @@ namespace Microsoft.CodeAnalysis
         internal abstract IDictionary<ValueTuple<string, string>, MetadataReference> ReferenceDirectiveMap { get; }
 
         /// <summary>
-        /// All metadata references -- references passed to the compilation
-        /// constructor as well as references specified via #r directives.
+        /// All metadata references.
         /// </summary>
+        /// <remarks>
+        /// The result includes: 
+        /// References inherited from the previous script compilation (if applicable, see <see cref="ScriptCompilationInfo.PreviousScriptCompilation"/>),
+        /// references passed to the compilation constructor,
+        /// references specified via #r directives, 
+        /// references provided by <see cref="MetadataReferenceResolver.ResolveMissingAssembly(MetadataReference, AssemblyIdentity)"/>.
+        /// </remarks>
         public IEnumerable<MetadataReference> References
         {
             get
             {
-                foreach (var reference in ExternalReferences)
+                // TODO (https://github.com/dotnet/roslyn/issues/6620): 
+                // Simplify, use GetBoundReferenceManager().ExplicitReferences directly.
+                // Currently we can't do so since the order of references in ExplicitReferences is not the one we 
+                // want the result to use.
+                if (ScriptCompilationInfo?.PreviousScriptCompilation != null) 
+                {
+                    return GetInheritedMetadataReferences();
+                }
+                else
+                {
+                    return GetDeclaredMetadataReferences();
+                }
+            }
+        }
+
+        private IEnumerable<MetadataReference> GetDeclaredMetadataReferences()
+        {
+            foreach (var reference in ExternalReferences)
+            {
+                yield return reference;
+            }
+
+            foreach (var reference in DirectiveReferences)
+            {
+                yield return reference;
+            }
+
+            foreach (var reference in GetBoundReferenceManager().ImplicitReferences)
+            {
+                yield return reference;
+            }
+        }
+
+        private IEnumerable<MetadataReference> GetInheritedMetadataReferences()
+        {
+            var compilations = ArrayBuilder<Compilation>.GetInstance();
+
+            var c = this;
+            do
+            {
+                compilations.Add(c);
+                c = c.ScriptCompilationInfo.PreviousScriptCompilation;
+            }
+            while (c != null);
+
+            foreach (var compilation in compilations.Reverse())
+            {
+                foreach (var reference in compilation.ExternalReferences)
                 {
                     yield return reference;
                 }
 
-                foreach (var reference in DirectiveReferences)
+                foreach (var reference in compilation.DirectiveReferences)
                 {
                     yield return reference;
                 }
             }
+
+            foreach (var reference in GetBoundReferenceManager().ImplicitReferences)
+            {
+                yield return reference;
+            }
+
+            compilations.Free();
         }
 
         /// <summary>

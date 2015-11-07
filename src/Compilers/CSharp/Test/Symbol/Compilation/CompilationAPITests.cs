@@ -2032,6 +2032,71 @@ public class C { public static FrameworkName Foo() { return null; }}";
             Assert.Throws<InvalidOperationException>(() => CreateSubmission("a + 1", previous: s0));
         }
 
+        [Fact]
+        public void ScriptCompilationReferences()
+        {
+            var options = TestOptions.ReleaseDll.WithMetadataReferenceResolver(
+                new TestMetadataReferenceResolver(
+                    assemblyNames: new Dictionary<string, PortableExecutableReference>()
+                    {
+                        { "CS", TestReferences.NetFx.v4_0_30319.Microsoft_CSharp },
+                        { "VB", TestReferences.NetFx.v4_0_30319.Microsoft_VisualBasic },
+                        { "JS", TestReferences.NetFx.v4_0_30319.Microsoft_JScript },
+                        { "Data", TestReferences.NetFx.v4_0_30319.System_Data },
+                    },
+                missing: new Dictionary<string, MetadataReference>()
+                    {
+                        { "System.Xml, 4.0.0.0", TestReferences.NetFx.v4_0_30319.System_Xml },
+                        { "System.Configuration, 4.0.0.0", TestReferences.NetFx.v4_0_30319.System_Configuration },
+                    }));
+
+            var s0 = CreateSubmissionWithExactReferences(@"
+#r ""CS""
+#r ""VB""
+", references: new[] { TestReferences.NetFx.v4_0_30319.mscorlib, TestReferences.NetFx.v4_0_30319.System }, options: options);
+
+            s0.VerifyAssemblyVersionsAndAliases(
+                "Microsoft.CSharp, Version=4.0.0.0",
+                "Microsoft.VisualBasic, Version=10.0.0.0",
+                "mscorlib, Version=4.0.0.0",
+                "System, Version=4.0.0.0",
+                "System.Configuration, Version=4.0.0.0",
+                "System.Xml, Version=4.0.0.0");
+
+            s0.VerifyReferences(
+                @"R:\v4_0_30319\mscorlib.dll",
+                @"System.dll",
+                @"R:\v4_0_30319\Microsoft.CSharp.dll",
+                @"R:\v4_0_30319\Microsoft.VisualBasic.dll",
+                @"R:\v4_0_30319\System.Configuration.dll",
+                @"R:\v4_0_30319\System.Xml.dll");
+
+            var s1 = CreateSubmissionWithExactReferences(@"
+#r ""JS""
+#r ""Data""
+", options: options, previous: s0);
+
+            s1.VerifyAssemblyVersionsAndAliases(
+                "Microsoft.JScript, Version=10.0.0.0",
+                "System.Data, Version=4.0.0.0",
+                "Microsoft.CSharp, Version=4.0.0.0",
+                "Microsoft.VisualBasic, Version=10.0.0.0",
+                "mscorlib, Version=4.0.0.0",
+                "System, Version=4.0.0.0",
+                "System.Configuration, Version=4.0.0.0",
+                "System.Xml, Version=4.0.0.0");
+
+            s1.VerifyReferences(
+                @"R:\v4_0_30319\mscorlib.dll",
+                @"System.dll",
+                @"R:\v4_0_30319\Microsoft.CSharp.dll",
+                @"R:\v4_0_30319\Microsoft.VisualBasic.dll",
+                @"Microsoft.JScript.dll",
+                @"R:\v4_0_30319\System.Data.dll",
+                @"R:\v4_0_30319\System.Configuration.dll",
+                @"R:\v4_0_30319\System.Xml.dll");
+        }
+
         #region Script return values
 
         [Fact]

@@ -79,16 +79,17 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             EmitOptions options = null,
             bool embedInteropTypes = false,
             ImmutableArray<string> aliases = default(ImmutableArray<string>),
+            string display = null,
             DiagnosticDescription[] expectedWarnings = null)
         {
             var image = comp.EmitToArray(options, expectedWarnings: expectedWarnings);
             if (comp.Options.OutputKind == OutputKind.NetModule)
             {
-                return ModuleMetadata.CreateFromImage(image).GetReference(display: comp.MakeSourceModuleName());
+                return ModuleMetadata.CreateFromImage(image).GetReference(display: display ?? comp.MakeSourceModuleName());
             }
             else
             {
-                return AssemblyMetadata.CreateFromImage(image).GetReference(aliases: aliases, embedInteropTypes: embedInteropTypes, display: comp.MakeSourceAssemblySimpleName());
+                return AssemblyMetadata.CreateFromImage(image).GetReference(aliases: aliases, embedInteropTypes: embedInteropTypes, display: display ?? comp.MakeSourceAssemblySimpleName());
             }
         }
 
@@ -148,6 +149,11 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                Select(t => $"{t.Item1.Identity.Name}{(t.Item2.IsEmpty ? "" : ": " + string.Join(",", t.Item2))}");
 
             AssertEx.Equal(expectedAssembliesAndAliases, actual, itemInspector: s => '"' + s + '"');
+        }
+
+        internal static void VerifyReferences(this Compilation compilation, params string[] expectedDisplayNames)
+        {
+            AssertEx.Equal(expectedDisplayNames, compilation.References.Select(r => r.Display));
         }
     }
 }

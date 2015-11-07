@@ -13,15 +13,25 @@ namespace Roslyn.Test.Utilities
         private readonly RelativePathResolver _pathResolver;
         private readonly Dictionary<string, PortableExecutableReference> _assemblyNames;
         private readonly Dictionary<string, PortableExecutableReference> _files;
+        private readonly TestMissingMetadataReferenceResolver _missingOpt;
 
         public TestMetadataReferenceResolver(
             RelativePathResolver pathResolver = null,
             Dictionary<string, PortableExecutableReference> assemblyNames = null, 
-            Dictionary<string, PortableExecutableReference> files = null)
+            Dictionary<string, PortableExecutableReference> files = null,
+            Dictionary<string, MetadataReference> missing = null)
         {
             _pathResolver = pathResolver;
             _assemblyNames = assemblyNames ?? new Dictionary<string, PortableExecutableReference>();
             _files = files ?? new Dictionary<string, PortableExecutableReference>();
+            _missingOpt = missing != null ? new TestMissingMetadataReferenceResolver(missing) : null;
+        }
+
+        public override bool ResolveMissingAssemblies => _missingOpt != null;
+
+        public override PortableExecutableReference ResolveMissingAssembly(MetadataReference definition, AssemblyIdentity referenceIdentity)
+        {
+            return _missingOpt.ResolveMissingAssembly(definition, referenceIdentity);
         }
 
         public override ImmutableArray<PortableExecutableReference> ResolveReference(string reference, string baseFilePath, MetadataReferenceProperties properties)

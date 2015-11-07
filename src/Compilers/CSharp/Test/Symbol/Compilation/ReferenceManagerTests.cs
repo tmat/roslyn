@@ -2631,10 +2631,10 @@ public class C : A
         {
             // c - a -> "b,v1,PKT=null" 
             //   - d -> "b,v2,PKT=null"
-            var b1Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")] public interface B { }", assemblyName: "B").EmitToImageReference();
-            var b2Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""2.0.0.0"")] public interface B { }", assemblyName: "B").EmitToImageReference();
-            var b3Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""3.0.0.0"")] public interface B { }", assemblyName: "B").EmitToImageReference();
-            var b4Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""4.0.0.0"")] public interface B { }", assemblyName: "B").EmitToImageReference();
+            var b1Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")] public interface B { }", assemblyName: "B").EmitToImageReference(display: "B1");
+            var b2Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""2.0.0.0"")] public interface B { }", assemblyName: "B").EmitToImageReference(display: "B2");
+            var b3Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""3.0.0.0"")] public interface B { }", assemblyName: "B").EmitToImageReference(display: "B3");
+            var b4Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""4.0.0.0"")] public interface B { }", assemblyName: "B").EmitToImageReference(display: "B4");
 
             var aRef = CreateCompilationWithMscorlib(@"public interface A : B { }", new[] { b1Ref }, assemblyName: "A").EmitToImageReference();
             var dRef = CreateCompilationWithMscorlib(@"public interface D : B { }", new[] { b2Ref }, assemblyName: "D").EmitToImageReference();
@@ -2660,6 +2660,13 @@ public class C : A
                 "D, Version=0.0.0.0",
                 "B, Version=2.0.0.0",
                 "B, Version=1.0.0.0: <superseded>");
+
+            c.VerifyReferences(
+                "mscorlib.v4_0_30319_17626.dll",
+                "A",
+                "D",
+                "B2",
+                "B1");
         }
 
         [Fact]
@@ -2999,8 +3006,8 @@ public class C : A
             //          e -> "b,v1"
             //          "b,v1"
             //          "b,v2"
-            var b1Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")] public interface B { }", options: s_signedDll, assemblyName: "B").EmitToImageReference();
-            var b2Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""2.0.0.0"")] public interface B { }", options: s_signedDll, assemblyName: "B").EmitToImageReference();
+            var b1Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")] public interface B { }", options: s_signedDll, assemblyName: "B").EmitToImageReference(display: "B1");
+            var b2Ref = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""2.0.0.0"")] public interface B { }", options: s_signedDll, assemblyName: "B").EmitToImageReference(display: "B2");
 
             var dRef = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")] public interface D : B { }", new[] { b2Ref }, options: s_signedDll, assemblyName: "D").EmitToImageReference();
             var eRef = CreateCompilationWithMscorlib(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")] public interface E : B { }", new[] { b1Ref }, options: s_signedDll, assemblyName: "E").EmitToImageReference();
@@ -3034,6 +3041,14 @@ public class C : A
                 "B, Version=2.0.0.0",
                 "E, Version=1.0.0.0",
                 "B, Version=1.0.0.0: <superseded>");
+
+            c.VerifyReferences(
+                "mscorlib.v4_0_30319_17626.dll",
+                "A",
+                "D",
+                "B2",
+                "E",
+                "B1");
         }
 
         [Fact]
