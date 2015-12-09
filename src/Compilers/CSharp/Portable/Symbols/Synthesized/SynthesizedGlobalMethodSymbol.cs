@@ -280,11 +280,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return false; }
         }
 
-        internal override Cci.CallingConvention CallingConvention
-        {
-            get { return 0; }
-        }
-
         internal override bool IsExplicitInterfaceImplementation
         {
             get { return false; }

@@ -438,15 +438,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             get { return _setMethod; }
         }
 
-        internal override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get
-            {
-                var metadataDecoder = new MetadataDecoder(_containingType.ContainingPEModule, _containingType);
-                return (Microsoft.Cci.CallingConvention)(metadataDecoder.GetSignatureHeaderForProperty(_handle).RawValue);
-            }
-        }
-
         public override ImmutableArray<Location> Locations
         {
             get

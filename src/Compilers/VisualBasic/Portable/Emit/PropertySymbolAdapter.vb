@@ -89,6 +89,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Private ReadOnly Property ISignatureIsStatic As Boolean Implements ISignature.IsStatic
+            Get
+                Return Me.IsShared
+            End Get
+        End Property
+
         Private ReadOnly Property ISignatureParameterCount As UShort Implements ISignature.ParameterCount
             Get
                 CheckDefinitionInvariant()

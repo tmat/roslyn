@@ -307,12 +307,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 End If
             End If
 
+            If method1.IsVararg <> method2.IsVararg Then
+                Return False
+            End If
+
             If _considerCallingConvention Then
-                If method1.CallingConvention <> method2.CallingConvention Then
-                    Return False
-                End If
-            Else
-                If method1.IsVararg <> method2.IsVararg Then
+                If method1.IsShared <> method2.IsShared Then
                     Return False
                 End If
             End If

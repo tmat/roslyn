@@ -819,11 +819,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal abstract Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get;
-        }
-
         /// <summary>
         /// Returns the map from type parameters to type arguments.
         /// If this is not a generic method instantiation, returns null.

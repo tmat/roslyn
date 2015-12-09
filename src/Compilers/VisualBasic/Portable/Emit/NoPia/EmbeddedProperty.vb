@@ -39,6 +39,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit.NoPia
             End Get
         End Property
 
+        Protected Overrides ReadOnly Property IsStatic As Boolean
+            Get
+                Return UnderlyingProperty.IsShared
+            End Get
+        End Property
+
         Protected Overrides ReadOnly Property ReturnValueIsModified As Boolean
             Get
                 Return UnderlyingProperty.TypeCustomModifiers.Length <> 0

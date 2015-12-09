@@ -321,17 +321,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         {
             get
             {
-                Debug.Assert(this.IsStatic);
-                var cc = Cci.CallingConvention.Default;
-                if (this.IsVararg)
-                {
-                    cc |= Cci.CallingConvention.ExtraArguments;
-                }
-                if (this.IsGenericMethod)
-                {
-                    cc |= Cci.CallingConvention.Generic;
-                }
-                return cc;
+                return IsVararg ? Cci.CallingConvention.ExtraArguments : Cci.CallingConvention.Default;
             }
         }
 

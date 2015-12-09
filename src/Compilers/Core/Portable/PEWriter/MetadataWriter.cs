@@ -1180,7 +1180,7 @@ namespace Microsoft.Cci
             }
 
             var writer = PooledBlobBuilder.GetInstance();
-            this.SerializeSignature(methodReference, methodReference.GenericParameterCount, methodReference.ExtraParameters, writer);
+            this.SerializeSignature(writer, methodReference, methodReference.IsStatic, methodReference.GenericParameterCount, methodReference.ExtraParameters);
 
             signatureBlob = writer.ToImmutableArray();
             result = builder.GetBlobIndex(signatureBlob);
@@ -1309,7 +1309,7 @@ namespace Microsoft.Cci
             }
 
             var writer = PooledBlobBuilder.GetInstance();
-            this.SerializeSignature(propertyDef, 0, ImmutableArray<IParameterTypeInformation>.Empty, writer);
+            this.SerializeSignature(writer, propertyDef, propertyDef.IsStatic, 0, ImmutableArray<IParameterTypeInformation>.Empty);
             var blob = writer.ToImmutableArray();
             var result = builder.GetBlobIndex(blob);
             _signatureIndex.Add(propertyDef, KeyValuePair.Create(result, blob));
@@ -3726,15 +3726,14 @@ namespace Microsoft.Cci
             // TODO: xml for older platforms
         }
 
-        private void SerializeSignature(ISignature signature, ushort genericParameterCount, ImmutableArray<IParameterTypeInformation> extraArgumentTypes, BlobBuilder writer)
+        private void SerializeSignature(BlobBuilder writer, ISignature signature, bool isStatic, ushort genericParameterCount, ImmutableArray<IParameterTypeInformation> extraArgumentTypes)
         {
-            byte header = (byte)signature.CallingConvention;
-            if (signature is IPropertyDefinition)
-            {
-                header |= 0x08;
-            }
+            var kind = (signature is IPropertyDefinition) ? SignatureKind.Property : SignatureKind.Method;
+            var attributes = (isStatic ? 0 : SignatureAttributes.Instance) | (genericParameterCount > 0 ? SignatureAttributes.Generic : 0);
+            var callingConvention = extraArgumentTypes.IsEmpty ? SignatureCallingConvention.Default : SignatureCallingConvention.VarArgs;
 
-            writer.WriteByte(header);
+            writer.WriteByte((byte)((int)kind | (int)attributes | (int)callingConvention));
+
             if (genericParameterCount > 0)
             {
                 writer.WriteCompressedInteger(genericParameterCount);

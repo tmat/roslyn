@@ -248,15 +248,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get
-            {
-                //this matches the value in SourceMethodSymbol.CallingConvention for static methods
-                return Microsoft.Cci.CallingConvention.Default;
-            }
-        }
-
         internal override bool IsExplicitInterfaceImplementation
         {
             get { return false; }

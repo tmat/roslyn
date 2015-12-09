@@ -345,16 +345,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return false;
             }
 
+            if (IsVarargMethod(member1) != IsVarargMethod(member2))
+            {
+                return false;
+            }
+
             if (_considerCallingConvention)
             {
-                if (GetCallingConvention(member1) != GetCallingConvention(member2))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (IsVarargMethod(member1) != IsVarargMethod(member2))
+                if (member1.IsStatic != member2.IsStatic)
                 {
                     return false;
                 }
@@ -649,20 +647,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         private static TypeWithModifiers SubstituteType(TypeMap typeMap, TypeWithModifiers typeSymbol)
         {
             return typeMap == null ? typeSymbol : typeSymbol.SubstituteType(typeMap);
-        }
-
-        private static Cci.CallingConvention GetCallingConvention(Symbol member)
-        {
-            switch (member.Kind)
-            {
-                case SymbolKind.Method:
-                    return ((MethodSymbol)member).CallingConvention;
-                case SymbolKind.Property: //NOTE: Not using PropertySymbol.CallingConvention
-                case SymbolKind.Event:
-                    return member.IsStatic ? 0 : Cci.CallingConvention.HasThis;
-                default:
-                    throw ExceptionUtilities.UnexpectedValue(member.Kind);
-            }
         }
 
         private static bool IsVarargMethod(Symbol member)

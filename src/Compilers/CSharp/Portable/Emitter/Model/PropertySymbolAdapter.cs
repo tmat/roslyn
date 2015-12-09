@@ -130,15 +130,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         #region ISignature Members
 
-        Cci.CallingConvention Cci.ISignature.CallingConvention
-        {
-            get
-            {
-                CheckDefinitionInvariant();
-                return this.CallingConvention;
-            }
-        }
-
         ushort Cci.ISignature.ParameterCount
         {
             get

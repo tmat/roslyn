@@ -307,15 +307,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.ExpressionEvaluator
 
         Friend Overrides ReadOnly Property CallingConvention As Cci.CallingConvention
             Get
-                Debug.Assert(Me.IsShared)
-                Dim cc = Cci.CallingConvention.Default
-                If Me.IsVararg Then
-                    cc = cc Or Cci.CallingConvention.ExtraArguments
-                End If
-                If Me.IsGenericMethod Then
-                    cc = cc Or Cci.CallingConvention.Generic
-                End If
-                Return cc
+                Return If(IsVararg, Cci.CallingConvention.ExtraArguments, Cci.CallingConvention.Default)
             End Get
         End Property
 

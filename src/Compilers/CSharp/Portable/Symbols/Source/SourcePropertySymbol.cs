@@ -545,11 +545,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _setMethod; }
         }
 
-        internal override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get { return (IsStatic ? 0 : Microsoft.Cci.CallingConvention.HasThis); }
-        }
-
         public override ImmutableArray<ParameterSymbol> Parameters
         {
             get

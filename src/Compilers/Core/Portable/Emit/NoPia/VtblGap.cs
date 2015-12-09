@@ -87,11 +87,6 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
             get { return true; }
         }
 
-        bool Cci.IMethodDefinition.IsStatic
-        {
-            get { return false; }
-        }
-
         bool Cci.IMethodDefinition.IsVirtual
         {
             get { return false; }
@@ -221,10 +216,7 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
             get { return null; }
         }
 
-        Cci.CallingConvention Cci.ISignature.CallingConvention
-        {
-            get { return Cci.CallingConvention.Default | Cci.CallingConvention.HasThis; }
-        }
+        bool Cci.IMethodReference.IsStatic => false;
 
         ushort Cci.ISignature.ParameterCount
         {

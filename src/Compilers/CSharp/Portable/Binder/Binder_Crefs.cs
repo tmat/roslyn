@@ -721,7 +721,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                         {
                             MethodSymbol candidateMethod = (MethodSymbol)candidate;
                             MethodKind candidateMethodKind = candidateMethod.MethodKind;
-                            bool candidateMethodIsVararg = candidateMethod.IsVararg;
 
                             // If the arity from the cref is zero, then we accept methods of any arity.
                             int signatureMemberArity = candidateMethodKind == MethodKind.Constructor
@@ -733,8 +732,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                                 methodKind: candidateMethodKind,
                                 typeParameters: IndexedTypeParameterSymbol.Take(signatureMemberArity),
                                 parameters: parameterSymbols,
-                                // This specific comparer only looks for varargs.
-                                callingConvention: candidateMethodIsVararg ? Microsoft.Cci.CallingConvention.ExtraArguments : Microsoft.Cci.CallingConvention.HasThis,
+                                isVararg: candidateMethod.IsVararg,
+                                isStatic: candidateMethod.IsStatic,
                                 // These are ignored by this specific MemberSignatureComparer.
                                 containingType: null,
                                 name: null,

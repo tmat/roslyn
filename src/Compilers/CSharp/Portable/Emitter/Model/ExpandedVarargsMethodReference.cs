@@ -81,10 +81,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             }
         }
 
-        Cci.CallingConvention Cci.ISignature.CallingConvention
-        {
-            get { return _underlyingMethod.CallingConvention; }
-        }
+        bool Cci.IMethodReference.IsStatic => _underlyingMethod.IsStatic;
 
         ushort Cci.ISignature.ParameterCount
         {

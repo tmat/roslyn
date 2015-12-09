@@ -149,16 +149,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return ImmutableArray<TypeParameterSymbol>.Empty; }
         }
 
-        internal override Cci.CallingConvention CallingConvention
-        {
-            get
-            {
-                Debug.Assert(!this.IsStatic);
-                Debug.Assert(!this.IsGenericMethod);
-                return Cci.CallingConvention.HasThis;
-            }
-        }
-
         internal override bool GenerateDebugInfo
         {
             get { return true; }

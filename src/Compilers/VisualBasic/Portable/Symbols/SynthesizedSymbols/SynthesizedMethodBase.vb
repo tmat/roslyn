@@ -34,8 +34,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend NotOverridable Overrides ReadOnly Property CallingConvention As Microsoft.Cci.CallingConvention
             Get
-                Return If(IsShared, Microsoft.Cci.CallingConvention.Default, Microsoft.Cci.CallingConvention.HasThis) Or
-                            If(IsGenericMethod, Microsoft.Cci.CallingConvention.Generic, Microsoft.Cci.CallingConvention.Default)
+                Return Microsoft.Cci.CallingConvention.Default
             End Get
         End Property
 

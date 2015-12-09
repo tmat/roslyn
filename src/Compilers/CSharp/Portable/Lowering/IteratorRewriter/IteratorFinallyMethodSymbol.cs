@@ -171,12 +171,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             return ImmutableArray<string>.Empty;
         }
-
-        internal override Cci.CallingConvention CallingConvention
-        {
-            get { return Cci.CallingConvention.HasThis; }
-        }
-
+        
         internal override bool GenerateDebugInfo
         {
             get { return true; }

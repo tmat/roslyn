@@ -269,11 +269,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _containingSymbol; }
         }
 
-        internal override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get { return Microsoft.Cci.CallingConvention.Default; }
-        }
-
         public override bool IsExtensionMethod
         {
             get { return false; }

@@ -102,11 +102,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _containingType; }
         }
 
-        internal override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get { return Microsoft.Cci.CallingConvention.Default; }
-        }
-
         public override Symbol AssociatedSymbol
         {
             get { return null; }

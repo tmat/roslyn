@@ -68,11 +68,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return null; }
         }
 
-        internal override Cci.CallingConvention CallingConvention
-        {
-            get { return _getter.CallingConvention; }
-        }
-
         internal override bool MustCallMethodsDirectly
         {
             get { return false; }

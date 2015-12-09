@@ -143,6 +143,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             End Get
         End Property
 
+        Private ReadOnly Property ISignatureIsStatic As Boolean Implements Cci.ISignature.IsStatic
+            Get
+                Return Me.IsShared
+            End Get
+        End Property
+
         Private Function ISignatureGetParameters(context As EmitContext) As ImmutableArray(Of Cci.IParameterTypeInformation) Implements Cci.ISignature.GetParameters
             Dim moduleBeingBuilt As PEModuleBuilder = DirectCast(context.Module, PEModuleBuilder)
 
@@ -414,13 +420,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             Get
                 CheckDefinitionInvariant()
                 Return Me.HasSpecialName
-            End Get
-        End Property
-
-        Private ReadOnly Property IMethodDefinitionIsStatic As Boolean Implements Cci.IMethodDefinition.IsStatic
-            Get
-                CheckDefinitionInvariant()
-                Return Me.IsShared
             End Get
         End Property
 

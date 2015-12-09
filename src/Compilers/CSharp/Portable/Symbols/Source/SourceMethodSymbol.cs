@@ -513,26 +513,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal sealed override Cci.CallingConvention CallingConvention
-        {
-            get
-            {
-                var cc = IsVararg ? Cci.CallingConvention.ExtraArguments : Cci.CallingConvention.Default;
-
-                if (IsGenericMethod)
-                {
-                    cc |= Cci.CallingConvention.Generic;
-                }
-
-                if (!IsStatic)
-                {
-                    cc |= Cci.CallingConvention.HasThis;
-                }
-
-                return cc;
-            }
-        }
-
         #endregion
 
         #region Syntax

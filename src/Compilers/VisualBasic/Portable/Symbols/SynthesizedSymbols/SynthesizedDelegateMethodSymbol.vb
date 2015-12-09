@@ -81,7 +81,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ''' </summary>
         Friend Overrides ReadOnly Property CallingConvention As Microsoft.Cci.CallingConvention
             Get
-                Return Microsoft.Cci.CallingConvention.HasThis
+                Return Microsoft.Cci.CallingConvention.Default
             End Get
         End Property
 

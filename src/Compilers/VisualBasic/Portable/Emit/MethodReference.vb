@@ -61,6 +61,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             End Get
         End Property
 
+        Private ReadOnly Property ISignatureIsStatic As Boolean Implements Cci.ISignature.IsStatic
+            Get
+                Return m_UnderlyingMethod.IsShared
+            End Get
+        End Property
+
         Private Function ISignatureGetParameters(context As EmitContext) As ImmutableArray(Of Cci.IParameterTypeInformation) Implements Cci.ISignature.GetParameters
             Dim moduleBeingBuilt As PEModuleBuilder = DirectCast(context.Module, PEModuleBuilder)
 

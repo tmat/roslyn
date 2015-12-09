@@ -148,11 +148,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _typeArguments; }
         }
 
-        internal override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get { return _reducedFrom.CallingConvention; }
-        }
-
         public override int Arity
         {
             get { return _reducedFrom.Arity; }

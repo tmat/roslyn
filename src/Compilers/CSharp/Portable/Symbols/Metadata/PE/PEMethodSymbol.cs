@@ -900,8 +900,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             return MethodKind.Ordinary;
         }
 
-        internal override Cci.CallingConvention CallingConvention => (Cci.CallingConvention)Signature.Header.RawValue;
-
         public override ImmutableArray<MethodSymbol> ExplicitInterfaceImplementations
         {
             get

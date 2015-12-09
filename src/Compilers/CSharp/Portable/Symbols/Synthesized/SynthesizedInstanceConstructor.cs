@@ -235,11 +235,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return false; }
         }
 
-        internal sealed override Cci.CallingConvention CallingConvention
-        {
-            get { return Cci.CallingConvention.HasThis; }
-        }
-
         internal sealed override bool IsExplicitInterfaceImplementation
         {
             get { return false; }

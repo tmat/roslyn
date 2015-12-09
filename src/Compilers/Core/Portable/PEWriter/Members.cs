@@ -14,59 +14,6 @@ using EmitContext = Microsoft.CodeAnalysis.Emit.EmitContext;
 namespace Microsoft.Cci
 {
     /// <summary>
-    /// Specifies how the caller passes parameters to the callee and who cleans up the stack.
-    /// </summary>
-    [Flags]
-    internal enum CallingConvention
-    {
-        /// <summary>
-        /// C/C++ style calling convention for unmanaged methods. The call stack is cleaned up by the caller, 
-        /// which makes this convention suitable for calling methods that accept extra arguments.
-        /// </summary>
-        C = 1,
-
-        /// <summary>
-        /// The convention for calling managed methods with a fixed number of arguments.
-        /// </summary>
-        Default = 0,
-
-        /// <summary>
-        /// The convention for calling managed methods that accept extra arguments.
-        /// </summary>
-        ExtraArguments = 5,
-
-        /// <summary>
-        /// Arguments are passed in registers when possible. This calling convention is not yet supported.
-        /// </summary>
-        FastCall = 4,
-
-        /// <summary>
-        /// Win32 API calling convention for calling unmanaged methods via PlatformInvoke. The call stack is cleaned up by the callee.
-        /// </summary>
-        Standard = 2,
-
-        /// <summary>
-        /// C++ member unmanaged method (non-vararg) calling convention. The callee cleans the stack and the this pointer is pushed on the stack last.
-        /// </summary>
-        ThisCall = 3,
-
-        /// <summary>
-        /// The convention for calling a generic method.
-        /// </summary>
-        Generic = 0x10,
-
-        /// <summary>
-        /// The convention for calling an instance method with an implicit this parameter (the method does not have an explicit parameter definition for this).
-        /// </summary>
-        HasThis = 0x20,
-
-        /// <summary>
-        /// The convention for calling an instance method that explicitly declares its first parameter to correspond to the this instance.
-        /// </summary>
-        ExplicitThis = 0x40
-    }
-
-    /// <summary>
     /// An event is a member that enables an object or class to provide notifications. Clients can attach executable code for events by supplying event handlers.
     /// This interface models the metadata representation of an event.
     /// </summary>
@@ -564,11 +511,6 @@ namespace Microsoft.Cci
         bool IsSpecialName { get; }
 
         /// <summary>
-        /// True if the method does not require an instance of its declaring type as its first argument.
-        /// </summary>
-        bool IsStatic { get; }
-
-        /// <summary>
         /// True if the method may be overridden (or if it is an override).
         /// </summary>
         bool IsVirtual
@@ -741,6 +683,8 @@ namespace Microsoft.Cci
         /// </summary>
         bool IsSpecialName { get; }
 
+        bool IsStatic { get; }
+
         /// <summary>
         /// The parameters forming part of this signature.
         /// </summary>
@@ -758,11 +702,6 @@ namespace Microsoft.Cci
     /// </summary>
     internal interface ISignature
     {
-        /// <summary>
-        /// Calling convention of the signature.
-        /// </summary>
-        CallingConvention CallingConvention { get; }
-
         /// <summary>
         /// The number of required parameters of the signature.
         /// </summary>
@@ -905,6 +844,11 @@ namespace Microsoft.Cci
         /// True if the method has generic parameters;
         /// </summary>
         bool IsGeneric { get; }
+
+        /// <summary>
+        /// True if the method does not require an instance of its declaring type as its first argument.
+        /// </summary>
+        bool IsStatic { get; }
 
         /// <summary>
         /// The method being referred to.

@@ -131,11 +131,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 get { return ImmutableArray<CustomModifier>.Empty; }
             }
 
-            internal override Microsoft.Cci.CallingConvention CallingConvention
-            {
-                get { return Microsoft.Cci.CallingConvention.HasThis; }
-            }
-
             public override ImmutableArray<PropertySymbol> ExplicitInterfaceImplementations
             {
                 get { return ImmutableArray<PropertySymbol>.Empty; }

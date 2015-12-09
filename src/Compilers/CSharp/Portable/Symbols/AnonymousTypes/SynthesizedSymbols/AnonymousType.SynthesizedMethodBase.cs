@@ -75,11 +75,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 get { return default(System.Reflection.MethodImplAttributes); }
             }
 
-            internal sealed override Cci.CallingConvention CallingConvention
-            {
-                get { return Cci.CallingConvention.HasThis; }
-            }
-
             public sealed override bool IsExtensionMethod
             {
                 get { return false; }

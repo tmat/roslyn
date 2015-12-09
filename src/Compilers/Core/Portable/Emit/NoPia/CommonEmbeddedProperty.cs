@@ -57,7 +57,7 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
             protected abstract ImmutableArray<TEmbeddedParameter> GetParameters();
             protected abstract bool IsRuntimeSpecial { get; }
             protected abstract bool IsSpecialName { get; }
-            protected abstract Cci.CallingConvention CallingConvention { get; }
+            protected abstract bool IsStatic { get; }
             protected abstract bool ReturnValueIsModified { get; }
             protected abstract ImmutableArray<Cci.ICustomModifier> ReturnValueCustomModifiers { get; }
             protected abstract bool ReturnValueIsByRef { get; }
@@ -128,13 +128,7 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
                 get { return StaticCast<Cci.IParameterDefinition>.From(_parameters); }
             }
 
-            Cci.CallingConvention Cci.ISignature.CallingConvention
-            {
-                get
-                {
-                    return CallingConvention;
-                }
-            }
+            bool Cci.IPropertyDefinition.IsStatic => IsStatic;
 
             ushort Cci.ISignature.ParameterCount
             {

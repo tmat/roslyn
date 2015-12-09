@@ -72,13 +72,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             }
         }
 
-        Cci.CallingConvention Cci.ISignature.CallingConvention
-        {
-            get
-            {
-                return UnderlyingMethod.CallingConvention;
-            }
-        }
+        bool Cci.IMethodReference.IsStatic => UnderlyingMethod.IsStatic;
 
         ImmutableArray<Cci.IParameterTypeInformation> Cci.ISignature.GetParameters(EmitContext context)
         {

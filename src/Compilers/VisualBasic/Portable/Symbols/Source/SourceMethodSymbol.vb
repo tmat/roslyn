@@ -732,8 +732,7 @@ lReportErrorOnTwoTokens:
 
         Friend NotOverridable Overrides ReadOnly Property CallingConvention As CallingConvention
             Get
-                Return If(IsShared, CallingConvention.Default, CallingConvention.HasThis) Or
-                       If(IsGenericMethod, CallingConvention.Generic, CallingConvention.Default)
+                Return CallingConvention.Default
             End Get
         End Property
 

@@ -1353,7 +1353,8 @@ class UsePia4
 
                     Assert.Equal(MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, ctor.Flags);
                     Assert.Equal(MethodImplAttributes.Runtime, (MethodImplAttributes)ctor.ImplementationAttributes);
-                    Assert.Equal(CallingConvention.Default | CallingConvention.HasThis, ctor.CallingConvention);
+                    Assert.Equal(CallingConvention.Default, ctor.CallingConvention);
+                    Assert.False(ctor.IsStatic);
                     Assert.Equal("Test11..ctor(System.Object @object, System.IntPtr method)", ctor.ToTestDisplayString());
 
                     var begin = (PEMethodSymbol)test11.GetMembers("BeginInvoke").Single();
@@ -1369,7 +1370,8 @@ class UsePia4
                     //     Argument #2:  Object
                     Assert.Equal(MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot, begin.Flags);
                     Assert.Equal(MethodImplAttributes.Runtime, (MethodImplAttributes)begin.ImplementationAttributes);
-                    Assert.Equal(CallingConvention.Default | CallingConvention.HasThis, begin.CallingConvention);
+                    Assert.Equal(CallingConvention.Default, begin.CallingConvention);
+                    Assert.False(begin.IsStatic);
                     Assert.Equal("System.IAsyncResult Test11.BeginInvoke(System.AsyncCallback callback, System.Object @object)", begin.ToTestDisplayString());
 
                     var end = (PEMethodSymbol)test11.GetMembers("EndInvoke").Single();
@@ -1385,7 +1387,8 @@ class UsePia4
 
                     Assert.Equal(MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot, end.Flags);
                     Assert.Equal(MethodImplAttributes.Runtime, (MethodImplAttributes)end.ImplementationAttributes);
-                    Assert.Equal(CallingConvention.Default | CallingConvention.HasThis, end.CallingConvention);
+                    Assert.Equal(CallingConvention.Default, end.CallingConvention);
+                    Assert.False(end.IsStatic);
                     Assert.Equal("void Test11.EndInvoke(System.IAsyncResult result)", end.ToTestDisplayString());
 
                     var invoke = (PEMethodSymbol)test11.GetMembers("Invoke").Single();
@@ -1400,7 +1403,8 @@ class UsePia4
 
                     Assert.Equal(MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot, invoke.Flags);
                     Assert.Equal(MethodImplAttributes.Runtime, (MethodImplAttributes)invoke.ImplementationAttributes);
-                    Assert.Equal(CallingConvention.Default | CallingConvention.HasThis, invoke.CallingConvention);
+                    Assert.Equal(CallingConvention.Default, invoke.CallingConvention);
+                    Assert.False(invoke.IsStatic);
                     Assert.Equal("void Test11.Invoke()", invoke.ToTestDisplayString());
 
                     var itest13 = module.GlobalNamespace.GetTypeMembers("ITest13").Single();
@@ -1421,7 +1425,8 @@ class UsePia4
 
                     Assert.Equal(MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Abstract, m13.Flags);
                     Assert.Equal(MethodImplAttributes.IL, (MethodImplAttributes)m13.ImplementationAttributes);
-                    Assert.Equal(CallingConvention.ExtraArguments | CallingConvention.HasThis, m13.CallingConvention);
+                    Assert.Equal(CallingConvention.ExtraArguments, m13.CallingConvention);
+                    Assert.False(m13.IsStatic);
                     Assert.Equal("void ITest13.M13(System.Int32 x, __arglist)", m13.ToTestDisplayString());
 
                     var itest14 = module.GlobalNamespace.GetTypeMembers("ITest14").Single();
@@ -1483,7 +1488,8 @@ class UsePia4
                     // No arguments.
                     Assert.Equal(MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Abstract, m17.Flags);
                     Assert.Equal(MethodImplAttributes.IL, (MethodImplAttributes)m17.ImplementationAttributes);
-                    Assert.Equal(CallingConvention.Default | CallingConvention.HasThis, m17.CallingConvention);
+                    Assert.Equal(CallingConvention.Default, m17.CallingConvention);
+                    Assert.False(m17.IsStatic);
                     Assert.Equal("void ITest17.M17()", m17.ToTestDisplayString());
 
                     var itest18 = (PENamedTypeSymbol)module.GlobalNamespace.GetTypeMembers("ITest18").Single();

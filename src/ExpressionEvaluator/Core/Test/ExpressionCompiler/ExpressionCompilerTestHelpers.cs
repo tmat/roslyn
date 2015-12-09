@@ -583,7 +583,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     expectedValueSourceLine: expectedValueSourceLine);
             }
 
-            Assert.Equal(((Cci.IMethodDefinition)methodData.Method).CallingConvention, expectedGeneric ? Cci.CallingConvention.Generic : Cci.CallingConvention.Default);
+            Assert.Equal(((Cci.IMethodDefinition)methodData.Method).IsGeneric, expectedGeneric);
+            Assert.Equal(((Cci.IMethodDefinition)methodData.Method).CallingConvention, Cci.CallingConvention.Default);
         }
 
         internal static ISymUnmanagedReader ConstructSymReaderWithImports(byte[] exeBytes, string methodName, params string[] importStrings)

@@ -256,11 +256,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return ImmutableArray<string>.Empty;
             }
 
-            internal override Microsoft.Cci.CallingConvention CallingConvention
-            {
-                get { return Microsoft.Cci.CallingConvention.HasThis; }
-            }
-
             internal override bool GenerateDebugInfo
             {
                 get { return false; }

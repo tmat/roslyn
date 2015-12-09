@@ -176,13 +176,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        Cci.CallingConvention Cci.ISignature.CallingConvention
-        {
-            get
-            {
-                return this.CallingConvention;
-            }
-        }
+        bool Cci.IMethodReference.IsStatic => IsStatic;
 
         ImmutableArray<Cci.IParameterTypeInformation> Cci.ISignature.GetParameters(EmitContext context)
         {
@@ -511,15 +505,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             {
                 CheckDefinitionInvariant();
                 return this.HasSpecialName;
-            }
-        }
-
-        bool Cci.IMethodDefinition.IsStatic
-        {
-            get
-            {
-                CheckDefinitionInvariant();
-                return this.IsStatic;
             }
         }
 

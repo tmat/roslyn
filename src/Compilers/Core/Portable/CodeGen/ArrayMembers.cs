@@ -332,7 +332,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
         public Cci.ISpecializedMethodReference AsSpecializedMethodReference => null;
 
-        public Cci.CallingConvention CallingConvention => Cci.CallingConvention.HasThis;
+        public bool IsStatic => false;
 
         public ushort ParameterCount => (ushort)_parameters.Length;
 

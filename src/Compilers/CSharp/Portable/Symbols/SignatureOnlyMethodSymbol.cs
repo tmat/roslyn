@@ -17,7 +17,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         private readonly string _name;
         private readonly TypeSymbol _containingType;
         private readonly MethodKind _methodKind;
-        private readonly Cci.CallingConvention _callingConvention;
+        private readonly bool _isVararg;
+        private readonly bool _isStatic;
         private readonly ImmutableArray<TypeParameterSymbol> _typeParameters;
         private readonly ImmutableArray<ParameterSymbol> _parameters;
         private readonly TypeSymbol _returnType;
@@ -28,14 +29,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             string name,
             TypeSymbol containingType,
             MethodKind methodKind,
-            Cci.CallingConvention callingConvention,
+            bool isVararg,
+            bool isStatic,
             ImmutableArray<TypeParameterSymbol> typeParameters,
             ImmutableArray<ParameterSymbol> parameters,
             TypeSymbol returnType,
             ImmutableArray<CustomModifier> returnTypeCustomModifiers,
             ImmutableArray<MethodSymbol> explicitInterfaceImplementations)
         {
-            _callingConvention = callingConvention;
+            _isVararg = isVararg;
+            _isStatic = isStatic;
             _typeParameters = typeParameters;
             _returnType = returnType;
             _returnTypeCustomModifiers = returnTypeCustomModifiers;
@@ -46,9 +49,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             _name = name;
         }
 
-        internal override Cci.CallingConvention CallingConvention { get { return _callingConvention; } }
-
-        public override bool IsVararg { get { return new SignatureHeader((byte)_callingConvention).CallingConvention == SignatureCallingConvention.VarArgs; } }
+        public override bool IsVararg => _isVararg;
+        public override bool IsStatic => _isStatic;
 
         public override bool IsGenericMethod { get { return Arity > 0; } }
 
@@ -107,9 +109,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences { get { throw ExceptionUtilities.Unreachable; } }
 
         public override Accessibility DeclaredAccessibility { get { throw ExceptionUtilities.Unreachable; } }
-
-        public override bool IsStatic { get { throw ExceptionUtilities.Unreachable; } }
-
+        
         public override bool IsAsync { get { throw ExceptionUtilities.Unreachable; } }
 
         public override bool IsVirtual { get { throw ExceptionUtilities.Unreachable; } }

@@ -65,11 +65,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get { return _interfaceMethod.ReturnsVoid; }
         }
 
-        internal sealed override Cci.CallingConvention CallingConvention
-        {
-            get { return _interfaceMethod.CallingConvention; }
-        }
-
         public sealed override ImmutableArray<CustomModifier> ReturnTypeCustomModifiers
         {
             get { return _interfaceMethod.ReturnTypeCustomModifiers; }

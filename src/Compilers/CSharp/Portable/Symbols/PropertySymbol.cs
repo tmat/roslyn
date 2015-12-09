@@ -164,8 +164,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             get;
         }
 
-        internal abstract Cci.CallingConvention CallingConvention { get; }
-
         internal abstract bool MustCallMethodsDirectly { get; }
 
         /// <summary>

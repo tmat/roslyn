@@ -1186,7 +1186,8 @@ End Class
 
                                                            Assert.Equal(MethodAttributes.Public Or MethodAttributes.ReuseSlot Or MethodAttributes.SpecialName Or MethodAttributes.RTSpecialName, ctor.MethodFlags)
                                                            Assert.Equal(MethodImplAttributes.Runtime, ctor.ImplementationAttributes)
-                                                           Assert.Equal(Microsoft.Cci.CallingConvention.Default Or Microsoft.Cci.CallingConvention.HasThis, ctor.CallingConvention)
+                                                           Assert.False(DirectCast(ctor, Cci.ISignature).IsStatic)
+                                                           Assert.Equal(Microsoft.Cci.CallingConvention.Default, ctor.CallingConvention)
                                                            Assert.Equal("Sub Test11..ctor(TargetObject As System.Object, TargetMethod As System.IntPtr)", ctor.ToTestDisplayString())
 
                                                            Dim begin = test11.GetMember(Of PEMethodSymbol)("BeginInvoke")
@@ -1202,7 +1203,8 @@ End Class
                                                            '     Argument #2:  Object
                                                            Assert.Equal(MethodAttributes.Public Or MethodAttributes.Virtual Or MethodAttributes.CheckAccessOnOverride Or MethodAttributes.NewSlot, begin.MethodFlags)
                                                            Assert.Equal(MethodImplAttributes.Runtime, begin.ImplementationAttributes)
-                                                           Assert.Equal(Microsoft.Cci.CallingConvention.Default Or Microsoft.Cci.CallingConvention.HasThis, begin.CallingConvention)
+                                                           Assert.Equal(Microsoft.Cci.CallingConvention.Default, begin.CallingConvention)
+                                                           Assert.False(DirectCast(begin, Cci.ISignature).IsStatic)
                                                            Assert.Equal("Function Test11.BeginInvoke(DelegateCallback As System.AsyncCallback, DelegateAsyncState As System.Object) As System.IAsyncResult", begin.ToTestDisplayString())
 
                                                            Dim [end] = test11.GetMember(Of PEMethodSymbol)("EndInvoke")
@@ -1218,7 +1220,8 @@ End Class
 
                                                            Assert.Equal(MethodAttributes.Public Or MethodAttributes.Virtual Or MethodAttributes.CheckAccessOnOverride Or MethodAttributes.NewSlot, [end].MethodFlags)
                                                            Assert.Equal(MethodImplAttributes.Runtime, [end].ImplementationAttributes)
-                                                           Assert.Equal(Microsoft.Cci.CallingConvention.Default Or Microsoft.Cci.CallingConvention.HasThis, [end].CallingConvention)
+                                                           Assert.Equal(Microsoft.Cci.CallingConvention.Default, [end].CallingConvention)
+                                                           Assert.False(DirectCast([end], Cci.ISignature).IsStatic)
                                                            Assert.Equal("Sub Test11.EndInvoke(DelegateAsyncResult As System.IAsyncResult)", [end].ToTestDisplayString())
 
                                                            Dim invoke = test11.GetMember(Of PEMethodSymbol)("Invoke")
@@ -1233,7 +1236,8 @@ End Class
 
                                                            Assert.Equal(MethodAttributes.Public Or MethodAttributes.Virtual Or MethodAttributes.CheckAccessOnOverride Or MethodAttributes.NewSlot, invoke.MethodFlags)
                                                            Assert.Equal(MethodImplAttributes.Runtime, invoke.ImplementationAttributes)
-                                                           Assert.Equal(Microsoft.Cci.CallingConvention.Default Or Microsoft.Cci.CallingConvention.HasThis, invoke.CallingConvention)
+                                                           Assert.False(DirectCast(invoke, Cci.ISignature).IsStatic)
+                                                           Assert.Equal(Cci.CallingConvention.Default, invoke.CallingConvention)
                                                            Assert.Equal("Sub Test11.Invoke()", invoke.ToTestDisplayString())
 
                                                            Dim itest13 = [module].GlobalNamespace.GetMember(Of NamedTypeSymbol)("ITest13")
@@ -1254,7 +1258,8 @@ End Class
 
                                                            Assert.Equal(MethodAttributes.Public Or MethodAttributes.Virtual Or MethodAttributes.CheckAccessOnOverride Or MethodAttributes.NewSlot Or MethodAttributes.Abstract, m13.MethodFlags)
                                                            Assert.Equal(MethodImplAttributes.IL, m13.ImplementationAttributes)
-                                                           Assert.Equal(Microsoft.Cci.CallingConvention.HasThis, m13.CallingConvention)
+                                                           Assert.False(DirectCast(m13, Cci.ISignature).IsStatic)
+                                                           Assert.Equal(Cci.CallingConvention.Default, m13.CallingConvention)
                                                            Assert.Equal("Sub ITest13.M13(x As System.Int32)", m13.ToTestDisplayString())
 
                                                            Dim itest14 = [module].GlobalNamespace.GetMember(Of NamedTypeSymbol)("ITest14")
@@ -1317,7 +1322,8 @@ End Class
                                                            ' No arguments.
                                                            Assert.Equal(MethodAttributes.Public Or MethodAttributes.Virtual Or MethodAttributes.CheckAccessOnOverride Or MethodAttributes.NewSlot Or MethodAttributes.Abstract, m17.MethodFlags)
                                                            Assert.Equal(MethodImplAttributes.IL, m17.ImplementationAttributes)
-                                                           Assert.Equal(Microsoft.Cci.CallingConvention.Default Or Microsoft.Cci.CallingConvention.HasThis, m17.CallingConvention)
+                                                           Assert.False(DirectCast(m17, Cci.ISignature).IsStatic)
+                                                           Assert.Equal(Cci.CallingConvention.Default, m17.CallingConvention)
                                                            Assert.Equal("Sub ITest17.M17()", m17.ToTestDisplayString())
 
                                                            Dim itest18 = [module].GlobalNamespace.GetMember(Of PENamedTypeSymbol)("ITest18")

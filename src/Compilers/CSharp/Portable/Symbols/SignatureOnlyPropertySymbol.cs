@@ -60,8 +60,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override bool HasSpecialName { get { throw ExceptionUtilities.Unreachable; } }
 
-        internal override Cci.CallingConvention CallingConvention { get { throw ExceptionUtilities.Unreachable; } }
-
         public override ImmutableArray<Location> Locations { get { throw ExceptionUtilities.Unreachable; } }
 
         public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences { get { throw ExceptionUtilities.Unreachable; } }

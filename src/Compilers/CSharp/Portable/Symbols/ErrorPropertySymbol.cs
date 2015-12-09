@@ -75,8 +75,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         public override ImmutableArray<ParameterSymbol> Parameters { get { return ImmutableArray<ParameterSymbol>.Empty; } }
 
-        internal override Cci.CallingConvention CallingConvention { get { return Cci.CallingConvention.Default; } }
-
         internal override bool MustCallMethodsDirectly { get { return false; } }
 
         public override ImmutableArray<PropertySymbol> ExplicitInterfaceImplementations { get { return ImmutableArray<PropertySymbol>.Empty; } }

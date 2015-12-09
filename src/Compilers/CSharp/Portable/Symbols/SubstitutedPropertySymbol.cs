@@ -212,11 +212,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get { return _originalDefinition.CallingConvention; }
-        }
-
         internal override bool MustCallMethodsDirectly
         {
             get { return _originalDefinition.MustCallMethodsDirectly; }

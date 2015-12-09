@@ -2502,7 +2502,8 @@ class C
   IL_002c:  ret
 }");
             // Verify generated type and method are generic.
-            Assert.Equal(((Cci.IMethodDefinition)methodData.Method).CallingConvention, Cci.CallingConvention.Generic);
+            Assert.Equal(((Cci.IMethodDefinition)methodData.Method).CallingConvention, Cci.CallingConvention.Default);
+            Assert.True(((Cci.IMethodDefinition)methodData.Method).IsGeneric);
             var metadata = ModuleMetadata.CreateFromImage(ImmutableArray.CreateRange(result.Assembly));
             var reader = metadata.MetadataReader;
             var typeDef = reader.GetTypeDef(result.TypeName);
@@ -2564,7 +2565,8 @@ class C<T>
   IL_001e:  call       ""U C<T>.F<U>(System.Func<U>)""
   IL_0023:  ret
 }");
-            Assert.Equal(((Cci.IMethodDefinition)methodData.Method).CallingConvention, Cci.CallingConvention.Generic);
+            Assert.Equal(((Cci.IMethodDefinition)methodData.Method).CallingConvention, Cci.CallingConvention.Default);
+            Assert.True(((Cci.IMethodDefinition)methodData.Method).IsGeneric);
         }
 
         [WorkItem(976847)]

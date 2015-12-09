@@ -106,14 +106,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        internal override Cci.CallingConvention CallingConvention
-        {
-            get
-            {
-                return _overriddenAccessor.CallingConvention;
-            }
-        }
-
         public override MethodKind MethodKind
         {
             get

@@ -117,14 +117,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Debug.Assert(_lazyTypeParameters != null);
         }
 
-        internal sealed override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get
-            {
-                return originalDefinition.CallingConvention;
-            }
-        }
-
         public sealed override int Arity
         {
             get

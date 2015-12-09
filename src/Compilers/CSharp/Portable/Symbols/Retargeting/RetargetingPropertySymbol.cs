@@ -165,14 +165,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
             }
         }
 
-        internal override Microsoft.Cci.CallingConvention CallingConvention
-        {
-            get
-            {
-                return _underlyingProperty.CallingConvention;
-            }
-        }
-
         internal override bool IsExplicitInterfaceImplementation
         {
             get
