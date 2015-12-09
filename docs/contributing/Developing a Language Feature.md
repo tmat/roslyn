@@ -2,7 +2,7 @@
 
 Adding a new feature to C# or VB is a very serious undertaking that often takes several iterations to complete for even the (seemingly) simplest of features. This is due to both the inherent complexity of changing languages and the need to consider the effects of new features in all layers of the Roslyn codebase: IDE, debugging, scripting, etc. As such, language work occurs in a separate branch until the feature reaches a point when we are ready to merge it into the main compiler.
 
-This page discusses the process by which langauge featuere *implementations* are considered, prototyped, and fully accepted into the language.  This process is intended to be used by the compiler team and community.  
+This page discusses the process by which langauge feature *implementations* are considered, prototyped, and fully accepted into the language.  This process is intended to be used by the compiler team and community.  
 
 ## Process 
 
@@ -14,7 +14,7 @@ This page discusses the process by which langauge featuere *implementations* are
 
     A feature speclet is different from a language design discussion. Discussions are very open-ended and often for features that simply won't work in the language. A feature speclet is a declaration of intent to do the feature as proposed. In many cases, this will come out of a language design discussion. 
 
-    Linking to a early prototype of the proposed feature is highly encouraged. It gives the Language Team a clear understanding of the design intent of the feature and can often serve as the initial commit in the feature branch.  
+    Linking to an early prototype of the proposed feature is highly encouraged. It gives the Language Team a clear understanding of the design intent of the feature and can often serve as the initial commit in the feature branch.  
   
     *Note*: The goal is not to have a 100%-complete design but instead a general understanding of how the language feature is intended to work.
 
@@ -46,7 +46,7 @@ This page discusses the process by which langauge featuere *implementations* are
 
 It's important to note there are **no guarantees** about a feature being a part of the language until it has reached the 'Acceptance' state **and** shipped in an official build. Features in any other state--no matter how complete--can be pulled at the last minute if the Language Team deems it's necessary to do so.  
 
-Pulling a feature after the prototype phase completes is not a decision the Langauge Team takes lightly; however, in the past, unforeseen circumstances have caused us to do so. The best example of this was the decision to pull parameterless struct constructors very late in the C# 6.0 timeframe.  
+Pulling a feature after the prototype phase completes is not a decision the Langauge Team takes lightly; however, in the past, unforeseen circumstances have caused us to do so. The best example of this was the decision to pull parameterless struct constructors very late in the C# 6 timeframe.  
 
 ## Community Contributions
 The intent of this document is to codify the process used by the Language Team to implement language features so that the community can contribute implementations. Community members can contribute to ongoing prototypes or in some cases be the primary driver of the prototype.  
@@ -58,7 +58,7 @@ Community members who wish to drive a particular feature can request so by comme
 
 - **Why was my language feature PR closed?**: Language features will not be accepted as direct PRs to a main branch. Even simple features are too involved for senior Language Team members to complete in this fashion. Features need to follow the above process in order to be incorporated into the language.
 
-- **Why are features disabled by default?**: Language features spend a considerable amount of time in the same branch as our shipping product which is often master.  The master branch of Roslyn is kept it a ship ready state at all times.  To facilitate this all features which haven't been fully accepted into the language must be disabled. 
+- **Why are features disabled by default?**: Language features spend a considerable amount of time in the same branch as our shipping product which is often master.  The master branch of Roslyn is kept in a ship ready state at all times.  To facilitate this all features which haven't been fully accepted into the language must be disabled. 
 
 - **What is the difference between the future and master branches?**: The master branch represents code which will ship in updates to the C# 6 compiler.  The future branch represents C# 7.  
 
