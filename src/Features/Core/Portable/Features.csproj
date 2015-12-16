@@ -71,6 +71,9 @@
     <InternalsVisibleToMoq Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\..\Compilers\Shared\DesktopShim.cs">
+      <Link>Shared\Utilities\DesktopShim.cs</Link>
+    </Compile>
     <Compile Include="AddMissingReference\AbstractAddMissingReferenceCodeFixProvider.cs" />
     <Compile Include="AddMissingReference\CodeAction.cs" />
     <Compile Include="ChangeSignature\AbstractChangeSignatureCodeRefactoringProvider.cs" />
@@ -85,6 +88,8 @@
     <Compile Include="ChangeSignature\IUnifiedArgumentSyntax.cs" />
     <Compile Include="ChangeSignature\ParameterConfiguration.cs" />
     <Compile Include="ChangeSignature\SignatureChange.cs" />
+    <Compile Include="CodeFixes\AddImport\AbstractAddImportCodeFixProvider.SearchScope.cs" />
+    <Compile Include="CodeFixes\AddImport\AbstractAddImportCodeFixProvider.SymbolReference.cs" />
     <Compile Include="CodeFixes\CodeFixContextExtensions.cs" />
     <Compile Include="CodeFixes\FixAllOccurrences\FixMultipleCodeAction.cs" />
     <Compile Include="CodeFixes\FixAllOccurrences\FixAllCodeAction.cs" />
@@ -264,8 +269,8 @@
     <Compile Include="Diagnostics\EngineV1\DiagnosticIncrementalAnalyzer.DiagnosticState.cs" />
     <Compile Include="Diagnostics\EngineV1\DiagnosticIncrementalAnalyzer.cs" />
     <Compile Include="Diagnostics\EngineV1\MemberRangeMap.cs" />
-    <Compile Include="DocumentationCommentFormatting\AbstractDocumentationCommentFormattingService.cs" />
-    <Compile Include="DocumentationCommentFormatting\IDocumentationCommentFormattingService.cs" />
+    <Compile Include="DocumentationComments\AbstractDocumentationCommentFormattingService.cs" />
+    <Compile Include="DocumentationComments\IDocumentationCommentFormattingService.cs" />
     <Compile Include="EditAndContinue\AbstractEditAndContinueAnalyzer.cs" />
     <Compile Include="EditAndContinue\ActiveStatementFlags.cs" />
     <Compile Include="EditAndContinue\ActiveStatementId.cs" />

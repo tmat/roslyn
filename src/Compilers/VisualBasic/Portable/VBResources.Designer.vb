@@ -6108,7 +6108,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to The pathmap option was incorrectly formatted.
+        '''  Looks up a localized string similar to The pathmap option was incorrectly formatted..
         '''</summary>
         Friend ReadOnly Property ERR_InvalidPathMap() As String
             Get
@@ -12141,6 +12141,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend ReadOnly Property SyntaxTreeAlreadyPresent() As String
             Get
                 Return ResourceManager.GetString("SyntaxTreeAlreadyPresent", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized string similar to Syntax tree should be created from a submission..
+        '''</summary>
+        Friend ReadOnly Property SyntaxTreeIsNotASubmission() As String
+            Get
+                Return ResourceManager.GetString("SyntaxTreeIsNotASubmission", resourceCulture)
             End Get
         End Property
         

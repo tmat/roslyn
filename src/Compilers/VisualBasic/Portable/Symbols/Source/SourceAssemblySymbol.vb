@@ -1193,6 +1193,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                    DeclaringCompilation.Options.CryptoPublicKey.IsEmpty AndAlso
                    Identity.HasPublicKey AndAlso
                    Not IsDelaySigned AndAlso
+                   Not DeclaringCompilation.Options.PublicSign AndAlso
                    Not StrongNameKeys.CanSign Then
 
                     ' Since the container always contains both keys, the problem is that the key file didn't contain private key.
@@ -1210,6 +1211,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Private Sub DetectAttributeAndOptionConflicts(diagnostics As DiagnosticBag)
             EnsureAttributesAreBound()
+
+            If _compilation.Options.PublicSign AndAlso DelaySignAttributeSetting Then
+                diagnostics.Add(ERRID.ERR_CmdOptionConflictsSource, NoLocation.Singleton,
+                                AttributeDescription.AssemblyDelaySignAttribute.FullName,
+                                NameOf(_compilation.Options.PublicSign))
+            End If
 
             If _compilation.Options.OutputKind = OutputKind.NetModule Then
                 If Not String.IsNullOrEmpty(_compilation.Options.CryptoKeyContainer) Then
@@ -1601,7 +1608,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
             ' Creating strong names is a potentially expensive operation, so we will check again here
             ' if keys could have been created and published already.
             If _lazyStrongNameKeys Is Nothing Then
-                Dim keys = StrongNameKeys.Create(DeclaringCompilation.Options.StrongNameProvider, keyFile, keyContainer, MessageProvider.Instance)
+                Dim keys As StrongNameKeys
+
+                ' Public signing doesn't require a strong name provider to be used. 
+                If DeclaringCompilation.Options.PublicSign AndAlso keyFile IsNot Nothing Then
+                    keys = StrongNameKeys.Create(keyFile, MessageProvider.Instance)
+                Else
+                    keys = StrongNameKeys.Create(DeclaringCompilation.Options.StrongNameProvider, keyFile, keyContainer, MessageProvider.Instance)
+                End If
                 Interlocked.CompareExchange(_lazyStrongNameKeys, keys, Nothing)
             End If
         End Sub

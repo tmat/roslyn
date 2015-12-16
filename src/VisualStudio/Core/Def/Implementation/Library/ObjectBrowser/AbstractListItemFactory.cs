@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Shared.Utilities;
+using Microsoft.CodeAnalysis.CommandLine;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectBrowser.Lists;
 using Roslyn.Utilities;
 
@@ -660,7 +661,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
                 return ImmutableArray<ObjectListItem>.Empty;
             }
 
-            var builder = ImmutableArray.CreateBuilder<ObjectListItem>();
+            var builder = ArrayBuilder<ObjectListItem>.GetInstance();
 
             foreach (var reference in compilation.References)
             {
@@ -672,7 +673,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
                 }
             }
 
-            return builder.ToImmutable();
+            return builder.ToImmutableAndFree();
         }
 
         private ImmutableArray<INamedTypeSymbol> GetAccessibleTypes(INamespaceSymbol namespaceSymbol, Compilation compilation)

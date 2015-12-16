@@ -3,7 +3,7 @@
 REM Parse Arguments.
 
 set NugetZipUrlRoot=https://dotnetci.blob.core.windows.net/roslyn
-set NugetZipUrl=%NuGetZipUrlRoot%/nuget.31.zip
+set NugetZipUrl=%NuGetZipUrlRoot%/nuget.39.zip
 set RoslynRoot=%~dp0
 set BuildConfiguration=Debug
 set BuildRestore=false
@@ -11,7 +11,7 @@ set BuildRestore=false
 REM Because override the C#/VB toolset to build against our LKG package, it is important
 REM that we do not reuse MSBuild nodes from other jobs/builds on the machine. Otherwise, 
 REM we'll run into issues such as https://github.com/dotnet/roslyn/issues/6211.
-set MSBuildAdditionalCommandLineArgs=/nologo /v:m /m /nodeReuse:false /p:DeployExtension=false
+set MSBuildAdditionalCommandLineArgs=/nologo /m /nodeReuse:false /consoleloggerparameters:Verbosity=minimal /filelogger /fileloggerparameters:Verbosity=normal
 
 :ParseArguments
 if "%1" == "" goto :DoneParsing
@@ -38,6 +38,8 @@ if defined Perf (
 
 call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\VsDevCmd.bat" || goto :BuildFailed
 
+powershell -noprofile -executionPolicy RemoteSigned -command "%RoslynRoot%\build\scripts\check-branch.ps1" || goto :BuildFailed
+
 REM Restore the NuGet packages 
 if "%BuildRestore%" == "true" (
     call "%RoslynRoot%\Restore.cmd" || goto :BuildFailed
@@ -48,14 +50,14 @@ if "%BuildRestore%" == "true" (
 REM Set the build version only so the assembly version is set to the semantic version,
 REM which allows analyzers to laod because the compiler has binding redirects to the
 REM semantic version
-msbuild %MSBuildAdditionalCommandLineArgs% /p:BuildVersion=0.0.0.0 %RoslynRoot%build/Toolset.sln /p:NuGetRestorePackages=false /p:Configuration=%BuildConfiguration% || goto :BuildFailed
+msbuild %MSBuildAdditionalCommandLineArgs% /p:BuildVersion=0.0.0.0 %RoslynRoot%build/Toolset.sln /p:NuGetRestorePackages=false /p:Configuration=%BuildConfiguration% /fileloggerparameters:LogFile=%RoslynRoot%Binaries\Bootstrap.log || goto :BuildFailed
 
 if not exist "%RoslynRoot%Binaries\Bootstrap" mkdir "%RoslynRoot%Binaries\Bootstrap" || goto :BuildFailed
 move "Binaries\%BuildConfiguration%\*" "%RoslynRoot%Binaries\Bootstrap" || goto :BuildFailed
 copy "build\scripts\*" "%RoslynRoot%Binaries\Bootstrap" || goto :BuildFailed
 
 REM Clean the previous build
-msbuild %MSBuildAdditionalCommandLineArgs% /t:Clean build/Toolset.sln /p:Configuration=%BuildConfiguration%  || goto :BuildFailed
+msbuild %MSBuildAdditionalCommandLineArgs% /t:Clean build/Toolset.sln /p:Configuration=%BuildConfiguration%  /fileloggerparameters:LogFile=%RoslynRoot%Binaries\BootstrapClean.log || goto :BuildFailed
 
 call :TerminateCompilerServer
 
@@ -65,7 +67,7 @@ if defined Perf (
   set Target=BuildAndTest
 )
 
-msbuild %MSBuildAdditionalCommandLineArgs% /p:BootstrapBuildPath=%RoslynRoot%Binaries\Bootstrap BuildAndTest.proj /t:%Target% /p:Configuration=%BuildConfiguration% /p:Test64=%Test64% || goto :BuildFailed
+msbuild %MSBuildAdditionalCommandLineArgs% /p:BootstrapBuildPath=%RoslynRoot%Binaries\Bootstrap BuildAndTest.proj /t:%Target% /p:Configuration=%BuildConfiguration% /p:Test64=%Test64% /fileloggerparameters:LogFile=%RoslynRoot%Binaries\Build.log || goto :BuildFailed
 
 call :TerminateCompilerServer
 
@@ -91,13 +93,14 @@ REM Ensure caller sees successful exit.
 exit /b 0
 
 :Usage
-@echo Usage: cibuild.cmd [/debug^|/release] [/test32^|/test64^|/perf]
+@echo Usage: cibuild.cmd [/debug^|/release] [/test32^|/test64^|/perf] [/restore]
 @echo   /debug   Perform debug build.  This is the default.
 @echo   /release Perform release build.
 @echo   /test32  Run unit tests in the 32-bit runner.  This is the default.
 @echo   /test64  Run units tests in the 64-bit runner.
 @echo   /perf    Submit a job to the performance test system. Usually combined
 @echo            with /release. May not be combined with /test32 or /test64.
+@echo   /restore Perform actual nuget restore instead of using zip drops.
 @echo.
 @goto :eof
 
@@ -108,6 +111,6 @@ exit /b 1
 
 :TerminateCompilerServer
 @REM Kill any instances VBCSCompiler.exe to release locked files, ignoring stderr if process is not open
-@REM This prevents future CI runs from failing hile trying to delete those files.
+@REM This prevents future CI runs from failing while trying to delete those files.
 
 taskkill /F /IM vbcscompiler.exe 2> nul

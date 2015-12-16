@@ -36,20 +36,22 @@
     <Compile Include="Implementation\AnalyzerDependency\IgnorableAssemblyIdentityList.cs" />
     <Compile Include="Implementation\AnalyzerDependency\IgnorableAssemblyNameList.cs" />
     <Compile Include="Implementation\AnalyzerDependency\IgnorableAssemblyNamePrefixList.cs" />
-    <Compile Include="Implementation\Classification\ViewSupportsClassificationService.cs" />
     <Compile Include="Implementation\CompilationErrorTelemetry\CompilationErrorTelemetryIncrementalAnalyzer.cs" />
     <Compile Include="Implementation\Diagnostics\VisualStudioVenusSpanMappingService.cs" />
     <Compile Include="Implementation\Diagnostics\VisualStudioWorkspaceDiagnosticAnalyzerProviderService.AnalyzerAssemblyLoader.cs" />
     <Compile Include="Implementation\EditAndContinue\Interop\NativeMethods.cs" />
     <Compile Include="Implementation\AnalyzerDependency\IIgnorableAssemblyList.cs" />
     <Compile Include="Implementation\AnalyzerDependency\IBindingRedirectionService.cs" />
+    <Compile Include="Implementation\Extensions\ServiceProviderExtensions.cs" />
     <Compile Include="Implementation\Interop\CleanableWeakComHandleTable.cs" />
     <Compile Include="Implementation\LanguageService\AbstractLanguageService`2.IVsLanguageBlock.cs" />
     <Compile Include="Implementation\Library\AbstractLibraryService.cs" />
+    <Compile Include="Implementation\Library\ClassView\AbstractSyncClassViewCommandHandler.cs" />
     <Compile Include="Implementation\Library\FindResults\TreeItems\AbstractSourceTreeItem.cs" />
     <Compile Include="Implementation\Library\FindResults\TreeItems\MetadataDefinitionTreeItem.cs" />
     <Compile Include="Implementation\Library\FindResults\TreeItems\SourceDefinitionTreeItem.cs" />
     <Compile Include="Implementation\Library\ILibraryService.cs" />
+    <Compile Include="Implementation\Library\ObjectBrowser\ObjectBrowserTaskExtensions.cs" />
     <Compile Include="Implementation\Library\VsNavInfo\NavInfoNodeEnum.cs" />
     <Compile Include="Implementation\Library\VsNavInfo\Extensions.cs" />
     <Compile Include="Implementation\Library\VsNavInfo\NavInfo.cs" />
@@ -102,6 +104,7 @@
     <Compile Include="Implementation\TableDataSource\VisualStudioTodoListTable.cs" />
     <Compile Include="Implementation\Utilities\BrowserHelper.cs" />
     <Compile Include="Implementation\Utilities\HyperlinkStyleHelper.cs" />
+    <Compile Include="Implementation\Venus\VenusTaskExtensions.cs" />
     <Compile Include="Implementation\Versions\SemanticVersionTrackingService.cs" />
     <Compile Include="Implementation\ContainedLanguageRefactorNotifyService.cs" />
     <Compile Include="Implementation\VirtualMemoryNotificationListener.cs" />
@@ -127,7 +130,6 @@
       <DependentUpon>ServicesVSResources.resx</DependentUpon>
     </Compile>
     <Compile Include="SolutionEventMonitor.cs" />
-    <Compile Include="Utilities\IVsTextViewExtensions.cs" />
     <Compile Include="Utilities\VSCodeAnalysisColors.cs" />
     <Compile Include="Implementation\WorkspaceCacheService.cs" />
     <Compile Include="Implementation\Workspace\WorkspaceFailureOutputPane.cs" />
