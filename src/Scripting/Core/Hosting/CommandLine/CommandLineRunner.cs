@@ -272,6 +272,8 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
                 return false;
             }
 
+            globals.Script = new ScriptContext(newScript);
+
             try
             {
                 var task = (state == null) ?

@@ -35,6 +35,7 @@ namespace Microsoft.CodeAnalysis.Scripting.Hosting
             _outputWriter.WriteLine(_objectFormatter.FormatObject(value, PrintOptions));
         }
 
+        public ScriptContext Script { get; set; } 
         public IList<string> ReferencePaths { get; }
         public IList<string> SourcePaths { get; }
 

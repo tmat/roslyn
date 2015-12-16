@@ -78,6 +78,7 @@
     <Compile Include="Hosting\AssemblyLoader\MetadataShadowCopyProvider.cs" />
     <Compile Include="Hosting\AssemblyLoader\ShadowCopy.cs" />
     <Compile Include="Hosting\Resolvers\NuGetPackageResolver.cs" />
+    <Compile Include="Hosting\ScriptContext.cs" />
     <Compile Include="Hosting\SearchPaths.cs" />
     <Compile Include="Hosting\SynchronizedList.cs" />
     <Compile Include="ScriptMetadataResolver.cs" />

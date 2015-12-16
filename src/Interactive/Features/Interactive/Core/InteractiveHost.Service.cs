@@ -817,6 +817,8 @@ namespace Microsoft.CodeAnalysis.Interactive
             {
                 return await Task.Factory.StartNew(async () =>
                 {
+                    _globals.Script = new ScriptContext(script);
+
                     try
                     {
                         var task = (stateOpt == null) ?
