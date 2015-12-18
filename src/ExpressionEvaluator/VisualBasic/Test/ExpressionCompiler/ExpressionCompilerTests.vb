@@ -3672,31 +3672,30 @@ End Class"
             comp.EmitAndGetReferences(exeBytes, pdbBytes, references)
             Dim exeReference = AssemblyMetadata.CreateFromImage(exeBytes).GetReference(display:=Guid.NewGuid().ToString("D"))
 
-            Dim modulesBuilder = ArrayBuilder(Of ModuleInstance).GetInstance()
-            Dim corruptMetadata = New ModuleInstance(
-                metadataReference:=Nothing,
-                moduleMetadata:=Nothing,
-                moduleVersionId:=Nothing,
-                fullImage:=Nothing,
-                metadataOnly:=CommonResources.NoValidTables,
-                symReader:=Nothing,
-                includeLocalSignatures:=False)
+            Using pinnedMetadata = New PinnedMetadata(ImmutableArray.CreateRange(CommonResources.NoValidTables))
+                Dim modulesBuilder = ArrayBuilder(Of ModuleInstance).GetInstance()
+                Dim corruptMetadata = New ModuleInstance(
+                    metadataReference:=Nothing,
+                    moduleMetadata:=ModuleMetadata.CreateFromMetadata(pinnedMetadata.Pointer, pinnedMetadata.Size),
+                    moduleVersionId:=Nothing,
+                    symReader:=Nothing,
+                    includeLocalSignatures:=False)
 
-            modulesBuilder.Add(corruptMetadata)
-            modulesBuilder.Add(exeReference.ToModuleInstance(exeBytes, SymReaderFactory.CreateReader(pdbBytes)))
-            modulesBuilder.AddRange(references.Select(Function(r) r.ToModuleInstance(fullImage:=Nothing, symReader:=Nothing)))
-            Dim modules = modulesBuilder.ToImmutableAndFree()
+                modulesBuilder.Add(corruptMetadata)
+                modulesBuilder.Add(exeReference.ToModuleInstance(exeBytes, SymReaderFactory.CreateReader(pdbBytes)))
+                modulesBuilder.AddRange(references.Select(Function(r) r.ToModuleInstance(fullImage:=Nothing, symReader:=Nothing)))
+                Dim modules = modulesBuilder.ToImmutableAndFree()
 
-            Using runtime = New RuntimeInstance(modules)
-                Dim context = CreateMethodContext(runtime, "C.M")
-                Dim resultProperties As ResultProperties
-                Dim errorMessage As String = Nothing
-                Dim testData = New CompilationTestData()
-                ' Verify that we can still evaluate expressions for modules that are not corrupt.
-                context.CompileExpression("(new C()).F", resultProperties, errorMessage, testData)
-                Assert.Null(errorMessage)
-                Assert.Equal(DkmClrCompilationResultFlags.None, resultProperties.Flags)
-                testData.GetMethodData("<>x.<>m0").VerifyIL("
+                Using runtime = New RuntimeInstance(modules)
+                    Dim context = CreateMethodContext(runtime, "C.M")
+                    Dim resultProperties As ResultProperties
+                    Dim errorMessage As String = Nothing
+                    Dim testData = New CompilationTestData()
+                    ' Verify that we can still evaluate expressions for modules that are not corrupt.
+                    context.CompileExpression("(new C()).F", resultProperties, errorMessage, testData)
+                    Assert.Null(errorMessage)
+                    Assert.Equal(DkmClrCompilationResultFlags.None, resultProperties.Flags)
+                    testData.GetMethodData("<>x.<>m0").VerifyIL("
 {
   // Code size       11 (0xb)
   .maxstack  1
@@ -3704,6 +3703,7 @@ End Class"
   IL_0005:  ldfld      ""C.F As Integer""
   IL_000a:  ret
 }")
+                End Using
             End Using
         End Sub
 

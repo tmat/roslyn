@@ -8,20 +8,22 @@ using Roslyn.Utilities;
 
 namespace Roslyn.Test.Utilities
 {
-    internal class PinnedMetadata : IDisposable
+    internal sealed class PinnedMetadata : IDisposable
     {
         private GCHandle _bytes; // non-readonly as Free() mutates to prevent double-free.
-        public readonly MetadataReader Reader;
+        private Lazy<MetadataReader> _lazyReader;
         public readonly IntPtr Pointer;
         public readonly int Size;
 
         public unsafe PinnedMetadata(ImmutableArray<byte> metadata)
         {
             _bytes = GCHandle.Alloc(metadata.DangerousGetUnderlyingArray(), GCHandleType.Pinned);
-            this.Pointer = _bytes.AddrOfPinnedObject();
-            this.Size = metadata.Length;
-            this.Reader = new MetadataReader((byte*)this.Pointer, this.Size, MetadataReaderOptions.None, null);
+            Pointer = _bytes.AddrOfPinnedObject();
+            Size = metadata.Length;
+            _lazyReader = new Lazy<MetadataReader>(() => new MetadataReader((byte*)Pointer, Size, MetadataReaderOptions.None, null));
         }
+
+        public MetadataReader Reader => _lazyReader.Value;
 
         public void Dispose()
         {

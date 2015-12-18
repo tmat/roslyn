@@ -5516,32 +5516,32 @@ class C
             comp.EmitAndGetReferences(out exeBytes, out pdbBytes, out references);
             var exeReference = AssemblyMetadata.CreateFromImage(exeBytes).GetReference(display: Guid.NewGuid().ToString("D"));
 
-            var modulesBuilder = ArrayBuilder<ModuleInstance>.GetInstance();
-            var corruptMetadata = new ModuleInstance(
-                metadataReference: null,
-                moduleMetadata: null,
-                moduleVersionId: default(Guid),
-                fullImage: null,
-                metadataOnly: CommonResources.NoValidTables,
-                symReader: null,
-                includeLocalSignatures: false);
-
-            modulesBuilder.Add(corruptMetadata);
-            modulesBuilder.Add(exeReference.ToModuleInstance(exeBytes, SymReaderFactory.CreateReader(pdbBytes)));
-            modulesBuilder.AddRange(references.Select(r => r.ToModuleInstance(fullImage: null, symReader: null)));
-            var modules = modulesBuilder.ToImmutableAndFree();
-
-            using (var runtime = new RuntimeInstance(modules))
+            using (var pinnedMetadata = new PinnedMetadata(ImmutableArray.CreateRange(CommonResources.NoValidTables)))
             {
-                var context = CreateMethodContext(runtime, "C.M");
-                ResultProperties resultProperties;
-                string error;
-                var testData = new CompilationTestData();
-                // Verify that we can still evaluate expressions for modules that are not corrupt.
-                context.CompileExpression("(new C()).F", out resultProperties, out error, testData);
-                Assert.Null(error);
-                Assert.Equal(DkmClrCompilationResultFlags.None, resultProperties.Flags);
-                testData.GetMethodData("<>x.<>m0").VerifyIL(@"
+                var modulesBuilder = ArrayBuilder<ModuleInstance>.GetInstance();
+                var corruptMetadata = new ModuleInstance(
+                    metadataReference: null,
+                    moduleMetadata: ModuleMetadata.CreateFromMetadata(pinnedMetadata.Pointer, pinnedMetadata.Size),
+                    moduleVersionId: default(Guid),
+                    symReader: null,
+                    includeLocalSignatures: false);
+
+                modulesBuilder.Add(corruptMetadata);
+                modulesBuilder.Add(exeReference.ToModuleInstance(exeBytes, SymReaderFactory.CreateReader(pdbBytes)));
+                modulesBuilder.AddRange(references.Select(r => r.ToModuleInstance(fullImage: null, symReader: null)));
+                var modules = modulesBuilder.ToImmutableAndFree();
+
+                using (var runtime = new RuntimeInstance(modules))
+                {
+                    var context = CreateMethodContext(runtime, "C.M");
+                    ResultProperties resultProperties;
+                    string error;
+                    var testData = new CompilationTestData();
+                    // Verify that we can still evaluate expressions for modules that are not corrupt.
+                    context.CompileExpression("(new C()).F", out resultProperties, out error, testData);
+                    Assert.Null(error);
+                    Assert.Equal(DkmClrCompilationResultFlags.None, resultProperties.Flags);
+                    testData.GetMethodData("<>x.<>m0").VerifyIL(@"
 {
   // Code size       11 (0xb)
   .maxstack  1
@@ -5549,6 +5549,7 @@ class C
   IL_0005:  ldfld      ""int C.F""
   IL_000a:  ret
 }");
+                }
             }
         }
 

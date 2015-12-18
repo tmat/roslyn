@@ -507,8 +507,9 @@ End Class
                     Return Nothing
                 End Function,
                 Function(assemblyIdentity, ByRef uSize)
-                    uSize = CUInt(missingModule.MetadataLength)
-                    Return missingModule.MetadataAddress
+                    Dim block = missingModule.MetadataBlock
+                    uSize = CUInt(block.Size)
+                    Return block.Pointer
                 End Function,
                 errorMessage)
 

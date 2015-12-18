@@ -161,6 +161,24 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
+        // for testing
+        internal unsafe void GetMetadataMemoryBlock(out IntPtr pointer, out int size)
+        {
+            // PEModule is either created with metadata memory block or a PE reader.
+            if (_metadataPointerOpt != IntPtr.Zero)
+            {
+                pointer = _metadataPointerOpt;
+                size = _metadataSizeOpt;
+            }
+            else
+            {
+                Debug.Assert(_peReaderOpt != null);
+                var peBlock = _peReaderOpt.GetMetadata();
+                pointer = (IntPtr)peBlock.Pointer;
+                size = peBlock.Length;
+            }
+        }
+
         private unsafe void InitializeMetadataReader()
         {
             MetadataReader newReader;

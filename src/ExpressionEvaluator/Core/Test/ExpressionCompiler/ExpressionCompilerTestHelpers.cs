@@ -523,16 +523,12 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             object symReader,
             bool includeLocalSignatures = true)
         {
-            var moduleMetadata = reference.GetModuleMetadata();
-            var moduleId = moduleMetadata.Module.GetModuleVersionIdOrThrow();
-            // The Expression Compiler expects metadata only, no headers or IL.
-            var metadataBytes = moduleMetadata.Module.PEReaderOpt.GetMetadata().GetContent().ToArray();
+            var moduleMetadata = (fullImage != null) ? ModuleMetadata.CreateFromImage(fullImage) : reference.GetModuleMetadata();
+
             return new ModuleInstance(
                 reference,
                 moduleMetadata,
-                moduleId,
-                fullImage,
-                metadataBytes,
+                moduleMetadata.Module.GetModuleVersionIdOrThrow(),
                 symReader,
                 includeLocalSignatures && (fullImage != null));
         }

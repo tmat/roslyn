@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 {
-    internal sealed class MockSymUnmanagedReader : ISymUnmanagedReader, ISymUnmanagedReader2, ISymUnmanagedReader3
+    internal sealed class MockSymUnmanagedReader : ISymUnmanagedReader, ISymUnmanagedReader2, ISymUnmanagedReader3, ISymUnmanagedDispose
     {
         private readonly ImmutableDictionary<int, MethodDebugInfoBytes> _methodDebugInfoMap;
 
@@ -154,6 +154,11 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         public int GetSymAttributeByVersionPreRemap(int methodToken, int version, string name, int bufferLength, out int count, byte[] customDebugInformation)
         {
             throw new NotImplementedException();
+        }
+
+        public int Destroy()
+        {
+            return 0;
         }
     }
 

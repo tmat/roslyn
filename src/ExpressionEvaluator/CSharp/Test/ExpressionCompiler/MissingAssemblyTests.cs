@@ -605,8 +605,9 @@ class C
                 },
                 (AssemblyIdentity assemblyIdentity, out uint uSize) =>
                 {
-                    uSize = (uint)missingModule.MetadataLength;
-                    return missingModule.MetadataAddress;
+                    var block = missingModule.MetadataBlock;
+                    uSize = (uint)block.Size;
+                    return block.Pointer;
                 },
                 out errorMessage);
 
@@ -652,8 +653,9 @@ class C
                 },
                 (AssemblyIdentity assemblyIdentity, out uint uSize) =>
                 {
-                    uSize = (uint)missingModule.MetadataLength;
-                    return missingModule.MetadataAddress;
+                    var block = missingModule.MetadataBlock;
+                    uSize = (uint)block.Size;
+                    return block.Pointer;
                 },
                 out errorMessage);
 

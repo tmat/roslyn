@@ -7,6 +7,9 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
+using Microsoft.DiaSymReader;
+using Roslyn.Test.Utilities;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 {
@@ -30,80 +33,72 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
     internal sealed class ModuleInstance : IDisposable
     {
+        internal readonly MetadataReference MetadataReference;
+        internal readonly ModuleMetadata ModuleMetadata;
+        internal readonly Guid ModuleVersionId;
+        internal readonly object SymReader;
+        private readonly bool _includeLocalSignatures;
+        private bool _disposed;
+
         internal ModuleInstance(
             MetadataReference metadataReference,
             ModuleMetadata moduleMetadata,
             Guid moduleVersionId,
-            byte[] fullImage,
-            byte[] metadataOnly,
             object symReader,
             bool includeLocalSignatures)
         {
-            Debug.Assert((fullImage == null) || (fullImage.Length > metadataOnly.Length));
-
             this.MetadataReference = metadataReference;
             this.ModuleMetadata = moduleMetadata;
-            this.ModuleVersionId = moduleVersionId;
-            this.FullImage = fullImage;
-            this.MetadataOnly = metadataOnly;
-            this.MetadataHandle = GCHandle.Alloc(metadataOnly, GCHandleType.Pinned);
             this.SymReader = symReader; // should be non-null if and only if there are symbols
             _includeLocalSignatures = includeLocalSignatures;
-        }
-
-        internal readonly MetadataReference MetadataReference;
-        internal readonly ModuleMetadata ModuleMetadata;
-        internal readonly Guid ModuleVersionId;
-        internal readonly byte[] FullImage;
-        internal readonly byte[] MetadataOnly;
-        internal readonly GCHandle MetadataHandle;
-        internal readonly object SymReader;
-        private readonly bool _includeLocalSignatures;
-
-        internal IntPtr MetadataAddress
-        {
-            get { return this.MetadataHandle.AddrOfPinnedObject(); }
-        }
-
-        internal int MetadataLength
-        {
-            get { return this.MetadataOnly.Length; }
+            ModuleVersionId = moduleVersionId;
         }
 
         internal MetadataBlock MetadataBlock
         {
-            get { return new MetadataBlock(this.ModuleVersionId, Guid.Empty, this.MetadataAddress, this.MetadataLength); }
+            get
+            {
+                IntPtr pointer;
+                int size;
+                ModuleMetadata.Module.GetMetadataMemoryBlock(out pointer, out size);
+                return new MetadataBlock(ModuleVersionId, Guid.Empty, pointer, size);
+            }
         }
 
-        internal unsafe MetadataReader MetadataReader
-        {
-            get { return new MetadataReader((byte*)MetadataHandle.AddrOfPinnedObject(), MetadataLength); }
-        }
+        internal MetadataReader MetadataReader => ModuleMetadata.MetadataReader;
 
-        private bool _disposed;
         public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            Free();
+        }
+
+        private void Free()
         {
             if (!_disposed)
             {
-                this.MetadataHandle.Free();
+                ((ISymUnmanagedDispose)SymReader)?.Destroy();
                 _disposed = true;
             }
         }
 
-        internal int GetLocalSignatureToken(MethodDefinitionHandle methodHandle)
+        ~ModuleInstance()
+        {
+            Free();
+        }
+
+        unsafe internal int GetLocalSignatureToken(MethodDefinitionHandle methodHandle)
         {
             if (!_includeLocalSignatures)
             {
                 return 0;
             }
 
-            using (var module = new PEModule(new PEReader(ImmutableArray.CreateRange(this.FullImage)), metadataOpt: IntPtr.Zero, metadataSizeOpt: 0))
-            {
-                var reader = module.MetadataReader;
-                var methodIL = module.GetMethodBodyOrThrow(methodHandle);
-                var localSignatureHandle = methodIL.LocalSignature;
-                return reader.GetToken(localSignatureHandle);
-            }
+            var peReader = ModuleMetadata.Module.PEReaderOpt;
+            Debug.Assert(peReader != null);
+
+            var body = peReader.GetMethodBody(ModuleMetadata.MetadataReader.GetMethodDefinition(methodHandle).RelativeVirtualAddress);
+            return MetadataTokens.GetToken(body.LocalSignature);
         }
     }
 }

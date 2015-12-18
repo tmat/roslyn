@@ -7,11 +7,16 @@ using Microsoft.DiaSymReader;
 
 namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 {
-    internal sealed class NotImplementedSymUnmanagedReader : ISymUnmanagedReader, ISymUnmanagedReader2, ISymUnmanagedReader3
+    internal sealed class NotImplementedSymUnmanagedReader : ISymUnmanagedReader, ISymUnmanagedReader2, ISymUnmanagedReader3, ISymUnmanagedDispose
     {
         public static readonly NotImplementedSymUnmanagedReader Instance = new NotImplementedSymUnmanagedReader();
 
         private NotImplementedSymUnmanagedReader() { }
+
+        public int Destroy()
+        {
+            return SymUnmanagedReaderExtensions.S_OK;
+        }
 
         public int GetDocument(string url, Guid language, Guid languageVendor, Guid documentType, out ISymUnmanagedDocument retVal)
         {
