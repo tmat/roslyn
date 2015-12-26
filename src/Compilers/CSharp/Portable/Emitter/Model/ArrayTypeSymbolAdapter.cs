@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using Microsoft.CodeAnalysis.CSharp.Emit;
 using Microsoft.CodeAnalysis.Emit;
@@ -35,57 +36,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        IEnumerable<int> Cci.IArrayTypeReference.LowerBounds
-        {
-            get
-            {
-                var lowerBounds = this.LowerBounds;
-
-                if (lowerBounds.IsDefault)
-                {
-                    return DefaultLowerBounds(this.Rank);
-                }
-                else
-                {
-                    return lowerBounds;
-                }
-            }
-        }
-
-        private static IEnumerable<int> DefaultLowerBounds(int rank)
-        {
-            for (int i = 0; i < rank; ++i)
-                yield return 0;
-        }
-
-        uint Cci.IArrayTypeReference.Rank
-        {
-            get
-            {
-                return (uint)this.Rank;
-            }
-        }
-
-        IEnumerable<ulong> Cci.IArrayTypeReference.Sizes
-        {
-            get
-            {
-                if (this.Sizes.IsEmpty)
-                {
-                    return SpecializedCollections.EmptyEnumerable<ulong>();
-                }
-
-                return GetSizes();
-            }
-        }
-
-        private IEnumerable<ulong> GetSizes()
-        {
-            foreach (var size in this.Sizes)
-            {
-                yield return (ulong)size;
-            }
-        }
+        ImmutableArray<int> Cci.IArrayTypeReference.LowerBounds => LowerBounds;
+        int Cci.IArrayTypeReference.Rank => Rank;
+        ImmutableArray<int> Cci.IArrayTypeReference.Sizes => Sizes;
 
         bool Cci.ITypeReference.IsEnum
         {
