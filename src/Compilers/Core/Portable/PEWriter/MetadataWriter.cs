@@ -1157,7 +1157,7 @@ namespace Microsoft.Cci
             writer.WriteCompressedInteger(methodInstanceReference.GetGenericMethod(Context).GenericParameterCount);
             foreach (ITypeReference typeref in methodInstanceReference.GetGenericArguments(Context))
             {
-                this.SerializeTypeReference(SerializeTypeReferenceModifiers(typeref, writer), writer, true);
+                this.SerializeTypeReference(SerializeTypeReferenceModifiers(typeref, writer), writer);
             }
 
             result = heaps.GetBlobIndex(writer);
@@ -1860,7 +1860,7 @@ namespace Microsoft.Cci
             }
 
             var writer = PooledBlobBuilder.GetInstance();
-            this.SerializeTypeReference(typeReference, writer, true);
+            this.SerializeTypeReference(typeReference, writer);
             result = heaps.GetBlobIndex(writer);
             _typeSpecSignatureIndex.Add(typeReference, result);
             writer.Free();
@@ -4391,7 +4391,7 @@ namespace Microsoft.Cci
                     writer.WriteByte(0x10);
                 }
 
-                this.SerializeTypeReference(local.Type, writer, true);
+                this.SerializeTypeReference(local.Type, writer);
             }
         }
 
@@ -4405,7 +4405,7 @@ namespace Microsoft.Cci
                 this.SerializeCustomModifier(modifier, writer);
             }
 
-            this.SerializeTypeReference(localConstant.Type, writer, true);
+            this.SerializeTypeReference(localConstant.Type, writer);
             BlobIdx blobIndex = heaps.GetBlobIndex(writer);
             int signatureIndex = GetOrAddStandAloneSignatureIndex(blobIndex);
             writer.Free();
@@ -4665,14 +4665,14 @@ namespace Microsoft.Cci
                 this.SerializeCustomModifier(modifiers[i], writer);
             }
 
-            this.SerializeTypeReference(parameterTypeInformation.GetType(Context), writer, true);
+            this.SerializeTypeReference(parameterTypeInformation.GetType(Context), writer);
         }
 
         private void SerializeFieldSignature(IFieldReference fieldReference, BlobBuilder writer)
         {
             writer.WriteByte(0x06);
             var typeReference = SerializeTypeReferenceModifiers(fieldReference.GetType(Context), writer);
-            this.SerializeTypeReference(typeReference, writer, true);
+            this.SerializeTypeReference(typeReference, writer);
         }
 
         private void SerializeGenericMethodInstanceSignature(BlobBuilder writer, IGenericMethodInstanceReference genericMethodInstanceReference)
@@ -4681,7 +4681,7 @@ namespace Microsoft.Cci
             writer.WriteCompressedInteger(genericMethodInstanceReference.GetGenericMethod(Context).GenericParameterCount);
             foreach (ITypeReference genericArgument in genericMethodInstanceReference.GetGenericArguments(Context))
             {
-                this.SerializeTypeReference(SerializeTypeReferenceModifiers(genericArgument, writer), writer, true);
+                this.SerializeTypeReference(SerializeTypeReferenceModifiers(genericArgument, writer), writer);
             }
         }
 
@@ -5015,7 +5015,7 @@ namespace Microsoft.Cci
                 writer.WriteByte(0x10);
             }
 
-            this.SerializeTypeReference(signature.GetType(Context), writer, true);
+            this.SerializeTypeReference(signature.GetType(Context), writer);
             foreach (IParameterTypeInformation parameterTypeInformation in @params)
             {
                 this.SerializeParameterInformation(parameterTypeInformation, writer);
@@ -5088,7 +5088,7 @@ namespace Microsoft.Cci
             }
         }
 
-        private void SerializeTypeReference(ITypeReference typeReference, BlobBuilder writer, bool treatRefAsPotentialTypeSpec)
+        private void SerializeTypeReference(ITypeReference typeReference, BlobBuilder writer)
         {
             while (true)
             {
@@ -5110,7 +5110,6 @@ namespace Microsoft.Cci
                     writer.WriteByte(0x0f);
                     typeReference = pointerTypeReference.GetTargetType(Context);
                     typeReference = SerializeTypeReferenceModifiers(typeReference, writer);
-                    treatRefAsPotentialTypeSpec = true;
                     continue;
                 }
 
@@ -5130,14 +5129,13 @@ namespace Microsoft.Cci
                     {
                         writer.WriteByte(0x1d);
                         typeReference = SerializeTypeReferenceModifiers(arrayTypeReference.GetElementType(Context), writer);
-                        treatRefAsPotentialTypeSpec = true;
                         continue;
                     }
                     else
                     {
                         writer.WriteByte(0x14);
                         typeReference = SerializeTypeReferenceModifiers(arrayTypeReference.GetElementType(Context), writer);
-                        this.SerializeTypeReference(typeReference, writer, true);
+                        this.SerializeTypeReference(typeReference, writer);
 
                         writer.WriteCompressedInteger((uint)arrayTypeReference.Rank);
                         writer.WriteCompressedInteger((uint)arrayTypeReference.Sizes.Length);
@@ -5187,7 +5185,7 @@ namespace Microsoft.Cci
                     return;
                 }
 
-                if (typeReference.IsTypeSpecification() && treatRefAsPotentialTypeSpec)
+                if (typeReference.IsTypeSpecification())
                 {
                     ITypeReference uninstantiatedTypeReference = typeReference.GetUninstantiatedGenericType();
 
@@ -5195,13 +5193,24 @@ namespace Microsoft.Cci
                     // types closed over their type parameters, so to speak.
 
                     writer.WriteByte(0x15);
-                    this.SerializeTypeReference(uninstantiatedTypeReference, writer, false);
+
+                    if (typeReference.IsValueType)
+                    {
+                        writer.WriteByte(0x11);
+                    }
+                    else
+                    {
+                        writer.WriteByte(0x12);
+                    }
+
+                    writer.WriteCompressedInteger(this.GetTypeDefOrRefCodedIndex(uninstantiatedTypeReference, treatRefAsPotentialTypeSpec: false));
+
                     var consolidatedTypeArguments = ArrayBuilder<ITypeReference>.GetInstance();
                     typeReference.GetConsolidatedTypeArguments(consolidatedTypeArguments, this.Context);
                     writer.WriteCompressedInteger((uint)consolidatedTypeArguments.Count);
                     foreach (ITypeReference typeArgument in consolidatedTypeArguments)
                     {
-                        this.SerializeTypeReference(SerializeTypeReferenceModifiers(typeArgument, writer), writer, true);
+                        this.SerializeTypeReference(SerializeTypeReferenceModifiers(typeArgument, writer), writer);
                     }
 
                     consolidatedTypeArguments.Free();
@@ -5218,7 +5227,7 @@ namespace Microsoft.Cci
                     writer.WriteByte(0x12);
                 }
 
-                writer.WriteCompressedInteger(this.GetTypeDefOrRefCodedIndex(typeReference, treatRefAsPotentialTypeSpec));
+                writer.WriteCompressedInteger(this.GetTypeDefOrRefCodedIndex(typeReference, true));
 
                 return;
             }
