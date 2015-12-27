@@ -1152,17 +1152,20 @@ namespace Microsoft.Cci
                 return result;
             }
 
-            var writer = PooledBlobBuilder.GetInstance();
-            writer.WriteByte(0x0A);
-            writer.WriteCompressedInteger(methodInstanceReference.GetGenericMethod(Context).GenericParameterCount);
-            foreach (ITypeReference typeref in methodInstanceReference.GetGenericArguments(Context))
+            var builder = PooledBlobBuilder.GetInstance();
+            var argsBuilder = new SignatureBuilder(builder).MethodSpecificationSignature(methodInstanceReference.GetGenericMethod(Context).GenericParameterCount);
+
+            foreach (ITypeReference typeReference in methodInstanceReference.GetGenericArguments(Context))
             {
-                this.SerializeTypeReference(SerializeTypeReferenceModifiers(typeref, writer), writer);
+                var typeRef = typeReference;
+                argsBuilder = SerializeTypeReference(SerializeTypeReferenceModifiers(argsBuilder.AddArgument(), ref typeRef), typeRef);
             }
 
-            result = heaps.GetBlobIndex(writer);
+            argsBuilder.EndArguments();
+
+            result = heaps.GetBlobIndex(builder);
             _methodInstanceSignatureIndex.Add(methodInstanceReference, result);
-            writer.Free();
+            builder.Free();
             return result;
         }
 
@@ -1933,28 +1936,6 @@ namespace Microsoft.Cci
             }
 
             throw ExceptionUtilities.Unreachable;
-        }
-
-        private void SerializeCustomModifiers(ImmutableArray<ICustomModifier> customModifiers, BlobBuilder writer)
-        {
-            foreach (ICustomModifier customModifier in customModifiers)
-            {
-                this.SerializeCustomModifier(customModifier, writer);
-            }
-        }
-
-        private void SerializeCustomModifier(ICustomModifier customModifier, BlobBuilder writer)
-        {
-            if (customModifier.IsOptional)
-            {
-                writer.WriteByte(0x20);
-            }
-            else
-            {
-                writer.WriteByte(0x1f);
-            }
-
-            writer.WriteCompressedInteger(this.GetTypeDefOrRefCodedIndex(customModifier.GetModifier(Context), true));
         }
 
         private void SerializeMetadataHeader(BlobBuilder writer, MetadataSizes metadataSizes)
@@ -4353,69 +4334,46 @@ namespace Microsoft.Cci
                 return 0;
             }
 
-            var writer = PooledBlobBuilder.GetInstance();
-            writer.WriteByte(0x07);
-            writer.WriteCompressedInteger((uint)localVariables.Length);
+            var builder = PooledBlobBuilder.GetInstance();
+
+            var localsBuilder = new SignatureBuilder(builder).LocalVariableSignatureBuilder(localVariables.Length);
             foreach (ILocalDefinition local in localVariables)
             {
-                this.SerializeLocalVariableSignature(writer, local);
+                localsBuilder = SerializeLocalVariableSignature(localsBuilder.AddVariable(), local);
             }
 
-            BlobIdx blobIndex = heaps.GetBlobIndex(writer);
+            localsBuilder.EndVariables();
+
+            BlobIdx blobIndex = heaps.GetBlobIndex(builder);
             int signatureIndex = this.GetOrAddStandAloneSignatureIndex(blobIndex);
-            writer.Free();
+            builder.Free();
 
             return signatureIndex;
         }
 
-        protected void SerializeLocalVariableSignature(BlobBuilder writer, ILocalDefinition local)
+        protected T SerializeLocalVariableSignature<T>(LocalVariableBuilder<T> builder, ILocalDefinition local)
+            where T : ISignatureBuilder
         {
+            var typeBuilder = SerializeCustomModifiers(builder.ModifiedType(), local.CustomModifiers);
+
             if (module.IsPlatformType(local.Type, PlatformType.SystemTypedReference))
             {
-                writer.WriteByte(0x16);
+                return typeBuilder.TypedReference();
             }
-            else
-            {
-                foreach (ICustomModifier customModifier in local.CustomModifiers)
-                {
-                    this.SerializeCustomModifier(customModifier, writer);
-                }
 
-                if (local.IsPinned)
-                {
-                    writer.WriteByte(0x45);
-                }
-
-                if (local.IsReference)
-                {
-                    writer.WriteByte(0x10);
-                }
-
-                if (module.IsPlatformType(local.Type, PlatformType.SystemTypedReference))
-                {
-                    writer.WriteByte(0x16);
-                }
-                else
-                {
-                    SerializeTypeReference(local.Type, writer);
-                }
-            }
+            return SerializeTypeReference(typeBuilder.Type(local.IsPinned, local.IsReference), local.Type);
         }
 
         internal int SerializeLocalConstantStandAloneSignature(ILocalDefinition localConstant)
         {
-            var writer = PooledBlobBuilder.GetInstance();
-            writer.WriteByte(0x06);
+            var builder = PooledBlobBuilder.GetInstance();
+            var modifiedType = new SignatureBuilder(builder).FieldSignature();
+            var typeBuilder = SerializeCustomModifiers(modifiedType, localConstant.CustomModifiers);
+            SerializeTypeReference(typeBuilder, localConstant.Type);
 
-            foreach (ICustomModifier modifier in localConstant.CustomModifiers)
-            {
-                this.SerializeCustomModifier(modifier, writer);
-            }
-
-            this.SerializeTypeReference(localConstant.Type, writer);
-            BlobIdx blobIndex = heaps.GetBlobIndex(writer);
+            BlobIdx blobIndex = heaps.GetBlobIndex(builder);
             int signatureIndex = GetOrAddStandAloneSignatureIndex(blobIndex);
-            writer.Free();
+            builder.Free();
 
             return 0x11000000 | signatureIndex;
         }
@@ -4650,101 +4608,104 @@ namespace Microsoft.Cci
             return true;
         }
 
-        private void SerializeParameterInformation(IParameterTypeInformation parameterTypeInformation, BlobBuilder writer)
+        private T SerializeParameterInformation<T>(ParameterBuilder<T> builder, IParameterTypeInformation parameterTypeInformation)
+            where T : ISignatureBuilder
         {
             ushort countOfCustomModifiersPrecedingByRef = parameterTypeInformation.CountOfCustomModifiersPrecedingByRef;
             var modifiers = parameterTypeInformation.CustomModifiers;
 
             Debug.Assert(countOfCustomModifiersPrecedingByRef == 0 || parameterTypeInformation.IsByReference);
 
-            if (parameterTypeInformation.IsByReference)
-            {
-                for (int i = 0; i < countOfCustomModifiersPrecedingByRef; i++)
-                {
-                    this.SerializeCustomModifier(modifiers[i], writer);
-                }
-
-                writer.WriteByte(0x10);
-            }
-
-            for (int i = countOfCustomModifiersPrecedingByRef; i < modifiers.Length; i++)
-            {
-                this.SerializeCustomModifier(modifiers[i], writer);
-            }
+            var modifiersBuilder = builder.ModifiedType();
+            var paramTypeBuilder = SerializeCustomModifiers(modifiersBuilder, modifiers, 0, countOfCustomModifiersPrecedingByRef);
 
             var type = parameterTypeInformation.GetType(Context);
             if (module.IsPlatformType(type, PlatformType.SystemTypedReference))
             {
-                writer.WriteByte(0x16);
+                return paramTypeBuilder.TypedReference();
             }
-            else
-            {
-                this.SerializeTypeReference(type, writer);
-            }
+
+            // Workaround for C++ compiler bug.
+            // The spec requires all modifiers to precede BYREF marker, however C++ compiler emits them after BYREF.
+            // We need to be able to serialize signatures parsed from C++ emitted assemblies.
+            var modifiedType = paramTypeBuilder.ModifiedType(parameterTypeInformation.IsByReference);
+            var typeBuilder = SerializeCustomModifiers(modifiedType, modifiers, countOfCustomModifiersPrecedingByRef, modifiers.Length - countOfCustomModifiersPrecedingByRef);
+
+            return SerializeTypeReference(typeBuilder, type);
         }
 
-        private void SerializeFieldSignature(IFieldReference fieldReference, BlobBuilder writer)
+        private void SerializeFieldSignature(IFieldReference fieldReference, BlobBuilder builder)
         {
-            writer.WriteByte(0x06);
-            var typeReference = SerializeTypeReferenceModifiers(fieldReference.GetType(Context), writer);
-            this.SerializeTypeReference(typeReference, writer);
+            var modifiedTypeBuilder = new SignatureBuilder(builder).FieldSignature();
+            var typeReference = fieldReference.GetType(Context);
+            var typeBuilder = SerializeTypeReferenceModifiers(modifiedTypeBuilder, ref typeReference);
+            SerializeTypeReference(typeBuilder, typeReference);
         }
 
-        private void SerializeGenericMethodInstanceSignature(BlobBuilder writer, IGenericMethodInstanceReference genericMethodInstanceReference)
+        private void SerializeGenericMethodInstanceSignature(BlobBuilder builder, IGenericMethodInstanceReference genericMethodInstanceReference)
         {
-            writer.WriteByte(0x0a);
-            writer.WriteCompressedInteger(genericMethodInstanceReference.GetGenericMethod(Context).GenericParameterCount);
+            var argsBuilder = new SignatureBuilder(builder).MethodSpecificationSignature(genericMethodInstanceReference.GetGenericMethod(Context).GenericParameterCount);
             foreach (ITypeReference genericArgument in genericMethodInstanceReference.GetGenericArguments(Context))
             {
-                this.SerializeTypeReference(SerializeTypeReferenceModifiers(genericArgument, writer), writer);
+                ITypeReference typeRef = genericArgument;
+                argsBuilder = SerializeTypeReference(SerializeTypeReferenceModifiers(argsBuilder.AddArgument(), ref typeRef), typeRef);
             }
+
+            argsBuilder.EndArguments();
         }
 
-        private void SerializeCustomAttributeSignature(ICustomAttribute customAttribute, BlobBuilder writer)
+        private void SerializeCustomAttributeSignature(ICustomAttribute customAttribute, BlobBuilder builder)
         {
-            writer.WriteUInt16(0x0001);
+            var caBuilder = new SignatureBuilder(builder).CustomAttributeSignature();
 
             var parameters = customAttribute.Constructor(Context).GetParameters(Context);
             var arguments = customAttribute.GetArguments(Context);
             Debug.Assert(parameters.Length == arguments.Length);
 
+            var fixedArgsBuilder = caBuilder.Arguments(customAttribute.NamedArgumentCount);
+
             for (int i = 0; i < parameters.Length; i++)
             {
-                SerializeMetadataExpression(writer, arguments[i], parameters[i].GetType(Context));
+                fixedArgsBuilder = SerializeMetadataExpression(fixedArgsBuilder.AddArgument(), arguments[i], parameters[i].GetType(Context));
             }
 
-            writer.WriteUInt16(customAttribute.NamedArgumentCount);
-
-            SerializeCustomAttributeNamedArguments(customAttribute, writer);
+            SerializeCustomAttributeNamedArguments(fixedArgsBuilder.EndArguments(), customAttribute);
         }
 
-        private void SerializeCustomAttributeNamedArguments(ICustomAttribute customAttribute, BlobBuilder writer)
+        private T SerializeCustomAttributeNamedArguments<T>(NamedArgumentsBuilder<T> builder, ICustomAttribute customAttribute)
+            where T : ISignatureBuilder
         {
             foreach (IMetadataNamedArgument namedArgument in customAttribute.GetNamedArguments(Context))
             {
-                writer.WriteByte(namedArgument.IsField ? (byte)0x53 : (byte)0x54);
+                var typeBuilder = builder.AddArgument(namedArgument.IsField);
+                var nameBuilder = SerializeNamedArgumentType(typeBuilder, namedArgument.Type);
+                var elementBuilder = nameBuilder.Name(namedArgument.ArgumentName);
 
-                var arrayType = namedArgument.Type as IArrayTypeReference;
-                if (arrayType != null)
-                {
-                    SerializeCustomAttributeArrayType(arrayType, writer);
-                }
-                else if (module.IsPlatformType(namedArgument.Type, PlatformType.SystemObject))
-                {
-                    writer.WriteByte(0x51);
-                }
-                else
-                {
-                    SerializeCustomAttributeElementType(namedArgument.Type, writer);
-                }
-
-                writer.WriteSerializedString(namedArgument.ArgumentName);
-
-                SerializeMetadataExpression(writer, namedArgument.ArgumentValue, namedArgument.Type);
+                builder = SerializeMetadataExpression(elementBuilder, namedArgument.ArgumentValue, namedArgument.Type);
             }
+
+            return builder.EndArguments();
         }
 
-        private void SerializeMetadataExpression(BlobBuilder writer, IMetadataExpression expression, ITypeReference targetType)
+        private T SerializeNamedArgumentType<T>(NamedArgumentTypeBuilder<T> builder, ITypeReference type)
+            where T : ISignatureBuilder
+        {
+            var arrayType = type as IArrayTypeReference;
+            if (arrayType != null)
+            {
+                return SerializeCustomAttributeArrayType(builder.SZArray(), arrayType);
+            }
+
+            if (module.IsPlatformType(type, PlatformType.SystemObject))
+            {
+                return builder.Object();
+            }
+
+            return SerializeCustomAttributeElementType(builder.ScalarType(), type);
+        }
+
+        private T SerializeMetadataExpression<T>(ElementBuilder<T> builder, IMetadataExpression expression, ITypeReference targetType)
+            where T : ISignatureBuilder
         {
             IMetadataCreateArray a = expression as IMetadataCreateArray;
             if (a != null)
@@ -4752,32 +4713,38 @@ namespace Microsoft.Cci
                 ITypeReference targetElementType;
                 var targetArrayType = targetType as IArrayTypeReference;
 
+                VectorBuilder<T> vectorBuilder;
                 if (targetArrayType == null)
                 {
                     // implicit conversion from array to object
                     Debug.Assert(this.module.IsPlatformType(targetType, PlatformType.SystemObject));
 
-                    SerializeCustomAttributeArrayType((IArrayTypeReference)a.Type, writer);
+                    vectorBuilder = SerializeCustomAttributeArrayType(builder.TaggedVector(), (IArrayTypeReference)a.Type);
 
                     targetElementType = a.ElementType;
                 }
                 else
                 {
+                    vectorBuilder = builder.Vector();
+
                     // In FixedArg the element type of the parameter array has to match the element type of the argument array,
                     // but in NamedArg T[] can be assigned to object[]. In that case we need to encode the arguments using 
                     // the parameter element type not the argument element type.
                     targetElementType = targetArrayType.GetElementType(this.Context);
                 }
 
-                writer.WriteUInt32(a.ElementCount);
+                var elementsBuilder = vectorBuilder.Count((int)a.ElementCount);
 
                 foreach (IMetadataExpression elemValue in a.Elements)
                 {
-                    SerializeMetadataExpression(writer, elemValue, targetElementType);
+                    elementsBuilder = SerializeMetadataExpression(elementsBuilder.AddElement(), elemValue, targetElementType);
                 }
+
+                return elementsBuilder.EndElements();
             }
             else
             {
+                ScalarBuilder<T> scalarBuilder;
                 IMetadataConstant c = expression as IMetadataConstant;
 
                 if (this.module.IsPlatformType(targetType, PlatformType.SystemObject))
@@ -4787,38 +4754,31 @@ namespace Microsoft.Cci
                         c.Value == null &&
                         this.module.IsPlatformType(c.Type, PlatformType.SystemObject))
                     {
-                        writer.WriteByte(0x0e);
-                        writer.WriteSerializedString(null);
-                        return;
+                        scalarBuilder = builder.TaggedScalar().String();
                     }
-
-                    SerializeCustomAttributeElementType(expression.Type, writer);
+                    else
+                    {
+                        scalarBuilder = SerializeCustomAttributeElementType(builder.TaggedScalar(), expression.Type);
+                    }
+                }
+                else
+                {
+                    scalarBuilder = builder.Scalar();
                 }
 
                 if (c != null)
                 {
                     if (c.Type is IArrayTypeReference)
                     {
-                        writer.WriteInt32(-1); // null array
+                        return scalarBuilder.NullArray();
                     }
-                    else if (c.Type.TypeCode(Context) == PrimitiveTypeCode.String)
-                    {
-                        writer.WriteSerializedString((string)c.Value);
-                    }
-                    else if (this.module.IsPlatformType(c.Type, PlatformType.SystemType))
-                    {
-                        Debug.Assert(c.Value == null);
-                        writer.WriteSerializedString(null);
-                    }
-                    else
-                    {
-                        writer.WriteConstant(c.Value);
-                    }
+                 
+                    Debug.Assert(!module.IsPlatformType(c.Type, PlatformType.SystemType) || c.Value == null);
+                    return scalarBuilder.Constant(c.Value);
                 }
                 else
                 {
-                    var t = (IMetadataTypeOf)expression;
-                    this.SerializeTypeName(t.TypeToGet, writer);
+                    return scalarBuilder.SystemType(((IMetadataTypeOf)expression).TypeToGet.GetSerializedTypeName(Context));
                 }
             }
         }
@@ -4990,13 +4950,13 @@ namespace Microsoft.Cci
 
                 writer.WriteSerializedString(typeName);
 
-                var customAttributeWriter = PooledBlobBuilder.GetInstance();
-                customAttributeWriter.WriteCompressedInteger(customAttribute.NamedArgumentCount);
-                SerializeCustomAttributeNamedArguments(customAttribute, customAttributeWriter);
-                writer.WriteCompressedInteger((uint)customAttributeWriter.Count);
+                var customAttributeArgsBlob = PooledBlobBuilder.GetInstance();
+                var namedArgsBuilder = new SignatureBuilder(customAttributeArgsBlob).NamedArgumentsSignatureBuilder(customAttribute.NamedArgumentCount);
+                SerializeCustomAttributeNamedArguments(namedArgsBuilder, customAttribute);
+                writer.WriteCompressedInteger((uint)customAttributeArgsBlob.Count);
 
-                customAttributeWriter.WriteContentTo(writer);
-                customAttributeWriter.Free();
+                customAttributeArgsBlob.WriteContentTo(writer);
+                customAttributeArgsBlob.Free();
             }
             // TODO: xml for older platforms
         }
@@ -5055,64 +5015,8 @@ namespace Microsoft.Cci
             }
         }
 
-        private void SerializePrimitiveSignatureType(BlobBuilder writer, PrimitiveTypeCode primitiveType)
-        {
-            switch (primitiveType)
-            {
-                case PrimitiveTypeCode.Void:
-                    writer.WriteByte(0x01);
-                    return;
-                case PrimitiveTypeCode.Boolean:
-                    writer.WriteByte(0x02);
-                    return;
-                case PrimitiveTypeCode.Char:
-                    writer.WriteByte(0x03);
-                    return;
-                case PrimitiveTypeCode.Int8:
-                    writer.WriteByte(0x04);
-                    return;
-                case PrimitiveTypeCode.UInt8:
-                    writer.WriteByte(0x05);
-                    return;
-                case PrimitiveTypeCode.Int16:
-                    writer.WriteByte(0x06);
-                    return;
-                case PrimitiveTypeCode.UInt16:
-                    writer.WriteByte(0x07);
-                    return;
-                case PrimitiveTypeCode.Int32:
-                    writer.WriteByte(0x08);
-                    return;
-                case PrimitiveTypeCode.UInt32:
-                    writer.WriteByte(0x09);
-                    return;
-                case PrimitiveTypeCode.Int64:
-                    writer.WriteByte(0x0a);
-                    return;
-                case PrimitiveTypeCode.UInt64:
-                    writer.WriteByte(0x0b);
-                    return;
-                case PrimitiveTypeCode.Float32:
-                    writer.WriteByte(0x0c);
-                    return;
-                case PrimitiveTypeCode.Float64:
-                    writer.WriteByte(0x0d);
-                    return;
-                case PrimitiveTypeCode.String:
-                    writer.WriteByte(0x0e);
-                    return;
-                case PrimitiveTypeCode.IntPtr:
-                    writer.WriteByte(0x18);
-                    return;
-                case PrimitiveTypeCode.UIntPtr:
-                    writer.WriteByte(0x19);
-                    return;
-                default:
-                    throw ExceptionUtilities.UnexpectedValue(primitiveType);
-            }
-        }
-
-        private void SerializeTypeReference(ITypeReference typeReference, BlobBuilder writer)
+        private T SerializeTypeReference<T>(SignatureTypeBuilder<T> typeBuilder, ITypeReference typeReference)
+            where T : ISignatureBuilder
         {
             while (true)
             {
@@ -5127,83 +5031,52 @@ namespace Microsoft.Cci
                 var primitiveType = typeReference.TypeCode(Context);
                 if (primitiveType != PrimitiveTypeCode.Pointer && primitiveType != PrimitiveTypeCode.NotPrimitive)
                 {
-                    SerializePrimitiveSignatureType(writer, primitiveType);
-                    return;
+                    return typeBuilder.PrimitiveType(primitiveType);
                 }
 
                 var pointerTypeReference = typeReference as IPointerTypeReference;
                 if (pointerTypeReference != null)
                 {
-                    writer.WriteByte(0x0f);
                     typeReference = pointerTypeReference.GetTargetType(Context);
-                    typeReference = SerializeTypeReferenceModifiers(typeReference, writer);
+                    typeBuilder = SerializeTypeReferenceModifiers(typeBuilder.Pointer(), ref typeReference);
                     continue;
                 }
 
                 IGenericTypeParameterReference genericTypeParameterReference = typeReference.AsGenericTypeParameterReference;
                 if (genericTypeParameterReference != null)
                 {
-                    writer.WriteByte(0x13);
-                    uint numberOfInheritedParameters = GetNumberOfInheritedTypeParameters(genericTypeParameterReference.DefiningType);
-                    writer.WriteCompressedInteger(numberOfInheritedParameters + genericTypeParameterReference.Index);
-                    return;
+                    return typeBuilder.GenericTypeParameter(
+                        GetNumberOfInheritedTypeParameters(genericTypeParameterReference.DefiningType) +
+                        genericTypeParameterReference.Index);
                 }
 
                 var arrayTypeReference = typeReference as IArrayTypeReference;
                 if (arrayTypeReference != null)
                 {
+                    typeReference = arrayTypeReference.GetElementType(Context);
+
                     if (arrayTypeReference.IsSZArray)
                     {
-                        writer.WriteByte(0x1d);
-                        typeReference = SerializeTypeReferenceModifiers(arrayTypeReference.GetElementType(Context), writer);
+                        typeBuilder = SerializeTypeReferenceModifiers(typeBuilder.SZArray(), ref typeReference);
                         continue;
                     }
                     else
                     {
-                        writer.WriteByte(0x14);
-                        typeReference = SerializeTypeReferenceModifiers(arrayTypeReference.GetElementType(Context), writer);
-                        this.SerializeTypeReference(typeReference, writer);
-
-                        writer.WriteCompressedInteger((uint)arrayTypeReference.Rank);
-                        writer.WriteCompressedInteger((uint)arrayTypeReference.Sizes.Length);
-                        foreach (int size in arrayTypeReference.Sizes)
-                        {
-                            writer.WriteCompressedInteger((uint)size);
-                        }
-
-                        if (arrayTypeReference.LowerBounds.IsDefault)
-                        {
-                            writer.WriteCompressedInteger((uint)arrayTypeReference.Rank);
-                            for (int i = 0; i < arrayTypeReference.Rank; i++)
-                            {
-                                writer.WriteCompressedSignedInteger(0);
-                            }
-                        }
-                        else
-                        {
-                            writer.WriteCompressedInteger((uint)arrayTypeReference.LowerBounds.Length);
-                            foreach (int lowerBound in arrayTypeReference.LowerBounds)
-                            {
-                                writer.WriteCompressedSignedInteger(lowerBound);
-                            }
-                        }
-
-                        return;
+                        var elementTypeBuilder = SerializeTypeReferenceModifiers(typeBuilder.Array(), ref typeReference);
+                        var arrayShape = SerializeTypeReference(elementTypeBuilder, typeReference);
+                        return arrayShape.Shape(arrayTypeReference.Rank, arrayTypeReference.Sizes, arrayTypeReference.LowerBounds);
                     }
                 }
 
                 if (module.IsPlatformType(typeReference, PlatformType.SystemObject))
                 {
-                    writer.WriteByte(0x1c);
-                    return;
+                    return typeBuilder.Object();
                 }
 
                 IGenericMethodParameterReference genericMethodParameterReference = typeReference.AsGenericMethodParameterReference;
                 if (genericMethodParameterReference != null)
                 {
-                    writer.WriteByte(0x1e);
-                    writer.WriteCompressedInteger(genericMethodParameterReference.Index);
-                    return;
+                    return typeBuilder.GenericMethodTypeParameter(genericMethodParameterReference.Index);
                 }
 
                 if (typeReference.IsTypeSpecification())
@@ -5213,48 +5086,33 @@ namespace Microsoft.Cci
                     // Roslyn's uninstantiated type is the same object as the instantiated type for
                     // types closed over their type parameters, so to speak.
 
-                    writer.WriteByte(0x15);
-
-                    if (typeReference.IsValueType)
-                    {
-                        writer.WriteByte(0x11);
-                    }
-                    else
-                    {
-                        writer.WriteByte(0x12);
-                    }
-
-                    writer.WriteCompressedInteger(this.GetTypeDefOrRefCodedIndex(uninstantiatedTypeReference, treatRefAsPotentialTypeSpec: false));
-
                     var consolidatedTypeArguments = ArrayBuilder<ITypeReference>.GetInstance();
                     typeReference.GetConsolidatedTypeArguments(consolidatedTypeArguments, this.Context);
-                    writer.WriteCompressedInteger((uint)consolidatedTypeArguments.Count);
+
+                    var genericArgsBuilder = typeBuilder.GenericInstantiation(
+                        typeReference.IsValueType,
+                        GetTypeDefOrRefCodedIndex(uninstantiatedTypeReference, treatRefAsPotentialTypeSpec: false),
+                        consolidatedTypeArguments.Count);
+
                     foreach (ITypeReference typeArgument in consolidatedTypeArguments)
                     {
-                        this.SerializeTypeReference(SerializeTypeReferenceModifiers(typeArgument, writer), writer);
+                        ITypeReference typeArg = typeArgument;
+
+                        genericArgsBuilder = SerializeTypeReference(
+                            SerializeTypeReferenceModifiers(genericArgsBuilder.AddArgument(), ref typeArg), 
+                            typeArg);
                     }
 
                     consolidatedTypeArguments.Free();
-
-                    return;
-                }
-                
-                if (typeReference.IsValueType)
-                {
-                    writer.WriteByte(0x11);
-                }
-                else
-                {
-                    writer.WriteByte(0x12);
+                    return genericArgsBuilder.EndArguments();
                 }
 
-                writer.WriteCompressedInteger(this.GetTypeDefOrRefCodedIndex(typeReference, true));
-
-                return;
+                return typeBuilder.TypeDefOrRefOrSpec(typeReference.IsValueType, GetTypeDefOrRefCodedIndex(typeReference, true));
             }
         }
 
-        private void SerializeCustomAttributeArrayType(IArrayTypeReference arrayTypeReference, BlobBuilder writer)
+        private T SerializeCustomAttributeArrayType<T>(CustomAttributeArrayTypeBuilder<T> typeBuilder, IArrayTypeReference arrayTypeReference)
+            where T : ISignatureBuilder
         {
             // A single-dimensional, zero-based array is specified as a single byte 0x1D followed by the FieldOrPropType of the element type. 
         
@@ -5262,22 +5120,21 @@ namespace Microsoft.Cci
             // (need to encode the type of the SZ array if the parameter type is Object):
             Debug.Assert(arrayTypeReference.IsSZArray);
 
-            writer.WriteByte(0x1d);
-
             var elementType = arrayTypeReference.GetElementType(Context);
             Debug.Assert(!(elementType is IModifiedTypeReference));
 
             if (module.IsPlatformType(elementType, PlatformType.SystemObject))
             {
-                writer.WriteByte(0x51);
+                return typeBuilder.ObjectArray();
             }
             else
             {
-                SerializeCustomAttributeElementType(elementType, writer);
+                return SerializeCustomAttributeElementType(typeBuilder.ElementType(), elementType);
             }
         }
 
-        private void SerializeCustomAttributeElementType(ITypeReference typeReference, BlobBuilder writer)
+        private T SerializeCustomAttributeElementType<T>(CustomAttributeElementTypeBuilder<T> typeBuilder, ITypeReference typeReference)
+            where T : ISignatureBuilder
         {
             // Spec:
             // The FieldOrPropType shall be exactly one of:
@@ -5288,34 +5145,48 @@ namespace Microsoft.Cci
             var primitiveType = typeReference.TypeCode(Context);
             if (primitiveType != PrimitiveTypeCode.NotPrimitive)
             {
-                SerializePrimitiveSignatureType(writer, primitiveType);
+                return typeBuilder.PrimitiveType(primitiveType);
             }
             else if (module.IsPlatformType(typeReference, PlatformType.SystemType))
             {
-                writer.WriteByte(0x50);
+                return typeBuilder.SystemType();
             }
             else
             {
                 Debug.Assert(typeReference.IsEnum);
-                writer.WriteByte(0x55);
-                SerializeTypeName(typeReference, writer);
+                return typeBuilder.Enum(typeReference.GetSerializedTypeName(this.Context));
             }
         }
 
-        private ITypeReference SerializeTypeReferenceModifiers(ITypeReference typeReference, BlobBuilder writer)
+        private T SerializeTypeReferenceModifiers<T>(CustomModifiersBuilder<T> builder, ref ITypeReference typeReference)
+            where T : ISignatureBuilder
         {
             var modifiedTypeReference = typeReference as IModifiedTypeReference;
-            if (modifiedTypeReference != null)
+            if (modifiedTypeReference == null)
             {
-                foreach (ICustomModifier customModifier in modifiedTypeReference.CustomModifiers)
-                {
-                    this.SerializeCustomModifier(customModifier, writer);
-                }
-
-                typeReference = modifiedTypeReference.UnmodifiedType;
+                return builder.EndModifiers();
             }
 
-            return typeReference;
+            typeReference = modifiedTypeReference.UnmodifiedType;
+            return SerializeCustomModifiers(builder, modifiedTypeReference.CustomModifiers);
+        }
+
+        private T SerializeCustomModifiers<T>(CustomModifiersBuilder<T> builder, ImmutableArray<ICustomModifier> modifiers)
+            where T : ISignatureBuilder
+        {
+            return SerializeCustomModifiers<T>(builder, modifiers, 0, modifiers.Length);
+        }
+
+        private T SerializeCustomModifiers<T>(CustomModifiersBuilder<T> builder, ImmutableArray<ICustomModifier> modifiers, int start, int count)
+            where T : ISignatureBuilder
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var modifier = modifiers[start + i];
+                builder = builder.AddModifier(modifier.IsOptional, GetTypeDefOrRefCodedIndex(modifier.GetModifier(Context), true));
+            }
+
+            return builder.EndModifiers();
         }
 
         private uint GetNumberOfInheritedTypeParameters(ITypeReference type)
