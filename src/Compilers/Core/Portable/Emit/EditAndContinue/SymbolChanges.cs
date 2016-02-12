@@ -13,6 +13,7 @@ namespace Microsoft.CodeAnalysis.Emit
         private readonly DefinitionMap _definitionMap;
         private readonly IReadOnlyDictionary<ISymbol, SymbolChange> _changes;
         private readonly Func<ISymbol, bool> _isAddedSymbol;
+        internal readonly IReadOnlyDictionary<AssemblyIdentity, AssemblyIdentity> AssemblyReferenceMapOpt;
 
         public SymbolChanges(DefinitionMap definitionMap, IEnumerable<SemanticEdit> edits, Func<ISymbol, bool> isAddedSymbol)
         {
@@ -22,7 +23,7 @@ namespace Microsoft.CodeAnalysis.Emit
 
             _definitionMap = definitionMap;
             _isAddedSymbol = isAddedSymbol;
-            _changes = CalculateChanges(edits);
+            CalculateChanges(edits, out _changes, out AssemblyReferenceMapOpt);
         }
 
         /// <summary>
@@ -210,13 +211,20 @@ namespace Microsoft.CodeAnalysis.Emit
         /// Note that these changes only include user-defined source symbols, not synthesized symbols since those will be 
         /// generated during lowering of the changed user-defined symbols.
         /// </summary>
-        private static IReadOnlyDictionary<ISymbol, SymbolChange> CalculateChanges(IEnumerable<SemanticEdit> edits)
+        /// <exception cref="InvalidOperationException">Invalid semantic edits.</exception>
+        private static void CalculateChanges(IEnumerable<SemanticEdit> edits, out IReadOnlyDictionary<ISymbol, SymbolChange> changes, out IReadOnlyDictionary<AssemblyIdentity, AssemblyIdentity> assemblyReferenceMapOpt)
         {
-            var changes = new Dictionary<ISymbol, SymbolChange>();
+            var changesBuilder = new Dictionary<ISymbol, SymbolChange>();
+            var lazyAssemblyReferenceMapBuilder = default(Dictionary<AssemblyIdentity, AssemblyIdentity>);
 
             foreach (var edit in edits)
             {
                 SymbolChange change;
+
+                if (edit.OldSymbol.Kind != edit.NewSymbol.Kind)
+                {
+                    throw new InvalidOperationException();
+                }
 
                 switch (edit.Kind)
                 {
@@ -236,30 +244,45 @@ namespace Microsoft.CodeAnalysis.Emit
                         throw ExceptionUtilities.UnexpectedValue(edit.Kind);
                 }
 
-                var member = edit.NewSymbol;
+                var newSymbol = edit.NewSymbol;
 
                 // Partial methods are supplied as implementations but recorded
                 // internally as definitions since definitions are used in emit.
-                if (member.Kind == SymbolKind.Method)
+                switch (newSymbol.Kind)                
                 {
-                    var method = (IMethodSymbol)member;
+                    case SymbolKind.Method:
+                        var newMethod = (IMethodSymbol)newSymbol;
 
-                    // Partial methods should be implementations, not definitions.
-                    Debug.Assert(method.PartialImplementationPart == null);
-                    Debug.Assert((edit.OldSymbol == null) || (((IMethodSymbol)edit.OldSymbol).PartialImplementationPart == null));
+                        // Partial methods should be implementations, not definitions.
+                        Debug.Assert(newMethod.PartialImplementationPart == null);
+                        Debug.Assert((edit.OldSymbol == null) || (((IMethodSymbol)edit.OldSymbol).PartialImplementationPart == null));
 
-                    var definitionPart = method.PartialDefinitionPart;
-                    if (definitionPart != null)
-                    {
-                        member = definitionPart;
-                    }
+                        var definitionPart = newMethod.PartialDefinitionPart;
+                        if (definitionPart != null)
+                        {
+                            newSymbol = definitionPart;
+                        }
+
+                        break;
+
+                    case SymbolKind.Assembly:
+                        var newAssembly = (IAssemblySymbol)newSymbol;
+                        var oldAssembly = (IAssemblySymbol)edit.OldSymbol;
+                        if (!oldAssembly.Identity.Equals(newAssembly.Identity))
+                        {
+                            lazyAssemblyReferenceMapBuilder = lazyAssemblyReferenceMapBuilder ?? new Dictionary<AssemblyIdentity, AssemblyIdentity>();
+                            lazyAssemblyReferenceMapBuilder.Add(oldAssembly.Identity, newAssembly.Identity);
+                        }
+
+                        continue;
                 }
 
-                AddContainingTypes(changes, member);
-                changes.Add(member, change);
+                AddContainingTypes(changesBuilder, newSymbol);
+                changesBuilder.Add(newSymbol, change);
             }
 
-            return changes;
+            changes = changesBuilder;
+            assemblyReferenceMapOpt = lazyAssemblyReferenceMapBuilder;
         }
 
         private static void AddContainingTypes(Dictionary<ISymbol, SymbolChange> changes, ISymbol symbol)

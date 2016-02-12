@@ -38,6 +38,7 @@ namespace Microsoft.CodeAnalysis.Emit
                 propertyMapAdded: baseline.PropertyMapAdded,
                 methodImplsAdded: baseline.MethodImplsAdded,
                 tableEntriesAdded: baseline.TableEntriesAdded,
+                assemblyReferencesAdded: baseline.AssemblyReferencesAdded,
                 blobStreamLengthAdded: baseline.BlobStreamLengthAdded,
                 stringStreamLengthAdded: baseline.StringStreamLengthAdded,
                 userStringStreamLengthAdded: baseline.UserStringStreamLengthAdded,

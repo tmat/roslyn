@@ -132,6 +132,7 @@ namespace Microsoft.CodeAnalysis.Emit
                 eventMapAdded: new Dictionary<int, int>(),
                 propertyMapAdded: new Dictionary<int, int>(),
                 methodImplsAdded: new Dictionary<MethodImplKey, int>(),
+                assemblyReferencesAdded: new Dictionary<Cci.IAssemblyReference, int>(),
                 tableEntriesAdded: s_emptyTableSizes,
                 blobStreamLengthAdded: 0,
                 stringStreamLengthAdded: 0,
@@ -143,7 +144,8 @@ namespace Microsoft.CodeAnalysis.Emit
                 debugInformationProvider: debugInformationProvider,
                 typeToEventMap: CalculateTypeEventMap(reader),
                 typeToPropertyMap: CalculateTypePropertyMap(reader),
-                methodImpls: CalculateMethodImpls(reader));
+                methodImpls: CalculateMethodImpls(reader),
+                assemblyReferences: CalculateAssemblyReferences(module.Module.ReferencedAssemblies));
         }
 
         internal EmitBaseline InitialBaseline { get; }
@@ -180,6 +182,7 @@ namespace Microsoft.CodeAnalysis.Emit
         internal readonly IReadOnlyDictionary<int, int> EventMapAdded;
         internal readonly IReadOnlyDictionary<int, int> PropertyMapAdded;
         internal readonly IReadOnlyDictionary<MethodImplKey, int> MethodImplsAdded;
+        internal readonly IReadOnlyDictionary<Cci.IAssemblyReference, int> AssemblyReferencesAdded;
 
         internal readonly ImmutableArray<int> TableEntriesAdded;
 
@@ -203,6 +206,7 @@ namespace Microsoft.CodeAnalysis.Emit
         internal readonly IReadOnlyDictionary<int, int> TypeToEventMap;
         internal readonly IReadOnlyDictionary<int, int> TypeToPropertyMap;
         internal readonly IReadOnlyDictionary<MethodImplKey, int> MethodImpls;
+        internal readonly IReadOnlyDictionary<AssemblyIdentity, int> AssemblyReferences;
         private readonly IReadOnlyDictionary<AnonymousTypeKey, AnonymousTypeValue> _anonymousTypeMap;
         internal readonly ImmutableDictionary<Cci.ITypeDefinition, ImmutableArray<Cci.ITypeDefinitionMember>> SynthesizedMembers;
 
@@ -222,6 +226,7 @@ namespace Microsoft.CodeAnalysis.Emit
             IReadOnlyDictionary<int, int> eventMapAdded,
             IReadOnlyDictionary<int, int> propertyMapAdded,
             IReadOnlyDictionary<MethodImplKey, int> methodImplsAdded,
+            IReadOnlyDictionary<Cci.IAssemblyReference, int> assemblyReferencesAdded,
             ImmutableArray<int> tableEntriesAdded,
             int blobStreamLengthAdded,
             int stringStreamLengthAdded,
@@ -233,7 +238,8 @@ namespace Microsoft.CodeAnalysis.Emit
             Func<MethodDefinitionHandle, EditAndContinueMethodDebugInformation> debugInformationProvider,
             IReadOnlyDictionary<int, int> typeToEventMap,
             IReadOnlyDictionary<int, int> typeToPropertyMap,
-            IReadOnlyDictionary<MethodImplKey, int> methodImpls)
+            IReadOnlyDictionary<MethodImplKey, int> methodImpls,
+            IReadOnlyDictionary<AssemblyIdentity, int> assemblyReferences)
         {
             Debug.Assert(module != null);
             Debug.Assert((ordinal == 0) == (encId == default(Guid)));
@@ -245,6 +251,8 @@ namespace Microsoft.CodeAnalysis.Emit
             Debug.Assert(moduleVersionId != default(Guid));
             Debug.Assert(moduleVersionId == module.GetModuleVersionId());
             Debug.Assert(synthesizedMembers != null);
+            Debug.Assert(assemblyReferencesAdded != null);
+            Debug.Assert(assemblyReferences != null);
 
             Debug.Assert(tableEntriesAdded.Length == MetadataTokens.TableCount);
 
@@ -278,6 +286,7 @@ namespace Microsoft.CodeAnalysis.Emit
             this.EventMapAdded = eventMapAdded;
             this.PropertyMapAdded = propertyMapAdded;
             this.MethodImplsAdded = methodImplsAdded;
+            this.AssemblyReferencesAdded = assemblyReferencesAdded;
             this.TableEntriesAdded = tableEntriesAdded;
             this.BlobStreamLengthAdded = blobStreamLengthAdded;
             this.StringStreamLengthAdded = stringStreamLengthAdded;
@@ -292,6 +301,7 @@ namespace Microsoft.CodeAnalysis.Emit
             this.TypeToEventMap = typeToEventMap;
             this.TypeToPropertyMap = typeToPropertyMap;
             this.MethodImpls = methodImpls;
+            this.AssemblyReferences = assemblyReferences;
         }
 
         internal EmitBaseline With(
@@ -307,6 +317,7 @@ namespace Microsoft.CodeAnalysis.Emit
             IReadOnlyDictionary<int, int> eventMapAdded,
             IReadOnlyDictionary<int, int> propertyMapAdded,
             IReadOnlyDictionary<MethodImplKey, int> methodImplsAdded,
+            IReadOnlyDictionary<Cci.IAssemblyReference, int> assemblyReferencesAdded,
             ImmutableArray<int> tableEntriesAdded,
             int blobStreamLengthAdded,
             int stringStreamLengthAdded,
@@ -336,6 +347,7 @@ namespace Microsoft.CodeAnalysis.Emit
                 eventMapAdded,
                 propertyMapAdded,
                 methodImplsAdded,
+                assemblyReferencesAdded,
                 tableEntriesAdded,
                 blobStreamLengthAdded: blobStreamLengthAdded,
                 stringStreamLengthAdded: stringStreamLengthAdded,
@@ -347,7 +359,8 @@ namespace Microsoft.CodeAnalysis.Emit
                 debugInformationProvider: debugInformationProvider,
                 typeToEventMap: this.TypeToEventMap,
                 typeToPropertyMap: this.TypeToPropertyMap,
-                methodImpls: this.MethodImpls);
+                methodImpls: this.MethodImpls,
+                assemblyReferences: this.AssemblyReferences);
         }
 
         internal IReadOnlyDictionary<AnonymousTypeKey, AnonymousTypeValue> AnonymousTypeMap
@@ -456,6 +469,18 @@ namespace Microsoft.CodeAnalysis.Emit
                     index++;
                 }
             }
+            return result;
+        }
+
+        private static Dictionary<AssemblyIdentity, int> CalculateAssemblyReferences(ImmutableArray<AssemblyIdentity> identities)
+        {
+            var result = new Dictionary<AssemblyIdentity, int>();
+
+            for (int i = 0; i < identities.Length; i++)
+            {
+                result[identities[i]] = i + 1;
+            }
+
             return result;
         }
 

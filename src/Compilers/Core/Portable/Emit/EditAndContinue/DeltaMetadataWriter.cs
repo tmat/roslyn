@@ -23,19 +23,19 @@ namespace Microsoft.CodeAnalysis.Emit
         private readonly DefinitionMap _definitionMap;
         private readonly SymbolChanges _changes;
 
-        private readonly DefinitionIndex<ITypeDefinition> _typeDefs;
-        private readonly DefinitionIndex<IEventDefinition> _eventDefs;
-        private readonly DefinitionIndex<IFieldDefinition> _fieldDefs;
-        private readonly DefinitionIndex<IMethodDefinition> _methodDefs;
-        private readonly DefinitionIndex<IPropertyDefinition> _propertyDefs;
+        private readonly ReusableEntityIndex<ITypeDefinition> _typeDefs;
+        private readonly ReusableEntityIndex<IEventDefinition> _eventDefs;
+        private readonly ReusableEntityIndex<IFieldDefinition> _fieldDefs;
+        private readonly ReusableEntityIndex<IMethodDefinition> _methodDefs;
+        private readonly ReusableEntityIndex<IPropertyDefinition> _propertyDefs;
         private readonly ParameterDefinitionIndex _parameterDefs;
         private readonly List<KeyValuePair<IMethodDefinition, IParameterDefinition>> _parameterDefList;
         private readonly GenericParameterIndex _genericParameters;
         private readonly EventOrPropertyMapIndex _eventMap;
         private readonly EventOrPropertyMapIndex _propertyMap;
         private readonly MethodImplIndex _methodImpls;
+        private readonly AssemblyReferenceIndex _assemblyRefIndex;
 
-        private readonly HeapOrReferenceIndex<IAssemblyReference> _assemblyRefIndex;
         private readonly HeapOrReferenceIndex<string> _moduleRefIndex;
         private readonly InstanceAndStructuralReferenceIndex<ITypeMemberReference> _memberRefIndex;
         private readonly InstanceAndStructuralReferenceIndex<IGenericMethodInstanceReference> _methodSpecIndex;
@@ -65,19 +65,19 @@ namespace Microsoft.CodeAnalysis.Emit
 
             var sizes = previousGeneration.TableSizes;
 
-            _typeDefs = new DefinitionIndex<ITypeDefinition>(this.TryGetExistingTypeDefIndex, sizes[(int)TableIndex.TypeDef]);
-            _eventDefs = new DefinitionIndex<IEventDefinition>(this.TryGetExistingEventDefIndex, sizes[(int)TableIndex.Event]);
-            _fieldDefs = new DefinitionIndex<IFieldDefinition>(this.TryGetExistingFieldDefIndex, sizes[(int)TableIndex.Field]);
-            _methodDefs = new DefinitionIndex<IMethodDefinition>(this.TryGetExistingMethodDefIndex, sizes[(int)TableIndex.MethodDef]);
-            _propertyDefs = new DefinitionIndex<IPropertyDefinition>(this.TryGetExistingPropertyDefIndex, sizes[(int)TableIndex.Property]);
+            _typeDefs = new ReusableEntityIndex<ITypeDefinition>(this.TryGetExistingTypeDefIndex, sizes[(int)TableIndex.TypeDef]);
+            _eventDefs = new ReusableEntityIndex<IEventDefinition>(this.TryGetExistingEventDefIndex, sizes[(int)TableIndex.Event]);
+            _fieldDefs = new ReusableEntityIndex<IFieldDefinition>(this.TryGetExistingFieldDefIndex, sizes[(int)TableIndex.Field]);
+            _methodDefs = new ReusableEntityIndex<IMethodDefinition>(this.TryGetExistingMethodDefIndex, sizes[(int)TableIndex.MethodDef]);
+            _propertyDefs = new ReusableEntityIndex<IPropertyDefinition>(this.TryGetExistingPropertyDefIndex, sizes[(int)TableIndex.Property]);
             _parameterDefs = new ParameterDefinitionIndex(sizes[(int)TableIndex.Param]);
             _parameterDefList = new List<KeyValuePair<IMethodDefinition, IParameterDefinition>>();
             _genericParameters = new GenericParameterIndex(sizes[(int)TableIndex.GenericParam]);
             _eventMap = new EventOrPropertyMapIndex(this.TryGetExistingEventMapIndex, sizes[(int)TableIndex.EventMap]);
             _propertyMap = new EventOrPropertyMapIndex(this.TryGetExistingPropertyMapIndex, sizes[(int)TableIndex.PropertyMap]);
             _methodImpls = new MethodImplIndex(this, sizes[(int)TableIndex.MethodImpl]);
+            _assemblyRefIndex = new AssemblyReferenceIndex(this, sizes[(int)TableIndex.AssemblyRef]);
 
-            _assemblyRefIndex = new HeapOrReferenceIndex<IAssemblyReference>(this, AssemblyReferenceComparer.Instance, lastRowId: sizes[(int)TableIndex.AssemblyRef]);
             _moduleRefIndex = new HeapOrReferenceIndex<string>(this, lastRowId: sizes[(int)TableIndex.ModuleRef]);
             _memberRefIndex = new InstanceAndStructuralReferenceIndex<ITypeMemberReference>(this, new MemberRefComparer(this), lastRowId: sizes[(int)TableIndex.MemberRef]);
             _methodSpecIndex = new InstanceAndStructuralReferenceIndex<IGenericMethodInstanceReference>(this, new MethodSpecComparer(this), lastRowId: sizes[(int)TableIndex.MethodSpec]);
@@ -117,7 +117,7 @@ namespace Microsoft.CodeAnalysis.Emit
             sizes[(int)TableIndex.MethodImpl] = _methodImpls.GetAdded().Count;
             sizes[(int)TableIndex.ModuleRef] = _moduleRefIndex.Rows.Count;
             sizes[(int)TableIndex.TypeSpec] = _typeSpecIndex.Rows.Count;
-            sizes[(int)TableIndex.AssemblyRef] = _assemblyRefIndex.Rows.Count;
+            sizes[(int)TableIndex.AssemblyRef] = _assemblyRefIndex.GetAdded().Count;
             sizes[(int)TableIndex.GenericParam] = _genericParameters.GetAdded().Count;
             sizes[(int)TableIndex.MethodSpec] = _methodSpecIndex.Rows.Count;
 
@@ -160,6 +160,7 @@ namespace Microsoft.CodeAnalysis.Emit
                 eventMapAdded: AddRange(_previousGeneration.EventMapAdded, _eventMap.GetAdded()),
                 propertyMapAdded: AddRange(_previousGeneration.PropertyMapAdded, _propertyMap.GetAdded()),
                 methodImplsAdded: AddRange(_previousGeneration.MethodImplsAdded, _methodImpls.GetAdded()),
+                assemblyReferencesAdded: AddRange(_previousGeneration.AssemblyReferencesAdded, _assemblyRefIndex.GetAdded()),
                 tableEntriesAdded: ImmutableArray.Create(tableSizes),
                 // Blob stream is concatenated aligned.
                 blobStreamLengthAdded: metadataSizes.GetAlignedHeapSize(HeapIndex.Blob) + _previousGeneration.BlobStreamLengthAdded,
@@ -340,12 +341,13 @@ namespace Microsoft.CodeAnalysis.Emit
 
         protected override int GetOrAddAssemblyRefIndex(IAssemblyReference reference)
         {
-            return _assemblyRefIndex.GetOrAdd(reference);
+            int index;
+            return _assemblyRefIndex.TryGetValue(reference, out index) ? index : _assemblyRefIndex.Add(reference);
         }
 
         protected override IReadOnlyList<IAssemblyReference> GetAssemblyRefs()
         {
-            return _assemblyRefIndex.Rows;
+            return _assemblyRefIndex.GetRows();
         }
 
         protected override int GetOrAddModuleRefIndex(string reference)
@@ -551,7 +553,7 @@ namespace Microsoft.CodeAnalysis.Emit
             implementingMethods.Free();
         }
 
-        private bool AddDefIfNecessary<T>(DefinitionIndex<T> defIndex, T def)
+        private bool AddDefIfNecessary<T>(ReusableEntityIndex<T> defIndex, T def)
             where T : IDefinition
         {
             switch (_changes.GetChange(def))
@@ -721,7 +723,7 @@ namespace Microsoft.CodeAnalysis.Emit
 
         private void PopulateEncLogTableEventsOrProperties<T>(
             List<EncLogRow> table,
-            DefinitionIndex<T> index,
+            ReusableEntityIndex<T> index,
             int tokenType,
             EncFuncCode addCode,
             EventOrPropertyMapIndex map,
@@ -750,7 +752,7 @@ namespace Microsoft.CodeAnalysis.Emit
 
         private void PopulateEncLogTableFieldsOrMethods<T>(
             List<EncLogRow> table,
-            DefinitionIndex<T> index,
+            ReusableEntityIndex<T> index,
             int tokenType,
             EncFuncCode addCode)
             where T : ITypeDefinitionMember
@@ -783,7 +785,7 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
-        private static void PopulateEncLogTableRows<T>(List<EncLogRow> table, DefinitionIndex<T> index, int tokenType)
+        private static void PopulateEncLogTableRows<T>(List<EncLogRow> table, ReusableEntityIndex<T> index, int tokenType)
             where T : IDefinition
         {
             foreach (var member in index.GetRows())
@@ -935,7 +937,7 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
-        private static void AddDefinitionTokens<T>(ArrayBuilder<int> tokens, DefinitionIndex<T> index, int tokenType)
+        private static void AddDefinitionTokens<T>(ArrayBuilder<int> tokens, ReusableEntityIndex<T> index, int tokenType)
             where T : IDefinition
         {
             foreach (var member in index.GetRows())
@@ -966,14 +968,18 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
-        private abstract class DefinitionIndexBase<T>
+        /// <summary>
+        /// Stores entities whose records can be reused in the next generation.
+        /// Enables the writer to look up handles of existing enties and add new entities.
+        /// </summary>
+        private abstract class ReusableEntityIndexBase<T>
         {
-            protected readonly Dictionary<T, int> added; // Definitions added in this generation.
+            protected readonly Dictionary<T, int> added; // Entities added in this generation.
             protected readonly List<T> rows; // Rows in this generation, containing adds and updates.
             private readonly int _firstRowId; // First row in this generation.
             private bool _frozen;
 
-            public DefinitionIndexBase(int lastRowId)
+            public ReusableEntityIndexBase(int lastRowId)
             {
                 this.added = new Dictionary<T, int>();
                 this.rows = new List<T>();
@@ -1050,7 +1056,7 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
-        private sealed class DefinitionIndex<T> : DefinitionIndexBase<T> where T : IDefinition
+        private sealed class ReusableEntityIndex<T> : ReusableEntityIndexBase<T>
         {
             public delegate bool TryGetExistingIndex(T item, out int index);
 
@@ -1062,7 +1068,7 @@ namespace Microsoft.CodeAnalysis.Emit
             // references to those defs in the current generation.
             private readonly Dictionary<int, T> _map;
 
-            public DefinitionIndex(TryGetExistingIndex tryGetExistingIndex, int lastRowId)
+            public ReusableEntityIndex(TryGetExistingIndex tryGetExistingIndex, int lastRowId)
                 : base(lastRowId)
             {
                 _tryGetExistingIndex = tryGetExistingIndex;
@@ -1276,7 +1282,26 @@ namespace Microsoft.CodeAnalysis.Emit
             return false;
         }
 
-        private sealed class ParameterDefinitionIndex : DefinitionIndexBase<IParameterDefinition>
+        private bool TryGetExistingAssemblyRefIndex(IAssemblyReference item, out int index)
+        {
+            if (_previousGeneration.AssemblyReferencesAdded.TryGetValue(item, out index))
+            {
+                return true;
+            }
+
+            // TODO: assemblyref needs AssemblyIdentity prop
+            var identity = new AssemblyIdentity(item.Name, item.Version, item.Culture, item.PublicKeyToken, false, item.IsRetargetable, item.ContentType);
+
+            if (_previousGeneration.AssemblyReferences.TryGetValue(identity, out index))
+            {
+                return true;
+            }
+
+            index = 0;
+            return false;
+        }
+
+        private sealed class ParameterDefinitionIndex : ReusableEntityIndexBase<IParameterDefinition>
         {
             public ParameterDefinitionIndex(int lastRowId)
                 : base(lastRowId)
@@ -1298,7 +1323,7 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
-        private sealed class GenericParameterIndex : DefinitionIndexBase<IGenericParameter>
+        private sealed class GenericParameterIndex : ReusableEntityIndexBase<IGenericParameter>
         {
             public GenericParameterIndex(int lastRowId)
                 : base(lastRowId)
@@ -1320,7 +1345,7 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
-        private sealed class EventOrPropertyMapIndex : DefinitionIndexBase<int>
+        private sealed class EventOrPropertyMapIndex : ReusableEntityIndexBase<int>
         {
             public delegate bool TryGetExistingIndex(int item, out int index);
 
@@ -1358,7 +1383,7 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
-        private sealed class MethodImplIndex : DefinitionIndexBase<MethodImplKey>
+        private sealed class MethodImplIndex : ReusableEntityIndexBase<MethodImplKey>
         {
             private readonly DeltaMetadataWriter _writer;
 
@@ -1391,6 +1416,43 @@ namespace Microsoft.CodeAnalysis.Emit
                 int index = this.NextRowId;
                 this.added.Add(item, index);
                 this.rows.Add(item);
+            }
+        }
+
+        private sealed class AssemblyReferenceIndex : ReusableEntityIndexBase<IAssemblyReference>
+        {
+            private readonly DeltaMetadataWriter _writer;
+
+            public AssemblyReferenceIndex(DeltaMetadataWriter writer, int lastRowId)
+                : base(lastRowId)
+            {
+                _writer = writer;
+            }
+
+            public override bool TryGetValue(IAssemblyReference item, out int index)
+            {
+                if (this.added.TryGetValue(item, out index))
+                {
+                    return true;
+                }
+
+                if (_writer.TryGetExistingAssemblyRefIndex(item, out index))
+                {
+                    return true;
+                }
+
+                index = 0;
+                return false;
+            }
+
+            public int Add(IAssemblyReference item)
+            {
+                Debug.Assert(!this.IsFrozen);
+
+                int index = this.NextRowId;
+                this.added.Add(item, index);
+                this.rows.Add(item);
+                return index;
             }
         }
 
