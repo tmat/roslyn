@@ -679,6 +679,30 @@ public override string ToString() { return null; }
                 Diagnostic(ErrorCode.ERR_OverrideNotExpected, "ToString").WithArguments("ToString()"));
         }
 
+        [Fact]
+        public async void ExceptionsAndDefinitions()
+        {
+            bool exceptionThrown = false;
+
+            Script<object> script0 = CSharpScript.Create("int x = 1; throw new IOException(); int y = 2;");
+            ScriptState<object> state0;
+            try
+            {
+                state0 = await script0.RunAsync();
+            }
+            catch (IOException e)
+            {
+                exceptionThrown = true;
+                state0 = (ScriptState<object>)e.Data["ScriptState"];
+            }
+
+            Assert.True(exceptionThrown);
+
+            Script<object> script1 = script0.ContinueWith("x + y");
+            await script1.RunFromAsync(state0);
+            
+        }
+
         #endregion
 
         #region Generics
@@ -2190,5 +2214,7 @@ typeof(Microsoft.CodeAnalysis.Scripting.Script)
         }
 
         #endregion
+
+
     }
 }

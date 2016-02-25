@@ -24,7 +24,7 @@ using Traits = Roslyn.Test.Utilities.Traits;
 namespace Microsoft.CodeAnalysis.UnitTests.Interactive
 {
     [Trait(Traits.Feature, Traits.Features.InteractiveHost)]
-    public sealed class InteractiveHostTests : AbstractInteractiveHostTests
+    public class InteractiveHostTests : AbstractInteractiveHostTests
     {
         #region Utils
 
@@ -38,12 +38,23 @@ namespace Microsoft.CodeAnalysis.UnitTests.Interactive
         private static readonly string s_homeDir = FileUtilities.NormalizeDirectoryPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
         public InteractiveHostTests()
+            : this(null)
+        {
+        }
+
+        protected InteractiveHostTests(string initializationFileContent)
         {
             _host = new InteractiveHost(typeof(CSharpReplServiceProvider), GetInteractiveHostPath(), ".", millisecondsTimeout: -1);
 
             RedirectOutput();
 
-            _host.ResetAsync(new InteractiveHostOptions(initializationFile: null, culture: CultureInfo.InvariantCulture)).Wait();
+            string initializationFile = null;
+            if (initializationFileContent != null)
+            {
+                initializationFile = Temp.CreateFile().WriteAllText(initializationFileContent).Path;
+            }
+
+            _host.ResetAsync(new InteractiveHostOptions(initializationFile, culture: CultureInfo.InvariantCulture)).Wait();
 
             var remoteService = _host.TryGetService();
             Assert.NotNull(remoteService);
@@ -55,10 +66,24 @@ namespace Microsoft.CodeAnalysis.UnitTests.Interactive
             var errorOutput = ReadErrorOutputToEnd();
 
             Assert.Equal("", errorOutput);
-            Assert.Equal(2, output.Length);
-            Assert.Equal("Microsoft (R) Roslyn C# Compiler version " + FileVersionInfo.GetVersionInfo(_host.GetType().Assembly.Location).FileVersion, output[0]);
-            // "Type "#help" for more information."
-            Assert.Equal(FeaturesResources.TypeHelpForMoreInformation, output[1]);
+
+            if (initializationFile != null)
+            {
+                AssertEx.Equal(new[]
+                {
+                    "Microsoft (R) Roslyn C# Compiler version " + FileVersionInfo.GetVersionInfo(_host.GetType().Assembly.Location).FileVersion,
+                    string.Format(CultureInfo.InvariantCulture, FeaturesResources.LoadingContextFrom, Path.GetFileName(initializationFile)),
+                    FeaturesResources.TypeHelpForMoreInformation
+                }, output);
+            }
+            else
+            {
+                AssertEx.Equal(new[]
+                {
+                    "Microsoft (R) Roslyn C# Compiler version " + FileVersionInfo.GetVersionInfo(_host.GetType().Assembly.Location).FileVersion,
+                    FeaturesResources.TypeHelpForMoreInformation
+                }, output);
+            }
 
             // remove logo:
             ClearOutput();
@@ -100,7 +125,7 @@ namespace Microsoft.CodeAnalysis.UnitTests.Interactive
             return Execute($"#r \"{reference}\"");
         }
 
-        private bool Execute(string code)
+        internal bool Execute(string code)
         {
             var task = _host.ExecuteAsync(code);
             task.Wait();
@@ -1139,16 +1164,37 @@ Console.Write(Task.Run(() => { Thread.CurrentThread.Join(100); return 42; }).Con
         }
 
         [Fact]
-        public void Exception()
+        public void Exception1()
         {
-            Execute(@"throw new System.Exception();");
+            Execute(@"using System; int x = 1;");
 
             var output = ReadOutputToEnd();
             var error = ReadErrorOutputToEnd();
+            Assert.Equal("", output);
+            Assert.Equal("", error);
+
+            Execute(@"int y = 2; throw new Exception(""Msg1"");");
+
+            output = ReadOutputToEnd();
+            error = ReadErrorOutputToEnd();
 
             Assert.Equal("", output);
-            Assert.DoesNotContain("Unexpected", error, StringComparison.OrdinalIgnoreCase);
-            Assert.True(error.StartsWith(new Exception().Message));
+            Assert.Equal("Msg1" + Environment.NewLine, error);
+
+            Execute(@"x + y");
+
+            output = ReadOutputToEnd();
+            error = ReadErrorOutputToEnd();
+            Assert.Equal("", error);
+            Assert.Equal("3" + Environment.NewLine, output);
+
+            Execute(@"throw new Exception(""Msg2"");");
+
+            output = ReadOutputToEnd();
+            error = ReadErrorOutputToEnd();
+
+            Assert.Equal("", output);
+            Assert.Equal("Msg2" + Environment.NewLine, error);
         }
 
         #region Submission result printing - null/void/value.
@@ -1196,6 +1242,63 @@ foo()
         private static ImmutableArray<string> SplitLines(string text)
         {
             return ImmutableArray.Create(text.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries));
+        }
+    }
+
+    [Trait(Traits.Feature, Traits.Features.InteractiveHost)]
+    public class InteractiveHostTests1 : InteractiveHostTests
+    {
+        public InteractiveHostTests1()
+            : base(
+@"/r:System
+/r:System.Core
+/r:Microsoft.CSharp
+/u:System
+/u:System.IO
+/u:System.Collections.Generic
+/u:System.Console
+/u:System.Diagnostics
+/u:System.Dynamic
+/u:System.Linq
+/u:System.Linq.Expressions
+/u:System.Text
+/u:System.Threading.Tasks
+")
+        {
+        }
+
+        [Fact]
+        public void Exception2()
+        {
+            Execute(@"int x = 1;");
+
+            var output = ReadOutputToEnd();
+            var error = ReadErrorOutputToEnd();
+            Assert.Equal("", output);
+            Assert.Equal("", error);
+
+            Execute(@"throw new Exception(""Msg1"");");
+
+            output = ReadOutputToEnd();
+            error = ReadErrorOutputToEnd();
+
+            Assert.Equal("", output);
+            Assert.Equal("Msg1" + Environment.NewLine, error);
+
+            Execute(@"x");
+
+            output = ReadOutputToEnd();
+            error = ReadErrorOutputToEnd();
+            Assert.Equal("1" + Environment.NewLine, output);
+            Assert.Equal("", error);
+
+            Execute(@"throw new Exception(""Msg2"");");
+
+            output = ReadOutputToEnd();
+            error = ReadErrorOutputToEnd();
+
+            Assert.Equal("", output);
+            Assert.Equal("Msg2" + Environment.NewLine, error);
         }
     }
 }

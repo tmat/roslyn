@@ -669,5 +669,15 @@ i", options);
             var result = await script.EvaluateAsync();
             Assert.Equal(0, result);
         }
+
+        [Fact]
+        public async Task ExceptionsAndDefinitions()
+        {
+            var script = CSharpScript.Create<int>(@"
+int x = 1;
+throw new IOException();");
+
+
+        }
     }
 }
