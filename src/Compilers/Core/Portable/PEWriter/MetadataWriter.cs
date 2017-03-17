@@ -3571,8 +3571,7 @@ namespace Microsoft.Cci
             EmitContext context = this.Context;
             foreach (ICustomAttribute customAttribute in permissionSet)
             {
-                bool isAssemblyQualified = true;
-                string typeName = customAttribute.GetType(context).GetSerializedTypeName(context, ref isAssemblyQualified);
+                var (typeName, isAssemblyQualified) = customAttribute.GetType(context).GetSerializedTypeName(context, assemblyQualify: true);
                 if (!isAssemblyQualified)
                 {
                     INamespaceTypeReference namespaceType = customAttribute.GetType(context).AsNamespaceTypeReference;

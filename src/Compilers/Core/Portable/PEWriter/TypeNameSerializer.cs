@@ -12,11 +12,10 @@ namespace Microsoft.Cci
     {
         internal static string GetSerializedTypeName(this ITypeReference typeReference, EmitContext context)
         {
-            bool isAssemblyQualified = true;
-            return GetSerializedTypeName(typeReference, context, ref isAssemblyQualified);
+            return GetSerializedTypeName(typeReference, context, assemblyQualify: true).Name;
         }
 
-        internal static string GetSerializedTypeName(this ITypeReference typeReference, EmitContext context, ref bool isAssemblyQualified)
+        internal static (string Name, bool isQualified) GetSerializedTypeName(this ITypeReference typeReference, EmitContext context, bool assemblyQualify)
         {
             var pooled = PooledStringBuilder.GetInstance();
             StringBuilder sb = pooled.Builder;
@@ -24,8 +23,7 @@ namespace Microsoft.Cci
             if (arrType != null)
             {
                 typeReference = arrType.GetElementType(context);
-                bool isAssemQual = false;
-                AppendSerializedTypeName(sb, typeReference, ref isAssemQual, context);
+                sb.Append(GetSerializedTypeName(typeReference, context, assemblyQualify: false).Name);
                 if (arrType.IsSZArray)
                 {
                     sb.Append("[]");
@@ -38,7 +36,7 @@ namespace Microsoft.Cci
                         sb.Append('*');
                     }
 
-                    sb.Append(',', (int)arrType.Rank - 1);
+                    sb.Append(',', arrType.Rank - 1);
 
                     sb.Append(']');
                 }
@@ -50,8 +48,7 @@ namespace Microsoft.Cci
             if (pointer != null)
             {
                 typeReference = pointer.GetTargetType(context);
-                bool isAssemQual = false;
-                AppendSerializedTypeName(sb, typeReference, ref isAssemQual, context);
+                sb.Append(GetSerializedTypeName(typeReference, context, assemblyQualify: false).Name);
                 sb.Append('*');
                 goto done;
             }
@@ -78,8 +75,7 @@ namespace Microsoft.Cci
                 ArrayBuilder<ITypeReference> consolidatedTypeArguments = ArrayBuilder<ITypeReference>.GetInstance();
                 typeReference.GetConsolidatedTypeArguments(consolidatedTypeArguments, context);
 
-                bool uninstantiatedTypeIsAssemblyQualified = false;
-                sb.Append(GetSerializedTypeName(uninstantiatedTypeReference, context, ref uninstantiatedTypeIsAssemblyQualified));
+                sb.Append(GetSerializedTypeName(uninstantiatedTypeReference, context, assemblyQualify: false).Name);
                 sb.Append('[');
                 bool first = true;
                 foreach (ITypeReference argument in consolidatedTypeArguments)
@@ -93,8 +89,17 @@ namespace Microsoft.Cci
                         sb.Append(',');
                     }
 
-                    bool isAssemQual = true;
-                    AppendSerializedTypeName(sb, argument, ref isAssemQual, context);
+                    var (argTypeName, isQualified) = GetSerializedTypeName(argument, context, assemblyQualify: true);
+                    if (isQualified)
+                    {
+                        sb.Append('[');
+                    }
+
+                    sb.Append(argTypeName);
+                    if (isQualified)
+                    {
+                        sb.Append(']');
+                    }
                 }
                 consolidatedTypeArguments.Free();
 
@@ -105,36 +110,25 @@ namespace Microsoft.Cci
             INestedTypeReference nestedType = typeReference.AsNestedTypeReference;
             if (nestedType != null)
             {
-                bool nestedTypeIsAssemblyQualified = false;
-                sb.Append(GetSerializedTypeName(nestedType.GetContainingType(context), context, ref nestedTypeIsAssemblyQualified));
+                sb.Append(GetSerializedTypeName(nestedType.GetContainingType(context), context, assemblyQualify: false).Name);
                 sb.Append('+');
                 sb.Append(GetMangledAndEscapedName(nestedType));
                 goto done;
             }
 
-        // TODO: error
-        done:
-            if (isAssemblyQualified)
+            // TODO: error
+            done:
+            bool isAssemblyQualified;
+            if (assemblyQualify)
             {
                 AppendAssemblyQualifierIfNecessary(sb, UnwrapTypeReference(typeReference, context), out isAssemblyQualified, context);
             }
-
-            return pooled.ToStringAndFree();
-        }
-
-        private static void AppendSerializedTypeName(StringBuilder sb, ITypeReference type, ref bool isAssemQualified, EmitContext context)
-        {
-            string argTypeName = GetSerializedTypeName(type, context, ref isAssemQualified);
-            if (isAssemQualified)
+            else
             {
-                sb.Append('[');
+                isAssemblyQualified = false;
             }
 
-            sb.Append(argTypeName);
-            if (isAssemQualified)
-            {
-                sb.Append(']');
-            }
+            return (pooled.ToStringAndFree(), isAssemblyQualified);
         }
 
         private static void AppendAssemblyQualifierIfNecessary(StringBuilder sb, ITypeReference typeReference, out bool isAssemQualified, EmitContext context)

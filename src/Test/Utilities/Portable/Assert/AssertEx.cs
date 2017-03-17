@@ -502,5 +502,26 @@ namespace Roslyn.Test.Utilities
                 Fail($"Expected 0 items but found {list.Count}: {message}\r\nItems:\r\n    {string.Join("\r\n    ", list)}");
             }
         }
+
+        private sealed class LineComparer : IEqualityComparer<string>
+        {
+            public static readonly LineComparer Instance = new LineComparer();
+
+            public bool Equals(string left, string right) => left.Trim() == right.Trim();
+            public int GetHashCode(string str) => str.Trim().GetHashCode();
+        }
+
+        public static void AssertLinesEqual(string expected, string actual)
+        {
+            IEnumerable<string> GetLines(string str) =>
+                str.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            Equal(
+                GetLines(expected),
+                GetLines(actual),
+                comparer: LineComparer.Instance,
+                itemInspector: line => line.Replace("\"", "\"\""),
+                itemSeparator: Environment.NewLine);
+        }
     }
 }

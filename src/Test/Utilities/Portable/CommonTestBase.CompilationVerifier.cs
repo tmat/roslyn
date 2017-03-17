@@ -190,10 +190,11 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 IMethodSymbol debugEntryPoint = null,
                 DebugInformationFormat format = 0,
                 PdbToXmlOptions options = 0,
+                bool testConversion = true,
                 [CallerLineNumber]int expectedValueSourceLine = 0,
                 [CallerFilePath]string expectedValueSourcePath = null)
             {
-                _compilation.VerifyPdb(expectedPdb, debugEntryPoint, format, options, expectedValueSourceLine, expectedValueSourcePath);
+                _compilation.VerifyPdb(expectedPdb, debugEntryPoint, format, options, testConversion, expectedValueSourceLine, expectedValueSourcePath);
                 return this;
             }
 
@@ -202,10 +203,11 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 IMethodSymbol debugEntryPoint = null,
                 DebugInformationFormat format = 0,
                 PdbToXmlOptions options = 0,
+                bool testConversion = true,
                 [CallerLineNumber]int expectedValueSourceLine = 0,
                 [CallerFilePath]string expectedValueSourcePath = null)
             {
-                _compilation.VerifyPdb(expectedPdb, debugEntryPoint, format, options, expectedValueSourceLine, expectedValueSourcePath);
+                _compilation.VerifyPdb(expectedPdb, debugEntryPoint, format, options, testConversion, expectedValueSourceLine, expectedValueSourcePath);
                 return this;
             }
 
@@ -215,10 +217,11 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 IMethodSymbol debugEntryPoint = null,
                 DebugInformationFormat format = 0,
                 PdbToXmlOptions options = 0,
+                bool testConversion = true,
                 [CallerLineNumber]int expectedValueSourceLine = 0,
                 [CallerFilePath]string expectedValueSourcePath = null)
             {
-                _compilation.VerifyPdb(qualifiedMethodName, expectedPdb, debugEntryPoint, format, options, expectedValueSourceLine, expectedValueSourcePath);
+                _compilation.VerifyPdb(qualifiedMethodName, expectedPdb, debugEntryPoint, format, options, testConversion, expectedValueSourceLine, expectedValueSourcePath);
                 return this;
             }
 
@@ -228,10 +231,11 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 IMethodSymbol debugEntryPoint = null,
                 DebugInformationFormat format = 0,
                 PdbToXmlOptions options = 0,
+                bool testConversion = true,
                 [CallerLineNumber]int expectedValueSourceLine = 0,
                 [CallerFilePath]string expectedValueSourcePath = null)
             {
-                _compilation.VerifyPdb(qualifiedMethodName, expectedPdb, debugEntryPoint, format, options, expectedValueSourceLine, expectedValueSourcePath);
+                _compilation.VerifyPdb(qualifiedMethodName, expectedPdb, debugEntryPoint, format, options, testConversion, expectedValueSourceLine, expectedValueSourcePath);
                 return this;
             }
 

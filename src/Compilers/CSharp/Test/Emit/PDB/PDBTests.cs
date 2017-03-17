@@ -271,7 +271,7 @@ public class C
       </scope>
     </method>
   </methods>
-</symbols>");
+</symbols>", testConversion: false);
 
             var release = CreateCompilationWithMscorlib(source, new[] { CSharpRef, SystemCoreRef }, options: TestOptions.ReleaseWinMD);
             release.VerifyPdb(@"
@@ -300,7 +300,7 @@ public class C
       </scope>
     </method>
   </methods>
-</symbols>");
+</symbols>", testConversion: false);
         }
 
         [Fact, WorkItem(1067635, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/1067635")]
@@ -335,7 +335,7 @@ public class C
       </scope>
     </method>
   </methods>
-</symbols>");
+</symbols>", testConversion: false);
 
             var release = CreateCompilationWithMscorlib(source, new[] { ValueTupleRef, SystemRuntimeFacadeRef }, options: TestOptions.ReleaseWinMD);
             release.VerifyPdb(
@@ -352,7 +352,7 @@ public class C
       </sequencePoints>
     </method>
   </methods>
-</symbols>");
+</symbols>", testConversion: false);
         }
 
         [Fact]
