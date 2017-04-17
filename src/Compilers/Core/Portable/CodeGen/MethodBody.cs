@@ -28,7 +28,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         private readonly string _stateMachineTypeNameOpt;
         private readonly ImmutableArray<StateMachineHoistedLocalScope> _stateMachineHoistedLocalScopes;
         private readonly bool _hasDynamicLocalVariables;
-        private readonly Cci.AsyncMethodBodyDebugInfo _asyncMethodDebugInfo;
+        private readonly StateMachineMoveNextBodyDebugInfo _stateMachineMoveNextDebugInfoOpt;
 
         // Debug information emitted to Debug PDBs supporting EnC:
         private readonly DebugId _methodId;
@@ -60,7 +60,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             ImmutableArray<StateMachineHoistedLocalScope> stateMachineHoistedLocalScopes,
             ImmutableArray<EncHoistedLocalInfo> stateMachineHoistedLocalSlots,
             ImmutableArray<Cci.ITypeReference> stateMachineAwaiterSlots,
-            Cci.AsyncMethodBodyDebugInfo asyncMethodDebugInfo,
+            StateMachineMoveNextBodyDebugInfo stateMachineMoveNextDebugInfoOpt,
             DynamicAnalysisMethodBodyData dynamicAnalysisDataOpt)
         {
             Debug.Assert(!locals.IsDefault);
@@ -68,7 +68,6 @@ namespace Microsoft.CodeAnalysis.CodeGen
             Debug.Assert(!localScopes.IsDefault);
 
             _ilBits = ilBits;
-            _asyncMethodDebugInfo = asyncMethodDebugInfo;
             _maxStack = maxStack;
             _parent = parent;
             _methodId = methodId;
@@ -85,6 +84,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             _stateMachineHoistedLocalScopes = stateMachineHoistedLocalScopes;
             _stateMachineHoistedLocalSlots = stateMachineHoistedLocalSlots;
             _stateMachineAwaiterSlots = stateMachineAwaiterSlots;
+            _stateMachineMoveNextDebugInfoOpt = stateMachineMoveNextDebugInfoOpt;
             _dynamicAnalysisDataOpt = dynamicAnalysisDataOpt;
         }
 
@@ -103,7 +103,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
         Cci.IMethodDefinition Cci.IMethodBody.MethodDefinition => _parent;
 
-        Cci.AsyncMethodBodyDebugInfo Cci.IMethodBody.AsyncDebugInfo => _asyncMethodDebugInfo;
+        StateMachineMoveNextBodyDebugInfo Cci.IMethodBody.MoveNextBodyInfo => _stateMachineMoveNextDebugInfoOpt;
 
         ushort Cci.IMethodBody.MaxStack => _maxStack;
 

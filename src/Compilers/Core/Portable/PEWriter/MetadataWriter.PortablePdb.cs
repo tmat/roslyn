@@ -11,6 +11,7 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Debugging;
+using Microsoft.CodeAnalysis.Emit;
 using Roslyn.Utilities;
 
 namespace Microsoft.Cci
@@ -49,8 +50,8 @@ namespace Microsoft.Cci
                 return;
             }
 
-            bool isIterator = bodyOpt.StateMachineTypeName != null;
-            bool emitDebugInfo = isIterator || bodyOpt.HasAnySequencePoints;
+            bool isKickoffMethod = bodyOpt.StateMachineTypeName != null;
+            bool emitDebugInfo = isKickoffMethod || bodyOpt.HasAnySequencePoints;
 
             if (!emitDebugInfo)
             {
@@ -123,14 +124,17 @@ namespace Microsoft.Cci
                 }
             }
 
-            var asyncDebugInfo = bodyOpt.AsyncDebugInfo;
-            if (asyncDebugInfo != null)
+            var moveNextBodyInfo = bodyOpt.MoveNextBodyInfo;
+            if (moveNextBodyInfo != null)
             {
                 _debugMetadataOpt.AddStateMachineMethod(
                     moveNextMethod: methodHandle,
-                    kickoffMethod: GetMethodDefinitionHandle(asyncDebugInfo.KickoffMethod));
+                    kickoffMethod: GetMethodDefinitionHandle(moveNextBodyInfo.KickoffMethod));
 
-                SerializeAsyncMethodSteppingInfo(asyncDebugInfo, methodHandle);
+                if (moveNextBodyInfo is AsyncMoveNextBodyDebugInfo asyncInfo)
+                {
+                    SerializeAsyncMethodSteppingInfo(asyncInfo, methodHandle);
+                }
             }
 
             SerializeStateMachineLocalScopes(bodyOpt, methodHandle);
@@ -556,7 +560,7 @@ namespace Microsoft.Cci
 
         #region State Machines
 
-        private void SerializeAsyncMethodSteppingInfo(AsyncMethodBodyDebugInfo asyncInfo, MethodDefinitionHandle moveNextMethod)
+        private void SerializeAsyncMethodSteppingInfo(AsyncMoveNextBodyDebugInfo asyncInfo, MethodDefinitionHandle moveNextMethod)
         {
             Debug.Assert(asyncInfo.ResumeOffsets.Length == asyncInfo.YieldOffsets.Length);
             Debug.Assert(asyncInfo.CatchHandlerOffset >= -1);

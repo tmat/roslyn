@@ -1501,7 +1501,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Try
                 Debug.Assert(Not diagnostics.HasAnyErrors)
 
-                Dim asyncDebugInfo As Cci.AsyncMethodBodyDebugInfo = Nothing
+                Dim moveNextBodyDebugInfoOpt As StateMachineMoveNextBodyDebugInfo = Nothing
                 Dim codeGen = New CodeGen.CodeGenerator(method, block, builder, moduleBuilder, diagnostics, optimizations, emittingPdb)
 
                 If diagnostics.HasAnyErrors() Then
@@ -1530,12 +1530,23 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ' but without anything useful on the call stack. Async Task methods on the other hand return exceptions as the result of the Task.
                     ' So it is undesirable to consider these exceptions "user unhandled" since there may well be user code that is awaiting the task.
                     ' This is a heuristic since it's possible that there is no user code awaiting the task.
-                    asyncDebugInfo = New Cci.AsyncMethodBodyDebugInfo(
+                    moveNextBodyDebugInfoOpt = New AsyncMoveNextBodyDebugInfo(
                         If(kickoffMethod.PartialDefinitionPart, kickoffMethod),
                         If(kickoffMethod.IsSub, asyncCatchHandlerOffset, -1),
                         asyncYieldPoints,
                         asyncResumePoints)
                 Else
+
+                    If isStateMachineMoveNextMethod Then
+                        ' In VB iterator method may be partial. Debug info needs to be associated with the emitted definition, 
+                        ' but the kickoff method is the method implementation (the part with body).
+
+                        Dim kickoffMethod = stateMachineMethod.StateMachineType.KickoffMethod
+                        Debug.Assert(kickoffMethod.IsIterator)
+
+                        moveNextBodyDebugInfoOpt = New IteratorMoveNextBodyDebugInfo(If(kickoffMethod.PartialDefinitionPart, kickoffMethod))
+                    End If
+
                     codeGen.Generate()
                 End If
 
@@ -1588,7 +1599,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                       stateMachineHoistedLocalScopes:=Nothing,
                                       stateMachineHoistedLocalSlots:=stateMachineHoistedLocalSlots,
                                       stateMachineAwaiterSlots:=stateMachineAwaiterSlots,
-                                      asyncMethodDebugInfo:=asyncDebugInfo,
+                                      stateMachineMoveNextDebugInfoOpt:=moveNextBodyDebugInfoOpt,
                                       dynamicAnalysisDataOpt:=dynamicAnalysisDataOpt)
             Finally
                 ' Free resources used by the basic blocks in the builder.
