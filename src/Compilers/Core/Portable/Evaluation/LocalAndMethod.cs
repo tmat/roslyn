@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation;
 using System;
 using System.Collections.ObjectModel;
 
@@ -15,9 +14,9 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         public readonly string LocalName;
         public readonly string LocalDisplayName;
         public readonly string MethodName;
-        public readonly DkmClrCompilationResultFlags Flags;
+        public readonly ClrCompilationResultFlags Flags;
 
-        public LocalAndMethod(string localName, string localDisplayName, string methodName, DkmClrCompilationResultFlags flags)
+        public LocalAndMethod(string localName, string localDisplayName, string methodName, ClrCompilationResultFlags flags)
         {
             this.LocalName = localName;
             this.LocalDisplayName = localDisplayName;

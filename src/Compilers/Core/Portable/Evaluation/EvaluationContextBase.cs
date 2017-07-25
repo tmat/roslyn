@@ -9,7 +9,6 @@ using System.Globalization;
 using System.Linq;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.PooledObjects;
-using Microsoft.VisualStudio.Debugger.Evaluation;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.ExpressionEvaluator
@@ -25,7 +24,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         internal abstract CompileResult CompileExpression(
             string expr,
-            DkmEvaluationFlags compilationFlags,
+            EvaluationFlags compilationFlags,
             ImmutableArray<Alias> aliases,
             DiagnosticBag diagnostics,
             out ResultProperties resultProperties,

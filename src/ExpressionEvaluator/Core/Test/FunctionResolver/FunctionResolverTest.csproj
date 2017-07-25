@@ -38,5 +38,13 @@
     <PackageReference Include="xunit" Version="$(xunitVersion)" />
     <PackageReference Include="xunit.runner.console" Version="$(xunitrunnerconsoleVersion)" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Copy debugger reference assembly to the output dir. The tests need it at runtime as well. -->
+    <Content Include="$(NuGetPackageRoot)\microsoft.visualstudio.debugger.engine\$(MicrosoftVisualStudioDebuggerEngineVersion)\ref\net45\Microsoft.VisualStudio.Debugger.Engine.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+      <Link>Microsoft.VisualStudio.Debugger.Engine.dll</Link>
+    </Content>
+  </ItemGroup>
   <Import Project="..\..\..\..\..\build\Targets\Imports.targets" />
 </Project>

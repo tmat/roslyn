@@ -8,7 +8,6 @@ using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
 using Microsoft.CodeAnalysis.PooledObjects;
-using Microsoft.VisualStudio.Debugger.Clr;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
@@ -57,20 +56,20 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             var displayName = alias.Name;
             switch (alias.Kind)
             {
-                case DkmClrAliasKind.Exception:
+                case ClrAliasKind.Exception:
                     return new ExceptionLocalSymbol(containingMethod, name, displayName, type, ExpressionCompilerConstants.GetExceptionMethodName);
-                case DkmClrAliasKind.StowedException:
+                case ClrAliasKind.StowedException:
                     return new ExceptionLocalSymbol(containingMethod, name, displayName, type, ExpressionCompilerConstants.GetStowedExceptionMethodName);
-                case DkmClrAliasKind.ReturnValue:
+                case ClrAliasKind.ReturnValue:
                     {
                         int index;
                         PseudoVariableUtilities.TryParseReturnValueIndex(name, out index);
                         Debug.Assert(index >= 0);
                         return new ReturnValueLocalSymbol(containingMethod, name, displayName, type, index);
                     }
-                case DkmClrAliasKind.ObjectId:
+                case ClrAliasKind.ObjectId:
                     return new ObjectIdLocalSymbol(containingMethod, type, name, displayName, isWritable: false);
-                case DkmClrAliasKind.Variable:
+                case ClrAliasKind.Variable:
                     return new ObjectIdLocalSymbol(containingMethod, type, name, displayName, isWritable: true);
                 default:
                     throw ExceptionUtilities.UnexpectedValue(alias.Kind);

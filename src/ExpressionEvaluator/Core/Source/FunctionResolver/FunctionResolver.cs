@@ -119,7 +119,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             {
                 ptr = module.GetMetaDataBytesPtr(out length);
             }
-            catch (Exception e) when (MetadataUtilities.IsBadOrMissingMetadataException(e, module.FullName))
+            catch (Exception e) when (DebuggerExceptionUtilities.IsBadOrMissingMetadataException(e, module.FullName))
             {
                 return null;
             }

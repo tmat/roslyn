@@ -66,7 +66,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     // DkmClrNcModuleInstance.GetMetaDataBytesPtr not implemented in Dev14.
                     throw new NotImplementedMetadataException(e);
                 }
-                catch (Exception e) when (MetadataUtilities.IsBadOrMissingMetadataException(e, module.FullName))
+                catch (Exception e) when (DebuggerExceptionUtilities.IsBadOrMissingMetadataException(e, module.FullName))
                 {
                     continue;
                 }
@@ -94,7 +94,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     Debug.Assert(size > 0);
                     block = GetMetadataBlock(ptr, size);
                 }
-                catch (Exception e) when (MetadataUtilities.IsBadOrMissingMetadataException(e, missingAssemblyIdentity.GetDisplayName()))
+                catch (Exception e) when (DebuggerExceptionUtilities.IsBadOrMissingMetadataException(e, missingAssemblyIdentity.GetDisplayName()))
                 {
                     continue;
                 }
@@ -128,7 +128,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                         Debug.Assert(size > 0);
                         reader = new MetadataReader((byte*)ptr, (int)size);
                     }
-                    catch (Exception e) when (MetadataUtilities.IsBadOrMissingMetadataException(e, module.FullName))
+                    catch (Exception e) when (DebuggerExceptionUtilities.IsBadOrMissingMetadataException(e, module.FullName))
                     {
                         continue;
                     }

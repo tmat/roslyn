@@ -38,6 +38,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.DiaSymReader" Version="$(MicrosoftDiaSymReaderVersion)" />
     <PackageReference Include="Microsoft.DiaSymReader.Native" Version="$(MicrosoftDiaSymReaderNativeVersion)" />
     <PackageReference Include="System.Collections" Version="$(SystemCollectionsVersion)" />
     <PackageReference Include="System.Collections.Concurrent" Version="$(SystemCollectionsConcurrentVersion)" />
@@ -126,6 +127,7 @@
       <SubType>Designer</SubType>
       <LastGenOutput>CodeAnalysisResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="Evaluation\Resources\WindowsProxy.winmd" />
     <EmbeddedResource Include="Resources\default.win32manifest" />
   </ItemGroup>
   <ItemGroup>

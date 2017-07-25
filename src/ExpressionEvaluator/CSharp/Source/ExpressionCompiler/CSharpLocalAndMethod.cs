@@ -13,7 +13,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
     {
         private readonly MethodSymbol _method;
 
-        public CSharpLocalAndMethod(string name, string displayName, MethodSymbol method, DkmClrCompilationResultFlags flags)
+        public CSharpLocalAndMethod(string name, string displayName, MethodSymbol method, ClrCompilationResultFlags flags)
             : base(name, displayName, method.Name, flags)
         {
             Debug.Assert(method is EEMethodSymbol); // Expected but not required.
