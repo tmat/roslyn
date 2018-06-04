@@ -45,10 +45,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.EditAndContinue
             readOnlyDocumentTracker.SetReadOnly(project.DocumentIds.First(), isReadOnly)
             Assert.Equal(Of UInteger)(1, mockVsBuffer._oldFlags) ' Read-Only
 
-            ' edit mode
-            Dim projectStates = ImmutableArray.Create(New KeyValuePair(Of ProjectId, ProjectReadOnlyReason)(project.Id, ProjectReadOnlyReason.None))
-
-            encService.StartEditSession(currentSolution, projectStates.ToImmutableDictionary(), stoppedAtException:=False)
+            encService.StartEditSession(currentSolution, stoppedAtException:=False)
             isReadOnly = encService.IsProjectReadOnly(project.Id, sessionReason, projectReason) AndAlso allowsReadOnly
             readOnlyDocumentTracker.SetReadOnly(project.DocumentIds.First(), isReadOnly)
             Assert.Equal(Of UInteger)(0, mockVsBuffer._oldFlags) ' Editable
@@ -60,7 +57,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.EditAndContinue
             Assert.Equal(Of UInteger)(1, mockVsBuffer._oldFlags) ' Read-Only
 
             ' break mode and stop at exception
-            encService.StartEditSession(currentSolution, projectStates.ToImmutableDictionary(), stoppedAtException:=True)
+            encService.StartEditSession(currentSolution, stoppedAtException:=True)
             isReadOnly = encService.IsProjectReadOnly(project.Id, sessionReason, projectReason) AndAlso allowsReadOnly
             readOnlyDocumentTracker.SetReadOnly(project.DocumentIds.First(), isReadOnly)
             Assert.Equal(Of UInteger)(1, mockVsBuffer._oldFlags) ' Read-Only
@@ -93,10 +90,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.EditAndContinue
             readOnlyDocumentTracker.SetReadOnly(project.DocumentIds.First(), isReadOnly)
             Assert.Equal(Of UInteger)(0, mockVsBuffer._oldFlags) ' Editable
 
-            ' edit mode
-            Dim projectStates = ImmutableArray.Create(New KeyValuePair(Of ProjectId, ProjectReadOnlyReason)(project.Id, ProjectReadOnlyReason.None))
-
-            encService.StartEditSession(currentSolution, projectStates.ToImmutableDictionary(), stoppedAtException:=False)
+            encService.StartEditSession(currentSolution, stoppedAtException:=False)
             isReadOnly = encService.IsProjectReadOnly(project.Id, sessionReason, projectReason) AndAlso allowsReadOnly
             readOnlyDocumentTracker.SetReadOnly(project.DocumentIds.First(), isReadOnly)
             Assert.Equal(Of UInteger)(0, mockVsBuffer._oldFlags) ' Editable
@@ -108,7 +102,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.EditAndContinue
             Assert.Equal(Of UInteger)(0, mockVsBuffer._oldFlags) ' Editable
 
             ' break mode and stop at exception
-            encService.StartEditSession(currentSolution, projectStates.ToImmutableDictionary(), stoppedAtException:=True)
+            encService.StartEditSession(currentSolution, stoppedAtException:=True)
             isReadOnly = encService.IsProjectReadOnly(project.Id, sessionReason, projectReason) AndAlso allowsReadOnly
             readOnlyDocumentTracker.SetReadOnly(project.DocumentIds.First(), isReadOnly)
             Assert.Equal(Of UInteger)(0, mockVsBuffer._oldFlags) ' Editable

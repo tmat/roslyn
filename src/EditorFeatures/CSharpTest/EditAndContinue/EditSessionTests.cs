@@ -118,7 +118,6 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue.UnitTests
                     baseSolution,
                     debuggingSession,
                     activeStatementProvider,
-                    ImmutableDictionary<ProjectId, ProjectReadOnlyReason>.Empty,
                     nonRemappableRegions ?? ImmutableDictionary<ActiveMethodId, ImmutableArray<NonRemappableRegion>>.Empty,
                     stoppedAtException: false);
 

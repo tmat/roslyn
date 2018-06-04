@@ -12,7 +12,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
     {
         // This method allows the ENCManager to tell the package that ENC
         // is not available as soon as it can be determined rather than waiting for a call from the package.
-        void __NotifyEncIsUnavailable(/*EncUnavailableReason reason,bool fEditWasApplied*/);
+        void NotifyEncIsUnavailable(EncUnavailableReason reason, bool fEditWasApplied);
 
         // This method allows the Lang Service to Notify the package that the Current Statement 
         // must be updated due to an edit.

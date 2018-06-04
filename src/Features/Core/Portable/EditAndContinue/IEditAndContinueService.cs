@@ -15,10 +15,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
         void StartDebuggingSession(Solution currentSolution);
 
-        void StartEditSession(
-            Solution currentSolution,
-            ImmutableDictionary<ProjectId, ProjectReadOnlyReason> projects,
-            bool stoppedAtException);
+        void StartEditSession(Solution currentSolution, bool stoppedAtException);
 
         void EndEditSession(ImmutableDictionary<ActiveMethodId, ImmutableArray<NonRemappableRegion>> newNonRemappableRegionsOpt);
 

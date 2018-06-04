@@ -14,11 +14,11 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
     /// </summary>
     internal sealed class DebuggeeModuleMetadataCache
     {
-        // Maps MVIDs to metadata blobs loaded to specific processes
+        // Maps MVIDs to metadata blobs loaded to the debuggee
         private Dictionary<Guid, ModuleMetadata> _lazyCache;
 
         /// <summary>
-        /// May return null if the provider returns null.
+        /// May return null if the <paramref name="provider"/> returns null.
         /// </summary>
         public ModuleMetadata GetOrAdd(Guid mvid, Func<Guid, ModuleMetadata> provider)
         {
@@ -57,7 +57,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         }
 
         /// <summary>
-        /// Removes metadata of specified module and process.
+        /// Removes metadata of specified module.
         /// </summary>
         public bool Remove(Guid mvid)
         {

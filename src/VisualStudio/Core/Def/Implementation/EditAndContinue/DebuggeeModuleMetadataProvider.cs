@@ -5,6 +5,7 @@ using System.Composition;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Debugging;
 using Microsoft.CodeAnalysis.EditAndContinue;
+using Microsoft.DiaSymReader;
 using Microsoft.VisualStudio.Debugger;
 using Microsoft.VisualStudio.Debugger.Clr;
 using Microsoft.VisualStudio.Debugger.ComponentInterfaces;
@@ -110,6 +111,19 @@ namespace Microsoft.VisualStudio.LanguageServices.EditAndContinue
             }
 
             return ModuleMetadata.CreateFromMetadata(metadataPtr, (int)metadataSize);
+        }
+
+        internal static void InitializeModuleForEditAndContinue(Guid mvid)
+        {
+            using (DebuggerComponent.ManagedEditAndContinueService())
+            {
+                var clrModuleInstance = FindClrModuleInstance(mvid);
+                if (clrModuleInstance != null)
+                {
+                    var symReader = (ISymUnmanagedEncUpdate)clrModuleInstance.GetSymUnmanagedReader();
+                    symReader.InitializeForEnc();
+                }
+            }
         }
 
         private static DkmClrModuleInstance FindClrModuleInstance(Guid mvid)

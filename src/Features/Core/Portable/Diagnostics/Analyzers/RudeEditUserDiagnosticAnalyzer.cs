@@ -28,15 +28,15 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             try
             {
                 var encService = document.Project.Solution.Workspace.Services.GetService<IDebuggingWorkspaceService>()?.EditAndContinueServiceOpt;
-                if (encService == null)
+                var session = encService?.EditSession;
+                if (session == null || session.BaseSolution.WorkspaceVersion == document.Project.Solution.WorkspaceVersion)
                 {
                     return ImmutableArray<Diagnostic>.Empty;
                 }
 
-                EditSession session = encService.EditSession;
-                if (session == null ||
-                    session.BaseSolution.WorkspaceVersion == document.Project.Solution.WorkspaceVersion ||
-                    !session.HasProject(document.Project.Id))
+                // don't analyze documents of projects that have not been compiled:
+                var mvid = await encService.DebuggingSession.GetProjectModuleIdAsync(document.Project.Id, cancellationToken).ConfigureAwait(false);
+                if (mvid == default)
                 {
                     return ImmutableArray<Diagnostic>.Empty;
                 }

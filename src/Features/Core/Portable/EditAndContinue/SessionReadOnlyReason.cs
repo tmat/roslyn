@@ -18,5 +18,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         /// The program is stopped at exception. No edits allowed.
         /// </summary>
         StoppedAtException,
+
+        /// <summary>
+        /// The debug model is "stop one". No edits allowed.
+        /// </summary>
+        StopOneDebugModel,
     }
 }

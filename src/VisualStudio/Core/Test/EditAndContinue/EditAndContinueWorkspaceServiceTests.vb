@@ -36,10 +36,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.EditAndContinue
             Assert.Equal(SessionReadOnlyReason.Running, sessionReason)
             Assert.Equal(True, isReadOnly)
 
-            ' edit mode
-            Dim projectStates = ImmutableArray.Create(New KeyValuePair(Of ProjectId, ProjectReadOnlyReason)(project.Id, ProjectReadOnlyReason.None))
-
-            encService.StartEditSession(currentSolution, projectStates.ToImmutableDictionary(), stoppedAtException:=False)
+            encService.StartEditSession(currentSolution, stoppedAtException:=False)
             isReadOnly = encService.IsProjectReadOnly(project.Id, sessionReason, projectReason)
             Assert.Equal(ProjectReadOnlyReason.None, projectReason)
             Assert.Equal(SessionReadOnlyReason.None, sessionReason)
@@ -53,60 +50,10 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.EditAndContinue
             Assert.Equal(True, isReadOnly)
 
             ' break mode and stop at exception
-            encService.StartEditSession(currentSolution, projectStates.ToImmutableDictionary(), stoppedAtException:=True)
+            encService.StartEditSession(currentSolution, stoppedAtException:=True)
             isReadOnly = encService.IsProjectReadOnly(project.Id, sessionReason, projectReason)
             Assert.Equal(ProjectReadOnlyReason.None, projectReason)
             Assert.Equal(SessionReadOnlyReason.StoppedAtException, sessionReason)
-            Assert.Equal(True, isReadOnly)
-        End Sub
-
-        <Fact>
-        Public Sub NotLoadedTest()
-            Dim diagnosticService As IDiagnosticAnalyzerService = New EditAndContinueTestHelper.TestDiagnosticAnalyzerService()
-            Dim encService As IEditAndContinueService = New EditAndContinueService(diagnosticService, New TestActiveStatementProvider())
-            Dim workspace = EditAndContinueTestHelper.CreateTestWorkspace()
-            Dim currentSolution = workspace.CurrentSolution
-            Dim project = currentSolution.Projects(0)
-
-            Dim sessionReason As SessionReadOnlyReason
-            Dim projectReason As ProjectReadOnlyReason
-            Dim isReadOnly As Boolean
-
-            ' run mode 
-            encService.StartDebuggingSession(workspace.CurrentSolution)
-
-            ' edit mode
-            Dim projectStates = ImmutableArray.Create(New KeyValuePair(Of ProjectId, ProjectReadOnlyReason)(project.Id, ProjectReadOnlyReason.NotLoaded))
-
-            encService.StartEditSession(currentSolution, projectStates.ToImmutableDictionary(), stoppedAtException:=False)
-            isReadOnly = encService.IsProjectReadOnly(project.Id, sessionReason, projectReason)
-            Assert.Equal(ProjectReadOnlyReason.NotLoaded, projectReason)
-            Assert.Equal(SessionReadOnlyReason.None, sessionReason)
-            Assert.Equal(True, isReadOnly)
-        End Sub
-
-        <Fact>
-        Public Sub MetaDataNotAvailableTest()
-            Dim diagnosticService As IDiagnosticAnalyzerService = New EditAndContinueTestHelper.TestDiagnosticAnalyzerService()
-            Dim encService As IEditAndContinueService = New EditAndContinueService(diagnosticService, New TestActiveStatementProvider())
-            Dim workspace = EditAndContinueTestHelper.CreateTestWorkspace()
-            Dim currentSolution = workspace.CurrentSolution
-            Dim project = currentSolution.Projects(0)
-
-            Dim sessionReason As SessionReadOnlyReason
-            Dim projectReason As ProjectReadOnlyReason
-            Dim isReadOnly As Boolean
-
-            ' run mode 
-            encService.StartDebuggingSession(workspace.CurrentSolution)
-
-            ' edit mode with empty project
-            Dim projectStates = ImmutableDictionary.Create(Of ProjectId, ProjectReadOnlyReason)
-
-            encService.StartEditSession(currentSolution, projectStates, stoppedAtException:=False)
-            isReadOnly = encService.IsProjectReadOnly(project.Id, sessionReason, projectReason)
-            Assert.Equal(ProjectReadOnlyReason.MetadataNotAvailable, projectReason)
-            Assert.Equal(SessionReadOnlyReason.None, sessionReason)
             Assert.Equal(True, isReadOnly)
         End Sub
     End Class

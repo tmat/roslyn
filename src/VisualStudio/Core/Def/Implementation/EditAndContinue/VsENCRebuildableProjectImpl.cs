@@ -25,18 +25,15 @@ using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue.Interop;
 using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem;
-using Microsoft.VisualStudio.LanguageServices.Utilities;
 using Roslyn.Utilities;
 using ShellInterop = Microsoft.VisualStudio.Shell.Interop;
 using VsTextSpan = Microsoft.VisualStudio.TextManager.Interop.TextSpan;
 using VsThreading = Microsoft.VisualStudio.Threading;
-using Document = Microsoft.CodeAnalysis.Document;
 using Microsoft.CodeAnalysis.Debugging;
 using Microsoft.VisualStudio.Shell.Interop;
-using System.Reflection.PortableExecutable;
+using Microsoft.VisualStudio.Debugger;
+using Microsoft.VisualStudio.Debugger.Clr;
 using Microsoft.VisualStudio.LanguageServices.EditAndContinue;
-using Microsoft.CodeAnalysis.PooledObjects;
-using Microsoft.CodeAnalysis.Shared.Extensions;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
 {
@@ -51,7 +48,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
         private static int s_breakStateProjectCount;
 
         // projects that entered the break state:
-        private static readonly List<KeyValuePair<ProjectId, ProjectReadOnlyReason>> s_breakStateEnteredProjects = new List<KeyValuePair<ProjectId, ProjectReadOnlyReason>>();
         private static readonly List<ImmutableArray<(ActiveMethodId Method, NonRemappableRegion Region)>> s_pendingNonRemappableRegions = new List<ImmutableArray<(ActiveMethodId, NonRemappableRegion)>>();
 
         private static VsReadOnlyDocumentTracker s_readOnlyDocumentTracker;
@@ -82,18 +78,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
         private ImmutableArray<(ActiveMethodId Method, NonRemappableRegion Region)> _pendingNonRemappableRegions;
 
         private ImmutableArray<DocumentId> _documentsWithEmitError = ImmutableArray<DocumentId>.Empty;
-
-        /// <summary>
-        /// Initialized when the project switches to debug state.
-        /// <see cref="Guid.Empty"/> if the project has no output file or we can't read the MVID.
-        /// </summary>
-        private Guid _mvid;
-
         private Lazy<ISymUnmanagedReader5> _pdbReader;
 
         #endregion
-
-        private bool IsDebuggable => _mvid != Guid.Empty;
 
         internal VsENCRebuildableProjectImpl(AbstractProject project)
         {
@@ -126,58 +113,32 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
         {
             if (_encService.IsProjectReadOnly(documentId.ProjectId, out var sessionReason, out var projectReason))
             {
-                OnReadOnlyDocumentEditAttempt(documentId, sessionReason, projectReason);
+                OnReadOnlyDocumentEditAttempt(documentId, sessionReason);
                 return true;
             }
 
             return false;
         }
 
-        private void OnReadOnlyDocumentEditAttempt(
-            DocumentId documentId,
-            SessionReadOnlyReason sessionReason,
-            ProjectReadOnlyReason projectReason)
+        private void OnReadOnlyDocumentEditAttempt(DocumentId documentId, SessionReadOnlyReason sessionReason)
         {
-            if (sessionReason == SessionReadOnlyReason.StoppedAtException)
+            switch (sessionReason)
             {
-                _debugEncNotify.NotifyEncEditAttemptedAtInvalidStopState();
-                return;
+                case SessionReadOnlyReason.StoppedAtException:
+                    _debugEncNotify.NotifyEncEditAttemptedAtInvalidStopState();
+                    return;
+
+                case SessionReadOnlyReason.StopOneDebugModel:
+                    _debugEncNotify.NotifyEncIsUnavailable(EncUnavailableReason.ENCUN_STOPONEMODE, fEditWasApplied: false);
+                    return;
+
+                case SessionReadOnlyReason.Running:
+                    _notifications.SendNotification(ServicesVSResources.ChangesNotAllowedWhileCodeIsRunning, title: FeaturesResources.Edit_and_Continue1, severity: NotificationSeverity.Error);
+                    return;
+
+                default:
+                    throw ExceptionUtilities.UnexpectedValue(sessionReason);
             }
-
-            var visualStudioWorkspace = _vsProject.Workspace as VisualStudioWorkspaceImpl;
-            var hostProject = visualStudioWorkspace?.GetHostProject(documentId.ProjectId) as AbstractProject;
-            if (hostProject?.EditAndContinueImplOpt?._mvid != Guid.Empty)
-            {
-                _debugEncNotify.NotifyEncEditDisallowedByProject(hostProject.Hierarchy);
-                return;
-            }
-            
-            // NotifyEncEditDisallowedByProject is broken if the project isn't built at the time the debugging starts (debugger bug 877586).
-            string message;
-            if (sessionReason == SessionReadOnlyReason.Running)
-            {
-                message = ServicesVSResources.ChangesNotAllowedWhileCodeIsRunning;
-            }
-            else
-            {
-                Debug.Assert(sessionReason == SessionReadOnlyReason.None);
-
-                switch (projectReason)
-                {
-                    case ProjectReadOnlyReason.MetadataNotAvailable:
-                        message = ServicesVSResources.ChangesNotAllowedIfProjectWasntBuildWhenDebuggingStarted;
-                        break;
-
-                    case ProjectReadOnlyReason.NotLoaded:
-                        message = ServicesVSResources.ChangesNotAllowedIFAssemblyHasNotBeenLoaded;
-                        break;
-
-                    default:
-                        throw ExceptionUtilities.UnexpectedValue(projectReason);
-                }
-            }
-
-            _notifications.SendNotification(message, title: FeaturesResources.Edit_and_Continue1, severity: NotificationSeverity.Error);
         }
 
         /// <summary>
@@ -215,55 +176,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                 {
                     Debug.Assert(s_debugStateProjectCount == 0);
                     Debug.Assert(s_breakStateProjectCount == 0);
-                    Debug.Assert(s_breakStateEnteredProjects.Count == 0);
                     Debug.Assert(s_pendingNonRemappableRegions.Count == 0);
 
                     _debuggingService.OnBeforeDebuggingStateChanged(DebuggingState.Design, DebuggingState.Run);
 
                     _encService.StartDebuggingSession(_vsProject.Workspace.CurrentSolution);
+                    _encService.DebuggingSession.InitializeProjectForEditAndContinue += InitializeProjectForEditAndContinue;
                     s_encDebuggingSessionInfo = new EncDebuggingSessionInfo();
 
                     s_readOnlyDocumentTracker = new VsReadOnlyDocumentTracker(_encService, _editorAdaptersFactoryService);
                 }
 
-                string outputPath = _vsProject.ObjOutputPath;
-
-                // The project doesn't produce a debuggable binary or we can't read it.
-                // Continue on since the debugger ignores HResults and we need to handle subsequent calls.
-                if (outputPath != null)
-                {
-                    try
-                    {
-                        InjectFault_MvidRead();
-                        _mvid = ReadMvid(outputPath);
-                    }
-                    catch (Exception e) when (e is FileNotFoundException || e is DirectoryNotFoundException)
-                    {
-                        // If the project isn't referenced by the project being debugged it might not be built.
-                        // In that case EnC is never allowed for the project, and thus we can assume the project hasn't entered debug state.
-                        log.Write("StartDebuggingPE: '{0}' metadata file not found: '{1}'", _vsProject.DisplayName, outputPath);
-                        _mvid = Guid.Empty;
-                    }
-                    catch (Exception e)
-                    {
-                        log.Write("StartDebuggingPE: error reading MVID of '{0}' ('{1}'): {2}", _vsProject.DisplayName, outputPath, e.Message);
-                        _mvid = Guid.Empty;
-                        ReportInternalError(InternalErrorCode.ErrorReadingFile, new[] { outputPath, e.Message }); 
-                    }
-                }
-                else
-                {
-                    log.Write("StartDebuggingPE: project has no output path '{0}'", _vsProject.DisplayName);
-                    _mvid = Guid.Empty;
-                }
-
-                if (_mvid != Guid.Empty)
-                {
-                    // The debugger doesn't call EnterBreakStateOnPE for projects that don't have MVID.
-                    // However a project that's initially not loaded (but it might be in future) enters 
-                    // both the debug and break states.
-                    s_debugStateProjectCount++;
-                }
+                s_debugStateProjectCount++;
 
                 // The HResult is ignored by the debugger.
                 return VSConstants.S_OK;
@@ -275,23 +199,46 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
         }
 
         /// <summary>
-        /// Given a path to an assembly, returns its MVID (Module Version ID).
-        /// May throw.
+        /// Triggers initialization of the SymReader for EnC.
+        /// 
+        /// Initializing (Windows) PDB for EnC may take a significant time, so we optimistically start the work on a background thread
+        /// as soon a document in a project is edited, so that we don't block when the changes need to be applied.
         /// </summary>
-        /// <exception cref="IOException">If the file at <paramref name="filePath"/> does not exist or cannot be accessed.</exception>
-        /// <exception cref="BadImageFormatException">If the file is not an assembly or is somehow corrupted.</exception>
-        private static Guid ReadMvid(string filePath)
+        /// <param name="projectId"></param>
+        private void InitializeProjectForEditAndContinue(ProjectId projectId)
         {
-            Debug.Assert(filePath != null);
-            Debug.Assert(PathUtilities.IsAbsolute(filePath));
-
-            using (var reader = new PEReader(FileUtilities.OpenRead(filePath)))
+            // fire and forget on a background thread:
+            try
             {
-                var metadataReader = reader.GetMetadataReader();
-                var mvidHandle = metadataReader.GetModuleDefinition().Mvid;
-                var fileMvid = metadataReader.GetGuid(mvidHandle);
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        // the task is executed on a background thread and when it gets here the debugging session might already have been terminated:
+                        var debuggingSession = _encService.DebuggingSession;
+                        if (debuggingSession == null)
+                        {
+                            return;
+                        }
 
-                return fileMvid;
+                        var mvid = await debuggingSession.GetProjectModuleIdAsync(projectId, debuggingSession.Cancellation.Token).ConfigureAwait(false);
+                        if (mvid != default)
+                        {
+                            DebuggeeModuleMetadataProvider.InitializeModuleForEditAndContinue(mvid);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // nop
+                    }
+                    catch (Exception e) when (FatalError.ReportWithoutCrash(e))
+                    {
+                        // nop
+                    }
+                });
+            }
+            catch (TaskCanceledException)
+            {
             }
         }
 
@@ -300,7 +247,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
             try
             {
                 log.Write("Exit Debug Mode: project '{0}'", _vsProject.DisplayName);
-                Debug.Assert(s_breakStateEnteredProjects.Count == 0);
                 Debug.Assert(s_pendingNonRemappableRegions.Count == 0);
 
                 // Clear the solution stored while projects were entering break mode. 
@@ -323,17 +269,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                     s_readOnlyDocumentTracker = null;
                 }
 
-                if (_mvid != Guid.Empty)
-                {
-                    _mvid = Guid.Empty;
-                    s_debugStateProjectCount--;
-                }
-                else
-                {
-                    // an error might have been reported:
-                    var errorId = new EncErrorId(_encService.DebuggingSession, EditAndContinueDiagnosticUpdateSource.InternalErrorId);
-                    _diagnosticProvider.ClearDiagnostics(errorId, _vsProject.Workspace.CurrentSolution, _vsProject.Id, documentIdOpt: null);
-                }
+                s_debugStateProjectCount--;
 
                 _committedBaseline = null;
                 _projectBeingEmitted = null;
@@ -405,14 +341,15 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
         {
             Debug.Assert(_encService.DebuggingSession != null);
 
-            if (_mvid == Guid.Empty)
+            var mvid = _encService.DebuggingSession.GetProjectModuleIdAsync(_vsProject.Id, cancellationToken: default).Result;
+            if (mvid == Guid.Empty)
             {
                 return VSConstants.E_FAIL;
             }
 
             if (pMVID != null && pMVID.Length != 0)
             {
-                pMVID[0] = _mvid;
+                pMVID[0] = mvid;
             }
 
             if (pbstrPEName != null && pbstrPEName.Length != 0)
@@ -442,9 +379,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
 
                     Debug.Assert(cActiveStatements == (pActiveStatements != null ? pActiveStatements.Length : 0));
                     Debug.Assert(s_breakStateProjectCount < s_debugStateProjectCount);
-                    Debug.Assert(s_breakStateProjectCount == s_breakStateEnteredProjects.Count);
                     Debug.Assert(s_pendingNonRemappableRegions.Count == 0);
-                    Debug.Assert(IsDebuggable);
 
                     if (s_breakStateEntrySolution == null)
                     {
@@ -457,25 +392,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                         s_breakStateProjectCount = 0;
                     }
 
-                    ProjectReadOnlyReason state;
-                    if (pActiveStatements != null)
-                    {
-                        state = ProjectReadOnlyReason.None;
-                    }
-                    else
-                    {
-                        // unfortunately the debugger doesn't provide details:
-                        state = ProjectReadOnlyReason.NotLoaded;
-                    }
-
-                    // If pActiveStatements is null the EnC Manager failed to retrieve the module corresponding 
-                    // to the project in the debuggee. We won't include such projects in the edit session.
-                    s_breakStateEnteredProjects.Add(KeyValuePair.Create(_vsProject.Id, state));
                     s_breakStateProjectCount++;
 
                     // EnC service is global, but the debugger calls this for each project.
                     // Avoid starting the edit session until all projects enter break state.
-                    if (s_breakStateEnteredProjects.Count == s_debugStateProjectCount)
+                    if (s_breakStateProjectCount == s_debugStateProjectCount)
                     {
                         Debug.Assert(_encService.EditSession == null);
 
@@ -483,9 +404,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                         // So we start an edit session as usual and report a rude edit for all changes we see.
                         bool stoppedAtException = encBreakReason == ENC_BREAKSTATE_REASON.ENC_BREAK_EXCEPTION;
 
-                        var projectStates = ImmutableDictionary.CreateRange(s_breakStateEnteredProjects);
-
-                        _encService.StartEditSession(s_breakStateEntrySolution, projectStates, stoppedAtException);
+                        _encService.StartEditSession(s_breakStateEntrySolution, stoppedAtException);
                         _trackingService.StartTracking(_encService.EditSession);
 
                         s_readOnlyDocumentTracker.UpdateWorkspaceDocuments();
@@ -503,17 +422,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
             catch (Exception e) when (FatalError.ReportWithoutCrash(e))
             {
                 return VSConstants.E_FAIL;
-            }
-            finally
-            {
-                // TODO: This is a workaround for a debugger bug.
-                // Ensure that the state gets reset even if if `GroupActiveStatements` throws an exception.
-                if (s_breakStateEnteredProjects.Count == s_debugStateProjectCount)
-                {
-                    // we don't need these anymore:
-                    s_breakStateEnteredProjects.Clear();
-                    s_breakStateEntrySolution = null;
-                }
             }
         }
 
@@ -651,15 +559,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
         }
 
         private ProjectAnalysisSummary GetProjectAnalysisSummary(Project project)
-        {
-            if (!IsDebuggable)
-            {
-                return ProjectAnalysisSummary.NoChanges;
-            }
-
-            var cancellationToken = default(CancellationToken);
-            return _encService.EditSession.GetProjectAnalysisSummaryAsync(project, cancellationToken).Result;
-        }
+            => _encService.EditSession.GetProjectAnalysisSummaryAsync(project, cancellationToken: default).Result;
 
         public int ExitBreakStateOnPE()
         {
@@ -667,12 +567,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
             {
                 using (NonReentrantContext)
                 {
-                    // The debugger calls Exit without previously calling Enter if the project's MVID isn't available.
-                    if (!IsDebuggable)
-                    {
-                        return VSConstants.S_OK;
-                    }
-
                     log.Write("Exit Break Mode: project '{0}'", _vsProject.DisplayName);
 
                     // EnC service is global, but the debugger calls this for each project.
@@ -746,9 +640,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
 
                 Debug.Assert(_encService.EditSession != null);
                 Debug.Assert(!_encService.EditSession.StoppedAtException);
-
-                // Non-debuggable project has no changes.
-                Debug.Assert(IsDebuggable);
 
                 if (_changesApplied)
                 {
@@ -945,11 +836,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
         private Deltas EmitProjectDelta()
         {
             Debug.Assert(Thread.CurrentThread.GetApartmentState() == ApartmentState.MTA);
-            
+
             var baseline = _committedBaseline;
             if (baseline == null)
             {
-                var baselineMetadata = _moduleMetadataProvider.TryGetBaselineMetadata(_mvid);
+                var mvid = _encService.DebuggingSession.GetProjectModuleIdAsync(_projectBeingEmitted.Id, cancellationToken: default).Result;
+
+                var baselineMetadata = _moduleMetadataProvider.TryGetBaselineMetadata(mvid);
                 if (baselineMetadata != null)
                 {
                     baseline = EmitBaseline.CreateInitialBaseline(
@@ -963,10 +856,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
             if (baseline == null || baseline.OriginalMetadata.IsDisposed)
             {
                 var moduleName = PathUtilities.GetFileName(_vsProject.ObjOutputPath);
+                var mvid = _encService.DebuggingSession.GetProjectModuleIdAsync(_vsProject.Id, cancellationToken: default).Result;
 
                 // The metadata blob is guaranteed to not be disposed while BuildForEnc is being executed. 
                 // If it is disposed it means it had been disposed when entering BuildForEnc.
-                log.Write("Module has been unloaded: module '{0}', project '{1}', MVID: {2}", moduleName, _vsProject.DisplayName, _mvid.ToString());
+                log.Write("Module has been unloaded: module '{0}', project '{1}', MVID: {2}", moduleName, _vsProject.DisplayName, mvid.ToString());
 
                 ReportInternalError(InternalErrorCode.CantApplyChangesModuleHasBeenUnloaded, new[] { moduleName });
                 return null;
@@ -1122,7 +1016,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
             try
             {
                 log.Write("Change applied to {0}", _vsProject.DisplayName);
-                Debug.Assert(IsDebuggable);
                 Debug.Assert(_encService.EditSession != null);
                 Debug.Assert(!_encService.EditSession.StoppedAtException);
                 Debug.Assert(_pendingBaseline != null);
@@ -1236,27 +1129,5 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                 // nop
             }
         }
-
-        #region Testing 
-
-#if DEBUG
-        // Fault injection:
-        // If set we'll fail to read MVID of specified projects to test error reporting.
-        internal static ImmutableArray<string> InjectMvidReadingFailure;
-
-        private void InjectFault_MvidRead()
-        {
-            if (!InjectMvidReadingFailure.IsDefault && InjectMvidReadingFailure.Contains(_vsProject.DisplayName))
-            {
-                throw new IOException("Fault injection");
-            }
-        }
-#else
-        [Conditional("DEBUG")]
-        private void InjectFault_MvidRead()
-        {
-        }
-#endif
-        #endregion
     }
 }

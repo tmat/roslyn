@@ -79,14 +79,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
             var previousSession = Interlocked.CompareExchange(ref _debuggingSession, new DebuggingSession(currentSolution), null);
             Contract.ThrowIfFalse(previousSession == null, "New debugging session can't be started until the existing one has ended.");
-
-            // TODO(tomat): allow changing documents
         }
 
-        public void StartEditSession(
-            Solution currentSolution,
-            ImmutableDictionary<ProjectId, ProjectReadOnlyReason> projects,
-            bool stoppedAtException)
+        public void StartEditSession(Solution currentSolution, bool stoppedAtException)
         {
             Contract.ThrowIfNull(currentSolution);
 
@@ -94,15 +89,11 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 currentSolution, 
                 _debuggingSession, 
                 _activeStatementProvider, 
-                projects, 
                 _nonRemappableRegions,
                 stoppedAtException);
 
             var previousSession = Interlocked.CompareExchange(ref _editSession, newSession, null);
             Contract.ThrowIfFalse(previousSession == null, "New edit session can't be started until the existing one has ended.");
-
-            // TODO(tomat): allow changing documents
-            // TODO(tomat): document added
         }
 
         public void EndEditSession(ImmutableDictionary<ActiveMethodId, ImmutableArray<NonRemappableRegion>> newRemappableRegionsOpt)
@@ -123,21 +114,23 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             {
                 _nonRemappableRegions = newRemappableRegionsOpt;
             }
-
-            // TODO(tomat): allow changing documents
         }
 
         public void EndDebuggingSession()
         {
             var session = Interlocked.Exchange(ref _debuggingSession, null);
             Contract.ThrowIfNull(session, "Debugging session has not started.");
+
+            // then cancel all ongoing work bound to the session:
+            session.Cancellation.Cancel();
         }
 
         public bool IsProjectReadOnly(ProjectId id, out SessionReadOnlyReason sessionReason, out ProjectReadOnlyReason projectReason)
         {
+            projectReason = ProjectReadOnlyReason.None;
+
             if (_debuggingSession == null)
             {
-                projectReason = ProjectReadOnlyReason.None;
                 sessionReason = SessionReadOnlyReason.None;
                 return false;
             }
@@ -146,7 +139,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var editSession = _editSession;
             if (editSession == null)
             {
-                projectReason = ProjectReadOnlyReason.None;
                 sessionReason = SessionReadOnlyReason.Running;
                 return true;
             }
@@ -154,21 +146,20 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             // break mode and stopped at exception - all documents shall be read-only:
             if (editSession.StoppedAtException)
             {
-                projectReason = ProjectReadOnlyReason.None;
                 sessionReason = SessionReadOnlyReason.StoppedAtException;
                 return true;
             }
 
-            // normal break mode - if the document belongs to a project that hasn't entered the edit session it shall be read-only:
-            if (editSession.Projects.TryGetValue(id, out projectReason))
-            {
-                sessionReason = SessionReadOnlyReason.None;
-                return projectReason != ProjectReadOnlyReason.None;
-            }
+            // TODO:
+            //if (DebugModelIsStopOne)
+            //{
+            //    projectReason = ProjectReadOnlyReason.None;
+            //    sessionReason = SessionReadOnlyReason.StopOneDebugModel;
+            //    return true;
+            //}
 
             sessionReason = SessionReadOnlyReason.None;
-            projectReason = ProjectReadOnlyReason.MetadataNotAvailable;
-            return true;
+            return false;
         }
 
         public async Task<LinePositionSpan?> GetCurrentActiveStatementPositionAsync(ActiveInstructionId instructionId, CancellationToken cancellationToken)

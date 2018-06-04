@@ -37,7 +37,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         private readonly Solution _baseSolution;
 
         // signaled when the session is terminated:
-        private readonly CancellationTokenSource _cancellation;
+        internal readonly CancellationTokenSource _cancellation;
 
         internal readonly AsyncLazy<ActiveStatementsMap> BaseActiveStatements;
 
@@ -76,12 +76,11 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         private EncEditSessionInfo _encEditSessionInfo = new EncEditSessionInfo();
 
         private readonly ImmutableDictionary<ActiveMethodId, ImmutableArray<NonRemappableRegion>> _nonRemappableRegions;
-        
+
         internal EditSession(
             Solution baseSolution,
             DebuggingSession debuggingSession,
             IActiveStatementProvider activeStatementProvider,
-            ImmutableDictionary<ProjectId, ProjectReadOnlyReason> projects,
             ImmutableDictionary<ActiveMethodId, ImmutableArray<NonRemappableRegion>> nonRemappableRegions,
             bool stoppedAtException)
         {
@@ -94,7 +93,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             _debuggingSession = debuggingSession;
             _activeStatementProvider = activeStatementProvider;
             _stoppedAtException = stoppedAtException;
-            _projects = projects;
             _cancellation = new CancellationTokenSource();
 
             // TODO: small dict, pool?
@@ -258,13 +256,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
         public bool StoppedAtException => _stoppedAtException;
 
-        public IReadOnlyDictionary<ProjectId, ProjectReadOnlyReason> Projects => _projects;
-
-        internal bool HasProject(ProjectId id)
-        {
-            return Projects.TryGetValue(id, out var reason);
-        }
-
         private List<(DocumentId, AsyncLazy<DocumentAnalysisResults>)> GetChangedDocumentsAnalyses(Project baseProject, Project project)
         {
             var changes = project.GetChanges(baseProject);
@@ -363,6 +354,11 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                             }
                         }
 
+                        if (result.HasChanges)
+                        {
+                            _debuggingSession.OnDocumentChanged(document);
+                        }
+
                         return result;
                     }
                     catch (Exception e) when (FatalError.ReportUnlessCanceled(e))
@@ -396,6 +392,13 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     return ProjectAnalysisSummary.NoChanges;
                 }
 
+                // projects that have not been compiled have no applicable changes:
+                var mvid = await _debuggingSession.GetProjectModuleIdAsync(project.Id, cancellationToken).ConfigureAwait(false);
+                if (mvid == default)
+                {
+                    return ProjectAnalysisSummary.NoChanges;
+                }
+
                 var documentAnalyses = GetChangedDocumentsAnalyses(baseProject, project);
                 if (documentAnalyses.Count == 0)
                 {
@@ -405,9 +408,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 bool hasChanges = false;
                 bool hasSignificantChanges = false;
 
-                foreach (var analysis in documentAnalyses)
+                foreach (var (_, analysis) in documentAnalyses)
                 {
-                    var result = await analysis.Item2.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                    var result = await analysis.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
                     // skip documents that actually were not changed:
                     if (!result.HasChanges)
