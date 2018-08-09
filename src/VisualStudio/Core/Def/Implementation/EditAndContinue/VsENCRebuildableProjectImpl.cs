@@ -957,6 +957,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
             return emitTask.Result;
         }
 
+        private EditAndContinueMethodDebugInformation GetBaselineEncDebugInfo(object symReader, MethodDefinitionHandle h)
+        {
+            throw new NotImplementedException();
+        }
+
         private unsafe bool HasPortableMetadata(ISymUnmanagedReader5 symReader)
             => symReader.GetPortableDebugMetadata(out _, out _) == 0;
 
