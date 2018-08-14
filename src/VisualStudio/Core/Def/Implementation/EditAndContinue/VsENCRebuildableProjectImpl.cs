@@ -399,14 +399,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                 pMVID[0] = _mvid;
             }
 
-            if (pbstrPEName != null && pbstrPEName.Length != 0)
-            {
-                var outputPath = _vsProject.ObjOutputPath;
-                Debug.Assert(outputPath != null);
-
-                pbstrPEName[0] = Path.GetFileName(outputPath);
-            }
-
             return VSConstants.S_OK;
         }
 
@@ -955,11 +947,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
             }
 
             return emitTask.Result;
-        }
-
-        private EditAndContinueMethodDebugInformation GetBaselineEncDebugInfo(object symReader, MethodDefinitionHandle h)
-        {
-            throw new NotImplementedException();
         }
 
         private unsafe bool HasPortableMetadata(ISymUnmanagedReader5 symReader)
