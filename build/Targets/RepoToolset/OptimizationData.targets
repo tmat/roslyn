@@ -21,7 +21,8 @@
   -->
   <Target Name="PostCompileBinaryModification"
           AfterTargets="CoreCompile"
-          DependsOnTargets="ApplyOptimizations"
+          DependsOnTargets="_InitializeAssemblyOptimizationWithTargetAssembly;ApplyOptimizations"
+          Condition="Exists('$(_OptimizationDataFile)')"
           Inputs="@(IntermediateAssembly)"
           Outputs="@(IntermediateAssembly);$(PostCompileBinaryModificationSentinelFile)">
 
@@ -33,22 +34,28 @@
     </ItemGroup>
   </Target>
 
+  <Target Name="_InitializeAssemblyOptimizationWithTargetAssembly">
+    <ItemGroup>
+      <OptimizeAssembly Include="@(IntermediateAssembly)" PgoFile="$(_OptimizationDataFile)">
+    </ItemGroup>
+  </Target>
+
   <Target Name="ApplyOptimizations"
-          Condition="Exists('$(_OptimizationDataFile)')"
-          Inputs="@(IntermediateAssembly)"
-          Outputs="@(IntermediateAssembly);$(PostCompileBinaryModificationSentinelFile)">
+          Condition="'@(OptimizeAssembly)' != '')"
+          Inputs="@(OptimizeAssembly);@(OptimizeAssembly->'%(PgoFile)')"
+          Outputs="@(OptimizeAssembly)">
 
     <PropertyGroup>
-      <_RunIbc>false</_RunIbc>
-      <_RunIbc Condition="'$(Configuration)' == 'Release' and '$(OfficialBuild)' == 'true'">true</_RunIbc>
+      <_RunIbcMerge>false</_RunIbcMerge>
+      <_RunIbcMerge Condition="'$(Configuration)' == 'Release' and '$(OfficialBuild)' == 'true'">true</_RunIbcMerge>
 
       <_IbcMergePath>$(NuGetPackageRoot)microsoft.dotnet.ibcmerge\$(MicrosoftDotNetIBCMergeVersion)\lib\net45\ibcmerge.exe</_IbcMergePath>
-      <_IbcMergeCommandLineArgs>-q -f -partialNGEN -minify -mo "@(IntermediateAssembly)" -incremental "$(_OptimizationDataFile)"</_IbcMergeCommandLineArgs>
+      <_IbcMergeCommandLineArgs>-q -f -partialNGEN -minify -mo "%(OptimizeAssembly.Identity)" -incremental "%(OptimizeAssembly.PgoFile)"</_IbcMergeCommandLineArgs>
     </PropertyGroup>
 
-    <Message Text="IBCMerge tool will be run in an official build with arguments: $(_IbcMergeCommandLineArgs)" Condition="'$(_RunIbc)' != 'true'" Importance="normal"/>
+    <Message Text="IBCMerge tool will be run in an official build with arguments: $(_IbcMergeCommandLineArgs)" Condition="'$(_RunIbcMerge)' != 'true'" Importance="normal"/>
 
-    <Exec Command='"$(_IbcMergePath)" $(_IbcMergeCommandLineArgs)' ConsoleToMSBuild="true" Condition="'$(_RunIbc)' == 'true'">
+    <Exec Command='"$(_IbcMergePath)" $(_IbcMergeCommandLineArgs)' ConsoleToMSBuild="true" Condition="'$(_RunIbcMerge)' == 'true'">
       <Output TaskParameter="ConsoleOutput" PropertyName="IbcMergeOutput" />
     </Exec>
 
