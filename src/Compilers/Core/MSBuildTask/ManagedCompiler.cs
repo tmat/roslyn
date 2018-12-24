@@ -846,10 +846,12 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             {
                 foreach (ITaskItem additionalFile in AdditionalFiles)
                 {
-                    commandLine.AppendSwitchIfNotNull("/additionalfile:", additionalFile.ItemSpec);
+                    commandLine.AppendSwitchIfNotNull("/additionalfile:", additionalFile.ItemSpec, QuoteAdditionalFilePath);
                 }
             }
         }
+
+        protected internal abstract bool QuoteAdditionalFilePath { get; }
 
         /// <summary>
         /// Adds a "/embed:" switch to the command line for each pdb embedded file.
@@ -865,10 +867,12 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             {
                 foreach (ITaskItem embeddedFile in EmbeddedFiles)
                 {
-                    commandLine.AppendSwitchIfNotNull("/embed:", embeddedFile.ItemSpec);
+                    commandLine.AppendSwitchIfNotNull("/embed:", embeddedFile.ItemSpec, QuoteEmbeddedFilePath);
                 }
             }
         }
+
+        protected internal abstract bool QuoteEmbeddedFilePath { get; }
 
         /// <summary>
         /// Configure the debug switches which will be placed on the compiler command-line.

@@ -585,6 +585,18 @@ namespace Microsoft.CodeAnalysis.BuildTasks
         }
 
         /// <summary>
+        /// VB command line parser unquotes the value of /embed switch.
+        /// We need to quote them in order to allow file names with commas, semicolons.
+        /// </summary>
+        protected internal override bool QuoteEmbeddedFilePath => true;
+
+        /// <summary>
+        /// VB command line parser unquotes the value of /additionalfile switch.
+        /// We need to quote them in order to allow file names with commas, semicolons.
+        /// </summary>
+        protected internal override bool QuoteAdditionalFilePath => true;
+
+        /// <summary>
         /// Validate parameters, log errors and warnings and return true if
         /// Execute should proceed.
         /// </summary>

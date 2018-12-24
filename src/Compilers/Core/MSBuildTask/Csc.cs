@@ -13,8 +13,8 @@ using Microsoft.CodeAnalysis.CommandLine;
 namespace Microsoft.CodeAnalysis.BuildTasks
 {
     /// <summary>
-    /// This class defines the "Csc" XMake task, which enables building assemblies from C#
-    /// source files by invoking the C# compiler. This is the new Roslyn XMake task,
+    /// This class defines the "Csc" msbuild task, which enables building assemblies from C#
+    /// source files by invoking the C# compiler. This is the new Roslyn msbuild task,
     /// meaning that the code is compiled by using the Roslyn compiler server, rather
     /// than csc.exe. The two should be functionally identical, but the compiler server
     /// should be significantly faster with larger projects and have a smaller memory
@@ -265,6 +265,18 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                 }
             }
         }
+
+        /// <summary>
+        /// C# command line parser does not unquote the value of /embed switch,
+        /// so we don't need to quote the path even if it contains path separators.
+        /// </summary>
+        protected internal override bool QuoteEmbeddedFilePath => false;
+
+        /// <summary>
+        /// C# command line parser does not unquote the value of /additionalfile switch,
+        /// so we don't need to quote the path even if it contains path separators.
+        /// </summary>
+        protected internal override bool QuoteAdditionalFilePath => false;
 
         #endregion
 
