@@ -24,12 +24,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
             var updates = new List<string>();
 
-            source.DiagnosticsUpdated += (object sender, DiagnosticsUpdatedArgs e) =>
-            {
-                updates.Add($"{e.Kind} p={e.ProjectId} d={e.DocumentId}: {string.Join(",", e.Diagnostics.Select(d => d.Id.ToString()))}");
-            };
+            source.DiagnosticsUpdated += (object sender, DiagnosticsUpdatedArgs e)
+                => updates.Add($"{e.Kind} p={e.ProjectId} d={e.DocumentId}: {string.Join(",", e.Diagnostics.Select(d => d.Id.ToString()))}");
 
-            var id = new object();
+            var id = EditAndContinueDiagnosticUpdateSource.EmitErrorId;
 
             var srcC1 = "class C1 {}";
             var srcC2 = "class C2 {}";
@@ -62,6 +60,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
                 Diagnostic.Create(new DiagnosticDescriptor("TST0002", "title2", "message2", "category", DiagnosticSeverity.Error, true), Location.Create(treeC1, new TextSpan(1, 2))),
                 Diagnostic.Create(new DiagnosticDescriptor("TST0003", "title3", "message3", "category", DiagnosticSeverity.Error, true), Location.Create(treeD1, new TextSpan(1, 2))),
                 Diagnostic.Create(new DiagnosticDescriptor("TST0004", "title4", "message4", "category", DiagnosticSeverity.Error, true), Location.Create(treeD2, new TextSpan(1, 2))),
+                Diagnostic.Create(new DiagnosticDescriptor("TST0005", "title5", "message5", "category", DiagnosticSeverity.Error, true), Location.None),
             };
 
             updates.Clear();
@@ -71,17 +70,30 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             {
                 $"DiagnosticsCreated p={projC.Id} d={docC1.Id}: TST0001,TST0002",
                 $"DiagnosticsCreated p={projC.Id} d={docD1.Id}: TST0003",
-                $"DiagnosticsCreated p={projC.Id} d={docD2.Id}: TST0004"
+                $"DiagnosticsCreated p={projC.Id} d={docD2.Id}: TST0004",
+                $"DiagnosticsCreated p={projC.Id} d=: TST0005"
             }, updates);
 
             updates.Clear();
             actual = source.ReportDiagnostics(id, workspace.CurrentSolution, projD.Id, diagnostics);
             AssertEx.SetEqual(new[] { docD1.Id, docD2.Id }, actual);
             AssertEx.Equal(new[]
-             {
+            {
                 $"DiagnosticsCreated p={projD.Id} d={docC1.Id}: TST0001,TST0002",
                 $"DiagnosticsCreated p={projD.Id} d={docD1.Id}: TST0003",
-                $"DiagnosticsCreated p={projD.Id} d={docD2.Id}: TST0004"
+                $"DiagnosticsCreated p={projD.Id} d={docD2.Id}: TST0004",
+                $"DiagnosticsCreated p={projD.Id} d=: TST0005"
+            }, updates);
+
+            updates.Clear();
+            actual = source.ReportDiagnostics(id, workspace.CurrentSolution, null, diagnostics);
+            AssertEx.SetEqual(new DocumentId[0], actual);
+            AssertEx.Equal(new[]
+            {
+                $"DiagnosticsCreated p= d={docC1.Id}: TST0001,TST0002",
+                $"DiagnosticsCreated p= d={docD1.Id}: TST0003",
+                $"DiagnosticsCreated p= d={docD2.Id}: TST0004",
+                $"DiagnosticsCreated p= d=: TST0005"
             }, updates);
         }
     }

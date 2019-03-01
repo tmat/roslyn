@@ -339,9 +339,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                 }
                 else
                 {
-                    // an error might have been reported:
-                    var errorId = new EncErrorId(_encService.DebuggingSession, EditAndContinueDiagnosticUpdateSource.InternalErrorId);
-                    _diagnosticProvider.ClearDiagnostics(errorId, _workspace.CurrentSolution, _project.Id, documentIdOpt: null);
+                    // clear any internal errors that might have been reported:
+                    _diagnosticProvider.ClearDiagnostics(EditAndContinueDiagnosticUpdateSource.InternalErrorId, _workspace.CurrentSolution, _project.Id, documentIdOpt: null);
                 }
 
                 _committedBaseline = null;
@@ -706,7 +705,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                     _changesApplied = false;
 
                     _diagnosticProvider.ClearDiagnostics(
-                        new EncErrorId(_encService.DebuggingSession, EditAndContinueDiagnosticUpdateSource.EmitErrorId),
+                        EditAndContinueDiagnosticUpdateSource.EmitErrorId,
                         _workspace.CurrentSolution,
                         _project.Id,
                         _documentsWithEmitError);
@@ -779,7 +778,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                     }
                 }
 
-                var errorId = new EncErrorId(_encService.DebuggingSession, EditAndContinueDiagnosticUpdateSource.EmitErrorId);
+                var errorId = EditAndContinueDiagnosticUpdateSource.EmitErrorId;
 
                 // Clear diagnostics, in case the project was built before and failed due to errors.
                 _diagnosticProvider.ClearDiagnostics(errorId, _projectBeingEmitted.Solution, _project.Id, _documentsWithEmitError);
@@ -1158,7 +1157,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.EditAndContinue
                     customTags: DiagnosticCustomTags.EditAndContinue);
 
                 _diagnosticProvider.ReportDiagnostics(
-                    new EncErrorId(_encService.DebuggingSession, EditAndContinueDiagnosticUpdateSource.InternalErrorId),
+                    EditAndContinueDiagnosticUpdateSource.InternalErrorId,
                     _encService.DebuggingSession.InitialSolution,
                     _project.Id,
                     new[] { Diagnostic.Create(descriptor, Location.None, args) });

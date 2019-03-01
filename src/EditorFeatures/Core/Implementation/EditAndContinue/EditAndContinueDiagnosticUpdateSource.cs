@@ -7,29 +7,27 @@ using System.Composition;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.EditAndContinue;
 using Microsoft.CodeAnalysis.PooledObjects;
 
 namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
 {
-    internal sealed class EncErrorId : BuildToolId.Base<DebuggingSession, object>
-    {
-        public EncErrorId(DebuggingSession session, object errorId)
-            : base(session, errorId)
-        {
-        }
-
-        public override string BuildTool => PredefinedBuildTools.EnC;
-    }
-
     [Export(typeof(EditAndContinueDiagnosticUpdateSource))]
     [Shared]
     internal sealed class EditAndContinueDiagnosticUpdateSource : IDiagnosticUpdateSource
     {
-        internal static readonly object InternalErrorId = new object();
-        internal static readonly object EmitErrorId = new object();
+        private sealed class EncErrorId : BuildToolId.Base<object>
+        {
+            public EncErrorId(object errorId)
+                : base(errorId)
+            {
+            }
+
+            public override string BuildTool => PredefinedBuildTools.EnC;
+        }
+
+        internal static readonly BuildToolId InternalErrorId = new EncErrorId(new object());
+        internal static readonly BuildToolId EmitErrorId = new EncErrorId(new object());
 
         [ImportingConstructor]
         public EditAndContinueDiagnosticUpdateSource(IDiagnosticUpdateSourceRegistrationService registrationService)
@@ -46,7 +44,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
             return ImmutableArray<DiagnosticData>.Empty;
         }
 
-        public void ClearDiagnostics(EncErrorId errorId, Solution solution, ProjectId projectId, ImmutableArray<DocumentId> documentIds)
+        public void ClearDiagnostics(BuildToolId errorId, Solution solution, ProjectId projectId, ImmutableArray<DocumentId> documentIds)
         {
             // clear project diagnostics:
             ClearDiagnostics(errorId, solution, projectId, null);
@@ -58,7 +56,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
             }
         }
 
-        public void ClearDiagnostics(EncErrorId errorId, Solution solution, ProjectId projectId, DocumentId documentIdOpt)
+        public void ClearDiagnostics(BuildToolId errorId, Solution solution, ProjectId projectId, DocumentId documentIdOpt)
         {
             DiagnosticsUpdated?.Invoke(this, DiagnosticsUpdatedArgs.DiagnosticsRemoved(
                 errorId,
@@ -69,20 +67,21 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
         }
 
         /// <summary>
-        /// Reports diagnostics.
+        /// Reports given set of diagnostics. 
+        /// Categorizes diagnostic into two groups - diagnostics associated with a docuemnt and diagnostics associated with a project or solution.
         /// </summary>
-        /// <returns>Returns ids of documents that belong to <paramref name="projectId"/> and containing one or more diagnostics.</returns>
-        public ImmutableArray<DocumentId> ReportDiagnostics(object errorId, Solution solution, ProjectId projectId, IEnumerable<Diagnostic> diagnostics)
+        /// <returns>Returns ids of documents that belong to <paramref name="projectIdOpt"/> and containing one or more diagnostics.</returns>
+        public ImmutableArray<DocumentId> ReportDiagnostics(BuildToolId errorId, Solution solution, ProjectId projectIdOpt, IEnumerable<Diagnostic> diagnostics)
         {
             Debug.Assert(errorId != null);
             Debug.Assert(solution != null);
-            Debug.Assert(projectId != null);
 
             var updateEvent = DiagnosticsUpdated;
             var documentIds = PooledHashSet<DocumentId>.GetInstance();
             var documentDiagnosticData = ArrayBuilder<DiagnosticData>.GetInstance();
-            var projectDiagnosticData = ArrayBuilder<DiagnosticData>.GetInstance();
-            var project = solution.GetProject(projectId);
+            var nonDocumentDiagnosticData = ArrayBuilder<DiagnosticData>.GetInstance();
+            var workspace = solution.Workspace;
+            var project = (projectIdOpt != null) ? solution.GetProject(projectIdOpt) : null;
 
             foreach (var diagnostic in diagnostics)
             {
@@ -96,54 +95,54 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
                     }
 
                     // only add documents from the current project:
-                    if (documentOpt.Project.Id == projectId)
+                    if (documentOpt.Project.Id == projectIdOpt)
                     {
                         documentIds.Add(documentOpt.Id);
                     }
                 }
                 else if (updateEvent != null)
                 {
-                    projectDiagnosticData.Add(DiagnosticData.Create(project, diagnostic));
+                    if (project != null)
+                    {
+                        nonDocumentDiagnosticData.Add(DiagnosticData.Create(project, diagnostic));
+                    }
+                    else
+                    {
+                        nonDocumentDiagnosticData.Add(DiagnosticData.Create(workspace, diagnostic));
+                    }
                 }
             }
 
-            foreach (var documentDiagnostics in documentDiagnosticData.ToDictionary(data => data.DocumentId))
+            if (documentDiagnosticData.Count > 0)
             {
-                updateEvent(this, DiagnosticsUpdatedArgs.DiagnosticsCreated(
-                    errorId,
-                    solution.Workspace,
-                    solution,
-                    projectId,
-                    documentId: documentDiagnostics.Key,
-                    diagnostics: documentDiagnostics.Value));
+                foreach (var documentDiagnostics in documentDiagnosticData.ToDictionary(data => data.DocumentId))
+                {
+                    updateEvent(this, DiagnosticsUpdatedArgs.DiagnosticsCreated(
+                        errorId,
+                        workspace,
+                        solution,
+                        projectIdOpt,
+                        documentId: documentDiagnostics.Key,
+                        diagnostics: documentDiagnostics.Value));
+                }
             }
 
-            if (projectDiagnosticData.Count > 0)
+            if (nonDocumentDiagnosticData.Count > 0)
             {
                 updateEvent(this, DiagnosticsUpdatedArgs.DiagnosticsCreated(
                     errorId,
-                    solution.Workspace,
+                    workspace,
                     solution,
-                    projectId,
+                    projectIdOpt,
                     documentId: null,
-                    diagnostics: projectDiagnosticData.ToImmutable()));
+                    diagnostics: nonDocumentDiagnosticData.ToImmutable()));
             }
 
             var result = documentIds.AsImmutableOrEmpty();
             documentDiagnosticData.Free();
-            projectDiagnosticData.Free();
+            nonDocumentDiagnosticData.Free();
             documentIds.Free();
             return result;
-        }
-
-        internal ImmutableArray<DocumentId> ReportDiagnostics(DebuggingSession session, object errorId, ProjectId projectId, Solution solution, IEnumerable<Diagnostic> diagnostics)
-        {
-            return ReportDiagnostics(new EncErrorId(session, errorId), solution, projectId, diagnostics);
-        }
-
-        internal void ClearDiagnostics(DebuggingSession session, Workspace workspace, object errorId, ProjectId projectId, ImmutableArray<DocumentId> documentIds)
-        {
-            ClearDiagnostics(new EncErrorId(session, errorId), workspace.CurrentSolution, projectId, documentIds);
         }
     }
 }
