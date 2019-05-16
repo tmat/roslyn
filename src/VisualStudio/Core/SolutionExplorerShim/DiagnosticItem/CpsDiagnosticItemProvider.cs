@@ -23,10 +23,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
     internal sealed class CpsDiagnosticItemProvider : AttachedCollectionSourceProvider<IVsHierarchyItem>
     {
         private readonly IAnalyzersCommandHandler _commandHandler;
-        private readonly IComponentModel _componentModel;
+        private readonly IServiceProvider _serviceProvider;
 
         private IDiagnosticAnalyzerService _diagnosticAnalyzerService;
-        private IHierarchyItemToProjectIdMap _projectMap;
         private Workspace _workspace;
 
         [ImportingConstructor]
@@ -35,7 +34,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             [Import(typeof(SVsServiceProvider))]IServiceProvider serviceProvider)
         {
             _commandHandler = commandHandler;
-            _componentModel = (IComponentModel)serviceProvider.GetService(typeof(SComponentModel));
+            _serviceProvider = serviceProvider;
         }
 
         protected override IAttachedCollectionSource CreateCollectionSource(IVsHierarchyItem item, string relationshipName)
@@ -71,7 +70,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             {
                 if (targetFrameworkMoniker == null)
                 {
-                    targetFrameworkMoniker = GetTargetFrameworkMoniker(parent, targetFrameworkMoniker);
+                    targetFrameworkMoniker = GetTargetFrameworkMoniker(parent);
                 }
 
                 if (NestedHierarchyHasProjectTreeCapability(parent, "ProjectRoot"))
@@ -87,7 +86,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
         /// Given an item determines if it represents a particular target frmework.
         /// If so, it returns the corresponding TargetFrameworkMoniker.
         /// </summary>
-        private static string GetTargetFrameworkMoniker(IVsHierarchyItem item, string targetFrameworkMoniker)
+        private static string GetTargetFrameworkMoniker(IVsHierarchyItem item)
         {
             var hierarchy = item.HierarchyIdentity.NestedHierarchy;
             var itemId = item.HierarchyIdentity.NestedItemID;
@@ -117,11 +116,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
         [MethodImpl(MethodImplOptions.NoInlining)]
         private IAttachedCollectionSource CreateCollectionSourceCore(IVsHierarchyItem projectRootItem, IVsHierarchyItem item, string targetFrameworkMoniker)
         {
-            var hierarchyMapper = TryGetProjectMap();
-            if (hierarchyMapper != null &&
-                hierarchyMapper.TryGetProjectId(projectRootItem, targetFrameworkMoniker, out var projectId))
+            var workspace = TryGetWorkspace();
+            if (workspace == null)
             {
-                var workspace = TryGetWorkspace();
+                return null;
+            }
+
+            if (HierarchyItemToProjectIdMap.TryGetProjectId(workspace, _serviceProvider, projectRootItem, targetFrameworkMoniker, out var projectId))
+            {
                 var analyzerService = GetAnalyzerService();
 
                 var hierarchy = projectRootItem.HierarchyIdentity.NestedHierarchy;
@@ -157,41 +159,27 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             }
         }
 
-        private Workspace TryGetWorkspace()
+        private VisualStudioWorkspace TryGetWorkspace()
         {
             if (_workspace == null)
             {
-                var provider = _componentModel.DefaultExportProvider.GetExportedValueOrDefault<ISolutionExplorerWorkspaceProvider>();
+                var componentModel = (IComponentModel)_serviceProvider.GetService(typeof(SComponentModel));
+                var provider = componentModel.DefaultExportProvider.GetExportedValueOrDefault<ISolutionExplorerWorkspaceProvider>();
                 if (provider != null)
                 {
-                    _workspace = provider.GetWorkspace();
+                    _workspace = provider.GetWorkspace() as VisualStudioWorkspace;
                 }
             }
 
             return _workspace;
         }
 
-        private IHierarchyItemToProjectIdMap TryGetProjectMap()
-        {
-            var workspace = TryGetWorkspace();
-            if (workspace == null)
-            {
-                return null;
-            }
-
-            if (_projectMap == null)
-            {
-                _projectMap = workspace.Services.GetService<IHierarchyItemToProjectIdMap>();
-            }
-
-            return _projectMap;
-        }
-
         private IDiagnosticAnalyzerService GetAnalyzerService()
         {
             if (_diagnosticAnalyzerService == null)
             {
-                _diagnosticAnalyzerService = _componentModel.GetService<IDiagnosticAnalyzerService>();
+                var componentModel = (IComponentModel)_serviceProvider.GetService(typeof(SComponentModel));
+                _diagnosticAnalyzerService = componentModel.GetService<IDiagnosticAnalyzerService>();
             }
 
             return _diagnosticAnalyzerService;

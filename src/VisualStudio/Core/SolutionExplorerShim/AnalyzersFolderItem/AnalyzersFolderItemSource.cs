@@ -3,25 +3,21 @@
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplorer
 {
-    using Workspace = Microsoft.CodeAnalysis.Workspace;
-
     internal class AnalyzersFolderItemSource : IAttachedCollectionSource
     {
         private readonly IVsHierarchyItem _projectHierarchyItem;
-        private readonly Workspace _workspace;
-        private readonly ProjectId _projectId;
         private readonly ObservableCollection<AnalyzersFolderItem> _folderItems;
         private readonly IAnalyzersCommandHandler _commandHandler;
+        private readonly IVsHierarchy _projectHierarchy;
 
-        public AnalyzersFolderItemSource(Workspace workspace, ProjectId projectId, IVsHierarchyItem projectHierarchyItem, IAnalyzersCommandHandler commandHandler)
+        public AnalyzersFolderItemSource(IVsHierarchy projectHierarchy, IVsHierarchyItem projectHierarchyItem, IAnalyzersCommandHandler commandHandler)
         {
-            _workspace = workspace;
-            _projectId = projectId;
+            _projectHierarchy = projectHierarchy;
             _projectHierarchyItem = projectHierarchyItem;
             _commandHandler = commandHandler;
 
@@ -30,29 +26,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             Update();
         }
 
-        public bool HasItems
-        {
-            get
-            {
-                return true;
-            }
-        }
-
-        public IEnumerable Items
-        {
-            get
-            {
-                return _folderItems;
-            }
-        }
-
-        public object SourceItem
-        {
-            get
-            {
-                return _projectHierarchyItem;
-            }
-        }
+        public bool HasItems => true;
+        public IEnumerable Items => _folderItems;
+        public object SourceItem => _projectHierarchyItem;
 
         internal void Update()
         {
@@ -64,8 +40,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
 
             _folderItems.Add(
                 new AnalyzersFolderItem(
-                    _workspace,
-                    _projectId,
+                    _projectHierarchy,
                     _projectHierarchyItem,
                     _commandHandler.AnalyzerFolderContextMenuController));
         }

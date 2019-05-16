@@ -1,27 +1,28 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.Composition;
+using System;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Venus;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation
 {
-    [ExportWorkspaceService(typeof(IHierarchyItemToProjectIdMap), ServiceLayer.Host), Shared]
-    internal class HierarchyItemToProjectIdMap : IHierarchyItemToProjectIdMap
+    internal static class HierarchyItemToProjectIdMap
     {
-        private readonly VisualStudioWorkspace _workspace;
-
-        [ImportingConstructor]
-        public HierarchyItemToProjectIdMap(VisualStudioWorkspace workspace)
-        {
-            _workspace = workspace;
-        }
-
-        public bool TryGetProjectId(IVsHierarchyItem hierarchyItem, string targetFrameworkMoniker, out ProjectId projectId)
+        /// <summary>
+        /// Given an <see cref="IVsHierarchyItem"/> representing a project and an optional target framework moniker,
+        /// returns the <see cref="ProjectId"/> of the equivalent Roslyn <see cref="Project"/>.
+        /// </summary>
+        /// <param name="hierarchyItem">An <see cref="IVsHierarchyItem"/> for the project root.</param>
+        /// <param name="targetFrameworkMoniker">An optional string representing a TargetFrameworkMoniker.
+        /// This is only useful in multi-targeting scenarios where there may be multiple Roslyn projects 
+        /// (one per target framework) for a single project on disk.</param>
+        /// <param name="projectId">The <see cref="ProjectId"/> of the found project, if any.</param>
+        /// <returns>True if the desired project was found; false otherwise.</returns>
+        public static bool TryGetProjectId(VisualStudioWorkspace workspace, IServiceProvider serviceProvider, IVsHierarchyItem hierarchyItem, string targetFrameworkMoniker, out ProjectId projectId)
         {
             // A project node is represented in two different hierarchies: the solution's IVsHierarchy (where it is a leaf node)
             // and the project's own IVsHierarchy (where it is the root node). The IVsHierarchyItem joins them together for the
@@ -34,21 +35,25 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
             if (!nestedHierarchy.TryGetCanonicalName(nestedHierarchyId, out string nestedCanonicalName)
                 || !nestedHierarchy.TryGetItemName(nestedHierarchyId, out string nestedName))
             {
-                projectId = default(ProjectId);
+                projectId = null;
                 return false;
             }
 
             // First filter the projects by matching up properties on the input hierarchy against properties on each
             // project's hierarchy.
-            var candidateProjects = _workspace.CurrentSolution.Projects
+            var candidateProjects = workspace.CurrentSolution.Projects
                 .Where(p =>
                 {
                     // We're about to access various properties of the IVsHierarchy associated with the project.
                     // The properties supported and the interpretation of their values varies from one project system
                     // to another. This code is designed with C# and VB in mind, so we need to filter out everything
                     // else.
-                    if (p.Language != LanguageNames.CSharp
-                        && p.Language != LanguageNames.VisualBasic)
+                    if (p.Language != LanguageNames.CSharp && p.Language != LanguageNames.VisualBasic)
+                    {
+                        return false;
+                    }
+
+                    if (!workspace.TryGetProjectGuid(p.Id, out var projectGuid))
                     {
                         return false;
                     }
@@ -61,12 +66,12 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
                     // if the two projects are in the same folder.
                     // Note that if a project has been loaded with Lightweight Solution Load it won't even have a
                     // hierarchy, so we need to check for null first.
-                    var hierarchy = _workspace.GetHierarchy(p.Id);
+                    var vsSolution = (IVsSolution)serviceProvider.GetService(typeof(IVsSolution));
 
-                    if (hierarchy != null
+                    if (ErrorHandler.Succeeded(vsSolution.GetProjectOfGuid(projectGuid, out var hierarchy))
                         && hierarchy.TryGetCanonicalName((uint)VSConstants.VSITEMID.Root, out string projectCanonicalName)
                         && hierarchy.TryGetItemName((uint)VSConstants.VSITEMID.Root, out string projectName)
-                        && projectCanonicalName.Equals(nestedCanonicalName, System.StringComparison.OrdinalIgnoreCase)
+                        && projectCanonicalName.Equals(nestedCanonicalName, StringComparison.OrdinalIgnoreCase)
                         && projectName.Equals(nestedName))
                     {
                         if (targetFrameworkMoniker == null)
@@ -102,7 +107,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
                 }
             }
 
-            projectId = default(ProjectId);
+            projectId = null;
             return false;
         }
     }

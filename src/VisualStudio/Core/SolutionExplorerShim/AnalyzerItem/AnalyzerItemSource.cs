@@ -17,6 +17,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
 {
     internal class AnalyzerItemSource : IAttachedCollectionSource, INotifyPropertyChanged
     {
+        private readonly Workspace _workspace;
         private readonly AnalyzersFolderItem _analyzersFolder;
         private readonly IAnalyzersCommandHandler _commandHandler;
         private IReadOnlyCollection<AnalyzerReference> _analyzerReferences;
@@ -24,12 +25,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public AnalyzerItemSource(AnalyzersFolderItem analyzersFolder, IAnalyzersCommandHandler commandHandler)
+        public AnalyzerItemSource(Workspace workspace, AnalyzersFolderItem analyzersFolder, IAnalyzersCommandHandler commandHandler)
         {
             _analyzersFolder = analyzersFolder;
             _commandHandler = commandHandler;
+            _workspace = workspace;
 
-            _analyzersFolder.Workspace.WorkspaceChanged += Workspace_WorkspaceChanged;
+            workspace.WorkspaceChanged += Workspace_WorkspaceChanged;
         }
 
         private void Workspace_WorkspaceChanged(object sender, WorkspaceChangeEventArgs e)
@@ -44,7 +46,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
 
                 case WorkspaceChangeKind.SolutionRemoved:
                 case WorkspaceChangeKind.SolutionCleared:
-                    _analyzersFolder.Workspace.WorkspaceChanged -= Workspace_WorkspaceChanged;
+                    _workspace.WorkspaceChanged -= Workspace_WorkspaceChanged;
                     break;
 
                 case WorkspaceChangeKind.ProjectAdded:
@@ -60,7 +62,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
                 case WorkspaceChangeKind.ProjectRemoved:
                     if (e.ProjectId == _analyzersFolder.ProjectId)
                     {
-                        _analyzersFolder.Workspace.WorkspaceChanged -= Workspace_WorkspaceChanged;
+                        _workspace.WorkspaceChanged -= Workspace_WorkspaceChanged;
                     }
 
                     break;
@@ -78,9 +80,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
                 return;
             }
 
-            var project = _analyzersFolder.Workspace
-                            .CurrentSolution
-                            .GetProject(_analyzersFolder.ProjectId);
+            var project = _workspace.CurrentSolution.GetProject(_analyzersFolder.ProjectId);
 
             if (project != null &&
                 project.AnalyzerReferences != _analyzerReferences)
@@ -133,9 +133,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
                     return _analyzerItems.Count > 0;
                 }
 
-                var project = _analyzersFolder.Workspace
-                                                .CurrentSolution
-                                                .GetProject(_analyzersFolder.ProjectId);
+                var project = _workspace..CurrentSolution.GetProject(_analyzersFolder.ProjectId);
 
                 if (project != null)
                 {

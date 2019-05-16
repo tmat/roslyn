@@ -81,7 +81,10 @@ namespace Microsoft.VisualStudio.LanguageServices
         /// <returns>The <see cref="IVsHierarchy"/>, or null if the project doesn't have one.</returns>
         public abstract IVsHierarchy GetHierarchy(ProjectId projectId);
 
-        internal abstract Guid GetProjectGuid(ProjectId projectId);
+        internal Guid GetProjectGuid(ProjectId projectId)
+            => TryGetProjectGuid(projectId, out var guid) ? guid : Guid.Empty;
+
+        internal abstract bool TryGetProjectGuid(ProjectId projectId, out Guid projectGuid);
 
         public virtual string GetFilePath(DocumentId documentId)
         {

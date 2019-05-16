@@ -1195,10 +1195,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                    ErrorHandler.Succeeded(_lazyVsSolution.Value.GetProjectOfGuid(ref projectGuid, out var hierarchy)) ? hierarchy : null;
         }
 
-        internal override Guid GetProjectGuid(ProjectId projectId)
+        internal override bool TryGetProjectGuid(ProjectId projectId, out Guid projectGuid)
         {
             // This doesn't take a lock since _projectToGuidMap is immutable
-            return _projectToGuidMap.GetValueOrDefault(projectId, defaultValue: Guid.Empty);
+            return _projectToGuidMap.TryGetValue(projectId, out projectGuid);
         }
 
         internal override void SetDocumentContext(DocumentId documentId)

@@ -44,7 +44,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Suppression
         private readonly VisualStudioDiagnosticListSuppressionStateService _suppressionStateService;
         private readonly IWaitIndicator _waitIndicator;
         private readonly IVsHierarchyItemManager _vsHierarchyItemManager;
-        private readonly IHierarchyItemToProjectIdMap _projectMap;
+        private readonly IServiceProvider _serviceProvider;
 
         [ImportingConstructor]
         public VisualStudioSuppressionFixService(
@@ -67,7 +67,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Suppression
             _waitIndicator = waitIndicator;
             _vsHierarchyItemManager = vsHierarchyItemManager;
             _fixMultipleOccurencesService = workspace.Services.GetService<IFixMultipleOccurrencesService>();
-            _projectMap = workspace.Services.GetService<IHierarchyItemToProjectIdMap>();
+            _serviceProvider = serviceProvider;
 
             var errorList = serviceProvider.GetService(typeof(SVsErrorList)) as IErrorList;
             _tableControl = errorList?.TableControl;
@@ -80,7 +80,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Suppression
                 return false;
             }
 
-            Func<Project, bool> shouldFixInProject = GetShouldFixInProjectDelegate(_vsHierarchyItemManager, _projectMap, projectHierarchyOpt);
+            var shouldFixInProject = GetShouldFixInProjectDelegate(_vsHierarchyItemManager, _workspace, _serviceProvider, projectHierarchyOpt);
 
             // Apply suppressions fix in global suppressions file for non-compiler diagnostics and
             // in source only for compiler diagnostics.
@@ -100,7 +100,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Suppression
                 return false;
             }
 
-            Func<Project, bool> shouldFixInProject = GetShouldFixInProjectDelegate(_vsHierarchyItemManager, _projectMap, projectHierarchyOpt);
+            var shouldFixInProject = GetShouldFixInProjectDelegate(_vsHierarchyItemManager, _workspace, _serviceProvider, projectHierarchyOpt);
             return ApplySuppressionFix(shouldFixInProject, selectedErrorListEntriesOnly, isAddSuppression: true, isSuppressionInSource: suppressInSource, onlyCompilerDiagnostics: false, showPreviewChangesDialog: true);
         }
 
@@ -111,17 +111,17 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Suppression
                 return false;
             }
 
-            Func<Project, bool> shouldFixInProject = GetShouldFixInProjectDelegate(_vsHierarchyItemManager, _projectMap, projectHierarchyOpt);
+            var shouldFixInProject = GetShouldFixInProjectDelegate(_vsHierarchyItemManager, _workspace, _serviceProvider, projectHierarchyOpt);
             return ApplySuppressionFix(shouldFixInProject, selectedErrorListEntriesOnly, isAddSuppression: false, isSuppressionInSource: false, onlyCompilerDiagnostics: false, showPreviewChangesDialog: true);
         }
 
-        private static Func<Project, bool> GetShouldFixInProjectDelegate(IVsHierarchyItemManager vsHierarchyItemManager, IHierarchyItemToProjectIdMap projectMap, IVsHierarchy projectHierarchyOpt)
+        private static Func<Project, bool> GetShouldFixInProjectDelegate(IVsHierarchyItemManager vsHierarchyItemManager, VisualStudioWorkspace workspace, IServiceProvider serviceProvider, IVsHierarchy projectHierarchyOpt)
         {
             ProjectId projectIdToMatch = null;
             if (projectHierarchyOpt != null)
             {
-                IVsHierarchyItem projectHierarchyItem = vsHierarchyItemManager.GetHierarchyItem(projectHierarchyOpt, VSConstants.VSITEMID_ROOT);
-                if (projectMap.TryGetProjectId(projectHierarchyItem, targetFrameworkMoniker: null, out ProjectId projectId))
+                var projectHierarchyItem = vsHierarchyItemManager.GetHierarchyItem(projectHierarchyOpt, VSConstants.VSITEMID_ROOT);
+                if (HierarchyItemToProjectIdMap.TryGetProjectId(workspace, serviceProvider, projectHierarchyItem, targetFrameworkMoniker: null, out ProjectId projectId))
                 {
                     projectIdToMatch = projectId;
                 }
