@@ -45,7 +45,15 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         internal virtual bool CanChangeActiveContextDocument => false;
 
-        public CultureInfo UICulture { get; internal set; }
+        /// <summary>
+        /// Current UI culture.
+        /// </summary>
+        internal CultureInfo UICulture { get; set; } = CultureInfo.CurrentUICulture;
+
+        /// <summary>
+        /// Current culture.
+        /// </summary>
+        internal CultureInfo Culture { get; set; } = CultureInfo.CurrentCulture;
 
         private void ClearOpenDocuments()
         {

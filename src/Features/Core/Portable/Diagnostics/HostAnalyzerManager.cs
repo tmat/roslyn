@@ -521,7 +521,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     solution: null,
                     projectId: null,
                     documentId: null,
-                    diagnostics: ImmutableArray.Create<DiagnosticData>(diagnostic));
+                    diagnostics: ImmutableArray.Create(diagnostic));
 
                 // this can be null in test. but in product code, this should never be null.
                 _hostUpdateSource?.RaiseDiagnosticsUpdated(args);

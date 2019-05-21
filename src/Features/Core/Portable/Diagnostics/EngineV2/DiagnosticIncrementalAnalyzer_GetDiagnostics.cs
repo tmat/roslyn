@@ -2,6 +2,7 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,40 +12,41 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
 {
     internal partial class DiagnosticIncrementalAnalyzer
     {
-        public Task<ImmutableArray<DiagnosticData>> GetSpecificCachedDiagnosticsAsync(Solution solution, object id, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
+        public Task<ImmutableArray<DiagnosticData>> GetSpecificCachedDiagnosticsAsync(Solution solution, object id, CultureInfo culture, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
         {
-            return new IDECachedDiagnosticGetter(this, solution, id, includeSuppressedDiagnostics).GetSpecificDiagnosticsAsync(cancellationToken);
+            return new IDECachedDiagnosticGetter(this, solution, id, culture, includeSuppressedDiagnostics).GetSpecificDiagnosticsAsync(cancellationToken);
         }
 
-        public Task<ImmutableArray<DiagnosticData>> GetCachedDiagnosticsAsync(Solution solution, ProjectId projectId, DocumentId documentId, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
+        public Task<ImmutableArray<DiagnosticData>> GetCachedDiagnosticsAsync(Solution solution, ProjectId projectId, DocumentId documentId, CultureInfo culture, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
         {
-            return new IDECachedDiagnosticGetter(this, solution, projectId, documentId, includeSuppressedDiagnostics).GetDiagnosticsAsync(cancellationToken);
+            return new IDECachedDiagnosticGetter(this, solution, projectId, documentId, culture, includeSuppressedDiagnostics).GetDiagnosticsAsync(cancellationToken);
         }
 
-        public Task<ImmutableArray<DiagnosticData>> GetSpecificDiagnosticsAsync(Solution solution, object id, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
+        public Task<ImmutableArray<DiagnosticData>> GetSpecificDiagnosticsAsync(Solution solution, object id, CultureInfo culture, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
         {
-            return new IDELatestDiagnosticGetter(this, solution, id, includeSuppressedDiagnostics).GetSpecificDiagnosticsAsync(cancellationToken);
+            return new IDELatestDiagnosticGetter(this, solution, id, culture, includeSuppressedDiagnostics).GetSpecificDiagnosticsAsync(cancellationToken);
         }
 
-        public Task<ImmutableArray<DiagnosticData>> GetDiagnosticsAsync(Solution solution, ProjectId projectId, DocumentId documentId, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
+        public Task<ImmutableArray<DiagnosticData>> GetDiagnosticsAsync(Solution solution, ProjectId projectId, DocumentId documentId, CultureInfo culture, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
         {
-            return new IDELatestDiagnosticGetter(this, solution, projectId, documentId, includeSuppressedDiagnostics).GetDiagnosticsAsync(cancellationToken);
+            return new IDELatestDiagnosticGetter(this, solution, projectId, documentId, culture, includeSuppressedDiagnostics).GetDiagnosticsAsync(cancellationToken);
         }
 
-        public Task<ImmutableArray<DiagnosticData>> GetDiagnosticsForIdsAsync(Solution solution, ProjectId projectId, DocumentId documentId, ImmutableHashSet<string> diagnosticIds, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
+        public Task<ImmutableArray<DiagnosticData>> GetDiagnosticsForIdsAsync(Solution solution, ProjectId projectId, DocumentId documentId, ImmutableHashSet<string> diagnosticIds, CultureInfo culture, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
         {
-            return new IDELatestDiagnosticGetter(this, diagnosticIds, solution, projectId, documentId, includeSuppressedDiagnostics).GetDiagnosticsAsync(cancellationToken);
+            return new IDELatestDiagnosticGetter(this, diagnosticIds, solution, projectId, documentId, culture, includeSuppressedDiagnostics).GetDiagnosticsAsync(cancellationToken);
         }
 
-        public Task<ImmutableArray<DiagnosticData>> GetProjectDiagnosticsForIdsAsync(Solution solution, ProjectId projectId, ImmutableHashSet<string> diagnosticIds, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
+        public Task<ImmutableArray<DiagnosticData>> GetProjectDiagnosticsForIdsAsync(Solution solution, ProjectId projectId, ImmutableHashSet<string> diagnosticIds, CultureInfo culture, bool includeSuppressedDiagnostics = false, CancellationToken cancellationToken = default)
         {
-            return new IDELatestDiagnosticGetter(this, diagnosticIds, solution, projectId, includeSuppressedDiagnostics).GetProjectDiagnosticsAsync(cancellationToken);
+            return new IDELatestDiagnosticGetter(this, diagnosticIds, solution, projectId, culture, includeSuppressedDiagnostics).GetProjectDiagnosticsAsync(cancellationToken);
         }
 
         private abstract class DiagnosticGetter
         {
             protected readonly DiagnosticIncrementalAnalyzer Owner;
 
+            protected readonly CultureInfo Culture;
             protected readonly Solution CurrentSolution;
             protected readonly ProjectId CurrentProjectId;
             protected readonly DocumentId CurrentDocumentId;
@@ -59,6 +61,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 ProjectId projectId,
                 DocumentId documentId,
                 object id,
+                CultureInfo culture,
                 bool includeSuppressedDiagnostics)
             {
                 Owner = owner;
@@ -69,6 +72,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
 
                 Id = id;
                 IncludeSuppressedDiagnostics = includeSuppressedDiagnostics;
+                Culture = culture;
 
                 // try to retrieve projectId/documentId from id if possible.
                 if (id is LiveDiagnosticUpdateArgsId argsId)
@@ -233,13 +237,13 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
 
         private class IDECachedDiagnosticGetter : DiagnosticGetter
         {
-            public IDECachedDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, Solution solution, object id, bool includeSuppressedDiagnostics) :
-                base(owner, solution, projectId: null, documentId: null, id: id, includeSuppressedDiagnostics: includeSuppressedDiagnostics)
+            public IDECachedDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, Solution solution, object id, CultureInfo culture, bool includeSuppressedDiagnostics)
+                : base(owner, solution, projectId: null, documentId: null, id: id, culture: culture, includeSuppressedDiagnostics: includeSuppressedDiagnostics)
             {
             }
 
-            public IDECachedDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, Solution solution, ProjectId projectId, DocumentId documentId, bool includeSuppressedDiagnostics) :
-                base(owner, solution, projectId, documentId, id: null, includeSuppressedDiagnostics: includeSuppressedDiagnostics)
+            public IDECachedDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, Solution solution, ProjectId projectId, DocumentId documentId, CultureInfo culture, bool includeSuppressedDiagnostics)
+                : base(owner, solution, projectId, documentId, id: null, culture: culture, includeSuppressedDiagnostics: includeSuppressedDiagnostics)
             {
             }
 
@@ -335,25 +339,25 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
         {
             private readonly ImmutableHashSet<string> _diagnosticIds;
 
-            public IDELatestDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, Solution solution, object id, bool includeSuppressedDiagnostics) :
-                base(owner, solution, projectId: null, documentId: null, id: id, includeSuppressedDiagnostics: includeSuppressedDiagnostics)
+            public IDELatestDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, Solution solution, object id, CultureInfo culture, bool includeSuppressedDiagnostics)
+                : base(owner, solution, projectId: null, documentId: null, id, culture, includeSuppressedDiagnostics)
             {
                 _diagnosticIds = null;
             }
 
-            public IDELatestDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, Solution solution, ProjectId projectId, DocumentId documentId, bool includeSuppressedDiagnostics) :
-                base(owner, solution, projectId, documentId, id: null, includeSuppressedDiagnostics: includeSuppressedDiagnostics)
+            public IDELatestDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, Solution solution, ProjectId projectId, DocumentId documentId, CultureInfo culture, bool includeSuppressedDiagnostics)
+                : base(owner, solution, projectId, documentId, id: null, culture, includeSuppressedDiagnostics)
             {
                 _diagnosticIds = null;
             }
 
-            public IDELatestDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, ImmutableHashSet<string> diagnosticIds, Solution solution, ProjectId projectId, bool includeSuppressedDiagnostics) :
-                this(owner, diagnosticIds, solution, projectId, documentId: null, includeSuppressedDiagnostics: includeSuppressedDiagnostics)
+            public IDELatestDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, ImmutableHashSet<string> diagnosticIds, Solution solution, ProjectId projectId, CultureInfo culture, bool includeSuppressedDiagnostics)
+                : this(owner, diagnosticIds, solution, projectId, documentId: null, culture, includeSuppressedDiagnostics)
             {
             }
 
-            public IDELatestDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, ImmutableHashSet<string> diagnosticIds, Solution solution, ProjectId projectId, DocumentId documentId, bool includeSuppressedDiagnostics) :
-                base(owner, solution, projectId, documentId, id: null, includeSuppressedDiagnostics: includeSuppressedDiagnostics)
+            public IDELatestDiagnosticGetter(DiagnosticIncrementalAnalyzer owner, ImmutableHashSet<string> diagnosticIds, Solution solution, ProjectId projectId, DocumentId documentId, CultureInfo culture, bool includeSuppressedDiagnostics)
+                : base(owner, solution, projectId, documentId, id: null, culture, includeSuppressedDiagnostics)
             {
                 _diagnosticIds = diagnosticIds;
             }
@@ -397,7 +401,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 var analyzerDriverOpt = await Owner._compilationManager.CreateAnalyzerDriverAsync(project, stateSets, IncludeSuppressedDiagnostics, cancellationToken).ConfigureAwait(false);
 
                 var forceAnalyzerRun = true;
-                var result = await Owner._executor.GetProjectAnalysisDataAsync(analyzerDriverOpt, project, stateSets, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
+                var result = await Owner._executor.GetProjectAnalysisDataAsync(analyzerDriverOpt, project, stateSets, Culture, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
 
                 foreach (var stateSet in stateSets)
                 {
@@ -456,12 +460,12 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                         case AnalysisKind.Syntax:
                         case AnalysisKind.Semantic:
                             {
-                                var result = await Owner._executor.GetDocumentAnalysisDataAsync(analyzerDriverOpt, document, stateSet, kind, cancellationToken).ConfigureAwait(false);
+                                var result = await Owner._executor.GetDocumentAnalysisDataAsync(analyzerDriverOpt, document, stateSet, kind, Culture, cancellationToken).ConfigureAwait(false);
                                 return result.Items;
                             }
                         case AnalysisKind.NonLocal:
                             {
-                                var nonLocalDocumentResult = await Owner._executor.GetProjectAnalysisDataAsync(analyzerDriverOpt, project, stateSets, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
+                                var nonLocalDocumentResult = await Owner._executor.GetProjectAnalysisDataAsync(analyzerDriverOpt, project, stateSets, Culture, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
                                 var analysisResult = nonLocalDocumentResult.GetResult(stateSet.Analyzer);
                                 return GetResult(analysisResult, AnalysisKind.NonLocal, documentId);
                             }
@@ -471,7 +475,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 }
 
                 Contract.ThrowIfFalse(kind == AnalysisKind.NonLocal);
-                var projectResult = await Owner._executor.GetProjectAnalysisDataAsync(analyzerDriverOpt, project, stateSets, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
+                var projectResult = await Owner._executor.GetProjectAnalysisDataAsync(analyzerDriverOpt, project, stateSets, Culture, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
                 return projectResult.GetResult(stateSet.Analyzer).Others;
             }
         }

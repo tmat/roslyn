@@ -14,12 +14,9 @@ using Microsoft.VisualStudio.Shell;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplorer
 {
-    using Workspace = Microsoft.CodeAnalysis.Workspace;
-
     internal abstract partial class BaseDiagnosticItemSource : IAttachedCollectionSource
     {
-        protected static readonly DiagnosticDescriptorComparer s_comparer = new DiagnosticDescriptorComparer();
-
+        protected readonly DiagnosticDescriptorComparer _descriptorComparer;
         protected readonly Workspace _workspace;
         protected readonly ProjectId _projectId;
         protected readonly IAnalyzersCommandHandler _commandHandler;
@@ -36,9 +33,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             _projectId = projectId;
             _commandHandler = commandHandler;
             _diagnosticAnalyzerService = diagnosticAnalyzerService;
+            _descriptorComparer = new DiagnosticDescriptorComparer(workspace.UICulture);
         }
 
-        internal CultureInfo Culture => _workspace.UICulture; 
+        internal CultureInfo Culture => _workspace.UICulture;
 
         public abstract AnalyzerReference AnalyzerReference { get; }
         protected abstract BaseDiagnosticItem CreateItem(DiagnosticDescriptor diagnostic, ReportDiagnostic effectiveSeverity);
@@ -105,7 +103,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
                 .OrderBy(g => g.Key, StringComparer.CurrentCulture)
                 .Select(g =>
                 {
-                    var selectedDiagnostic = g.OrderBy(d => d, s_comparer).First();
+                    var selectedDiagnostic = g.OrderBy(d => d, _descriptorComparer).First();
                     var effectiveSeverity = selectedDiagnostic.GetEffectiveSeverity(options);
                     return CreateItem(selectedDiagnostic, effectiveSeverity);
                 });

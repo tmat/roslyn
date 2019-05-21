@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Host;
@@ -45,20 +46,23 @@ namespace Microsoft.CodeAnalysis.Workspaces.Diagnostics
         public ImmutableDictionary<DocumentId, ImmutableArray<DiagnosticData>> NonLocals => Convert(_lazyNonLocals);
         public ImmutableArray<DiagnosticData> Others => _lazyOthers == null ? ImmutableArray<DiagnosticData>.Empty : _lazyOthers.ToImmutableArray();
 
-        public void AddExternalSyntaxDiagnostics(DocumentId documentId, IEnumerable<Diagnostic> diagnostics)
+        public void AddExternalSyntaxDiagnostics(DocumentId documentId, IEnumerable<Diagnostic> diagnostics, CultureInfo culture)
         {
             // this is for diagnostic producer that doesnt use compiler based DiagnosticAnalyzer such as TypeScript.
-            AddExternalDiagnostics(ref _lazySyntaxLocals, documentId, diagnostics);
+            AddExternalDiagnostics(ref _lazySyntaxLocals, documentId, diagnostics, culture);
         }
 
-        public void AddExternalSemanticDiagnostics(DocumentId documentId, IEnumerable<Diagnostic> diagnostics)
+        public void AddExternalSemanticDiagnostics(DocumentId documentId, IEnumerable<Diagnostic> diagnostics, CultureInfo culture)
         {
             // this is for diagnostic producer that doesnt use compiler based DiagnosticAnalyzer such as TypeScript.
-            AddExternalDiagnostics(ref _lazySemanticLocals, documentId, diagnostics);
+            AddExternalDiagnostics(ref _lazySemanticLocals, documentId, diagnostics, culture);
         }
 
         private void AddExternalDiagnostics(
-            ref Dictionary<DocumentId, List<DiagnosticData>> lazyLocals, DocumentId documentId, IEnumerable<Diagnostic> diagnostics)
+            ref Dictionary<DocumentId, List<DiagnosticData>> lazyLocals,
+            DocumentId documentId,
+            IEnumerable<Diagnostic> diagnostics,
+            CultureInfo culture)
         {
             Contract.ThrowIfTrue(Project.SupportsCompilation);
 
@@ -75,12 +79,12 @@ namespace Microsoft.CodeAnalysis.Workspaces.Diagnostics
                             if (documentId == diagnosticDocumentId)
                             {
                                 // local diagnostics to a file
-                                AppendDiagnostics(ref lazyLocals, Project.GetDocument(diagnosticDocumentId), diagnostic);
+                                AppendDiagnostics(ref lazyLocals, Project.GetDocument(diagnosticDocumentId), diagnostic, culture);
                             }
                             else if (diagnosticDocumentId != null)
                             {
                                 // non local diagnostics to a file
-                                AppendDiagnostics(ref _lazyNonLocals, Project.GetDocument(diagnosticDocumentId), diagnostic);
+                                AppendDiagnostics(ref _lazyNonLocals, Project.GetDocument(diagnosticDocumentId), diagnostic, culture);
                             }
                             else
                             {
@@ -113,7 +117,7 @@ namespace Microsoft.CodeAnalysis.Workspaces.Diagnostics
             }
         }
 
-        private void AppendDiagnostics(ref Dictionary<DocumentId, List<DiagnosticData>> map, Document documentOpt, Diagnostic diagnostic)
+        private void AppendDiagnostics(ref Dictionary<DocumentId, List<DiagnosticData>> map, Document documentOpt, Diagnostic diagnostic, CultureInfo culture)
         {
             if (documentOpt is null)
             {
@@ -126,32 +130,32 @@ namespace Microsoft.CodeAnalysis.Workspaces.Diagnostics
             }
 
             map = map ?? new Dictionary<DocumentId, List<DiagnosticData>>();
-            map.GetOrAdd(documentOpt.Id, _ => new List<DiagnosticData>()).Add(DiagnosticData.Create(documentOpt, diagnostic));
+            map.GetOrAdd(documentOpt.Id, _ => new List<DiagnosticData>()).Add(DiagnosticData.Create(documentOpt, diagnostic, culture));
 
             AddDocumentToSet(documentOpt);
         }
 
-        public void AddSyntaxDiagnostics(SyntaxTree tree, IEnumerable<Diagnostic> diagnostics)
+        public void AddSyntaxDiagnostics(SyntaxTree tree, IEnumerable<Diagnostic> diagnostics, CultureInfo culture)
         {
-            AddDiagnostics(ref _lazySyntaxLocals, tree, diagnostics);
+            AddDiagnostics(ref _lazySyntaxLocals, tree, diagnostics, culture);
         }
 
-        public void AddSemanticDiagnostics(SyntaxTree tree, IEnumerable<Diagnostic> diagnostics)
+        public void AddSemanticDiagnostics(SyntaxTree tree, IEnumerable<Diagnostic> diagnostics, CultureInfo culture)
         {
-            AddDiagnostics(ref _lazySemanticLocals, tree, diagnostics);
+            AddDiagnostics(ref _lazySemanticLocals, tree, diagnostics, culture);
         }
 
-        public void AddCompilationDiagnostics(IEnumerable<Diagnostic> diagnostics)
+        public void AddCompilationDiagnostics(IEnumerable<Diagnostic> diagnostics, CultureInfo culture)
         {
             Dictionary<DocumentId, List<DiagnosticData>> dummy = null;
-            AddDiagnostics(ref dummy, tree: null, diagnostics: diagnostics);
+            AddDiagnostics(ref dummy, tree: null, diagnostics: diagnostics, culture);
 
             // dummy should be always null
             Debug.Assert(dummy == null);
         }
 
         private void AddDiagnostics(
-            ref Dictionary<DocumentId, List<DiagnosticData>> lazyLocals, SyntaxTree tree, IEnumerable<Diagnostic> diagnostics)
+            ref Dictionary<DocumentId, List<DiagnosticData>> lazyLocals, SyntaxTree tree, IEnumerable<Diagnostic> diagnostics, CultureInfo culture)
         {
             var workspace = Project.Solution.Workspace;
 
@@ -176,12 +180,12 @@ namespace Microsoft.CodeAnalysis.Workspaces.Diagnostics
                             if (tree != null && diagnostic.Location.SourceTree == tree)
                             {
                                 // local diagnostics to a file
-                                AppendDiagnostics(ref lazyLocals, GetDocument(diagnostic), diagnostic);
+                                AppendDiagnostics(ref lazyLocals, GetDocument(diagnostic), diagnostic, culture);
                             }
                             else if (diagnostic.Location.SourceTree != null)
                             {
                                 // non local diagnostics to a file
-                                AppendDiagnostics(ref _lazyNonLocals, Project.GetDocument(diagnostic.Location.SourceTree), diagnostic);
+                                AppendDiagnostics(ref _lazyNonLocals, Project.GetDocument(diagnostic.Location.SourceTree), diagnostic, culture);
                             }
                             else
                             {

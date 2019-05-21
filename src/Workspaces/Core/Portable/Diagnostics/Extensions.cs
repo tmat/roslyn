@@ -45,21 +45,21 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             return workspace.Options.GetOption(InternalDiagnosticsOptions.PutCustomTypeInBingSearch);
         }
 
-        public static DiagnosticData GetPrimaryDiagnosticData(this CodeFix fix)
+        public static DiagnosticData GetPrimaryDiagnosticData(this CodeFix fix, CultureInfo culture)
         {
-            return fix.PrimaryDiagnostic.ToDiagnosticData(fix.Project);
+            return fix.PrimaryDiagnostic.ToDiagnosticData(fix.Project, culture);
         }
 
-        public static ImmutableArray<DiagnosticData> GetDiagnosticData(this CodeFix fix)
+        public static ImmutableArray<DiagnosticData> GetDiagnosticData(this CodeFix fix, CultureInfo culture)
         {
-            return fix.Diagnostics.SelectAsArray(d => d.ToDiagnosticData(fix.Project));
+            return fix.Diagnostics.SelectAsArray(d => d.ToDiagnosticData(fix.Project, culture));
         }
 
-        public static DiagnosticData ToDiagnosticData(this Diagnostic diagnostic, Project project)
+        public static DiagnosticData ToDiagnosticData(this Diagnostic diagnostic, Project project, CultureInfo culture)
         {
             if (diagnostic.Location.IsInSource)
             {
-                return DiagnosticData.Create(project.GetDocument(diagnostic.Location.SourceTree), diagnostic);
+                return DiagnosticData.Create(project.GetDocument(diagnostic.Location.SourceTree), diagnostic, culture);
             }
 
             if (diagnostic.Location.Kind == LocationKind.ExternalFile)
@@ -67,7 +67,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 var document = project.Documents.FirstOrDefault(d => d.FilePath == diagnostic.Location.GetLineSpan().Path);
                 if (document != null)
                 {
-                    return DiagnosticData.Create(document, diagnostic);
+                    return DiagnosticData.Create(document, diagnostic, culture);
                 }
             }
 
@@ -170,7 +170,11 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
         public static ImmutableDictionary<DiagnosticAnalyzer, DiagnosticAnalysisResultBuilder> ToResultBuilderMap(
             this AnalysisResult analysisResult,
-            Project project, VersionStamp version, Compilation compilation, IEnumerable<DiagnosticAnalyzer> analyzers,
+            Project project,
+            VersionStamp version,
+            Compilation compilation,
+            IEnumerable<DiagnosticAnalyzer> analyzers,
+            CultureInfo culture,
             CancellationToken cancellationToken)
         {
             var builder = ImmutableDictionary.CreateBuilder<DiagnosticAnalyzer, DiagnosticAnalysisResultBuilder>();
@@ -188,7 +192,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     if (diagnosticsByAnalyzerMap.TryGetValue(analyzer, out diagnostics))
                     {
                         Debug.Assert(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
-                        result.AddSyntaxDiagnostics(tree, diagnostics);
+                        result.AddSyntaxDiagnostics(tree, diagnostics, culture);
                     }
                 }
 
@@ -197,14 +201,14 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     if (diagnosticsByAnalyzerMap.TryGetValue(analyzer, out diagnostics))
                     {
                         Debug.Assert(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
-                        result.AddSemanticDiagnostics(tree, diagnostics);
+                        result.AddSemanticDiagnostics(tree, diagnostics, culture);
                     }
                 }
 
                 if (analysisResult.CompilationDiagnostics.TryGetValue(analyzer, out diagnostics))
                 {
                     Debug.Assert(diagnostics.Length == CompilationWithAnalyzers.GetEffectiveDiagnostics(diagnostics, compilation).Count());
-                    result.AddCompilationDiagnostics(diagnostics);
+                    result.AddCompilationDiagnostics(diagnostics, culture);
                 }
 
                 builder.Add(analyzer, result);

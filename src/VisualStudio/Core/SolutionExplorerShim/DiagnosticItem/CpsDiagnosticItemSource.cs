@@ -48,7 +48,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
 
         protected override BaseDiagnosticItem CreateItem(DiagnosticDescriptor diagnostic, ReportDiagnostic effectiveSeverity)
         {
-            return new CpsDiagnosticItem(this, diagnostic, effectiveSeverity, _culture);
+            return new CpsDiagnosticItem(this, diagnostic, effectiveSeverity, _workspace.UICulture);
         }
 
         private void OnWorkspaceChangedLookForAnalyzer(object sender, WorkspaceChangeEventArgs e)

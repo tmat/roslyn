@@ -10,41 +10,18 @@ namespace Microsoft.CodeAnalysis
     [Export(typeof(PrimaryWorkspace)), Shared]
     internal sealed class PrimaryWorkspace
     {
-        private readonly ReaderWriterLockSlim _registryGate = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-        private Workspace _primaryWorkspace;
-
-        [ImportingConstructor]
-        public PrimaryWorkspace()
-        {
-        }
+        private volatile Workspace _primaryWorkspace;
 
         /// <summary>
         /// The primary workspace, usually set by the host environment.
+        /// Only one workspace can be the primary.
         /// </summary>
         public Workspace Workspace
         {
-            get
+            get => _primaryWorkspace;
+            set
             {
-                using (_registryGate.DisposableRead())
-                {
-                    return _primaryWorkspace;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Register a workspace as the primary workspace. Only one workspace can be the primary.
-        /// </summary>
-        public void Register(Workspace workspace)
-        {
-            if (workspace == null)
-            {
-                throw new ArgumentNullException(nameof(workspace));
-            }
-
-            using (_registryGate.DisposableWrite())
-            {
-                _primaryWorkspace = workspace;
+                Contract.ThrowIfTrue(Interlocked.CompareExchange(ref _primaryWorkspace, value, null) != null);
             }
         }
     }

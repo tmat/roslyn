@@ -100,8 +100,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 
                 client = new ServiceHubRemoteHostClient(workspace, primary.Logger, connectionManager, remoteHostStream);
 
-                var uiCultureLCID = CultureInfo.CurrentUICulture.LCID;
-                var cultureLCID = CultureInfo.CurrentCulture.LCID;
+                var uiCultureLCID = workspace.UICulture.LCID;
+                var cultureLCID = workspace.Culture.LCID;
 
                 // make sure connection is done right
                 var host = await client._rpc.InvokeWithCancellationAsync<string>(

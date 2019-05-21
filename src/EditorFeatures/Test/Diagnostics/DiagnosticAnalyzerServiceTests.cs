@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -236,7 +237,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Diagnostics
                     ImmutableArray.Create(
                         Diagnostic.Create(
                             NoNameAnalyzer.s_syntaxRule,
-                            Location.Create(document.FilePath, TextSpan.FromBounds(0, 0), new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)))).ToDiagnosticData(project))));
+                            Location.Create(document.FilePath, TextSpan.FromBounds(0, 0), new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)))).ToDiagnosticData(project, workspace.UICulture))));
 
             // wait for all events to raised
             await listener.CreateExpeditedWaitTask().ConfigureAwait(false);

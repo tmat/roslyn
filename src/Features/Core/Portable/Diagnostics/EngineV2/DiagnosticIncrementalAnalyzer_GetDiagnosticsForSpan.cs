@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,7 +59,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
             // cache of project result
             private ImmutableDictionary<DiagnosticAnalyzer, DiagnosticAnalysisResult> _projectResultCache;
 
-            private delegate Task<IEnumerable<DiagnosticData>> DiagnosticsGetterAsync(DiagnosticAnalyzer analyzer, CancellationToken cancellationToken);
+            private delegate Task<IEnumerable<DiagnosticData>> DiagnosticsGetterAsync(DiagnosticAnalyzer analyzer, CultureInfo culture, CancellationToken cancellationToken);
 
             public static async Task<LatestDiagnosticsForSpanGetter> CreateAsync(
                  DiagnosticIncrementalAnalyzer owner, Document document, TextSpan range, bool blockForData, bool includeSuppressedDiagnostics = false,
@@ -175,15 +176,15 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 return fullResult;
             }
 
-            private async Task<IEnumerable<DiagnosticData>> GetCompilerSyntaxDiagnosticsAsync(DiagnosticAnalyzer analyzer, CancellationToken cancellationToken)
+            private async Task<IEnumerable<DiagnosticData>> GetCompilerSyntaxDiagnosticsAsync(DiagnosticAnalyzer analyzer, CultureInfo culture, CancellationToken cancellationToken)
             {
                 var root = await _document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
                 var diagnostics = root.GetDiagnostics();
 
-                return diagnostics.ConvertToLocalDiagnostics(_document, _range);
+                return diagnostics.ConvertToLocalDiagnostics(_document, culture, _range);
             }
 
-            private async Task<IEnumerable<DiagnosticData>> GetCompilerSemanticDiagnosticsAsync(DiagnosticAnalyzer analyzer, CancellationToken cancellationToken)
+            private async Task<IEnumerable<DiagnosticData>> GetCompilerSemanticDiagnosticsAsync(DiagnosticAnalyzer analyzer, CultureInfo culture, CancellationToken cancellationToken)
             {
                 var model = await _document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
                 VerifyDiagnostics(model);
@@ -192,29 +193,29 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 var adjustedSpan = AdjustSpan(_document, root, _range);
                 var diagnostics = model.GetDeclarationDiagnostics(adjustedSpan, cancellationToken).Concat(model.GetMethodBodyDiagnostics(adjustedSpan, cancellationToken));
 
-                return diagnostics.ConvertToLocalDiagnostics(_document, _range);
+                return diagnostics.ConvertToLocalDiagnostics(_document, culture, _range);
             }
 
-            private Task<IEnumerable<DiagnosticData>> GetSyntaxDiagnosticsAsync(DiagnosticAnalyzer analyzer, CancellationToken cancellationToken)
+            private Task<IEnumerable<DiagnosticData>> GetSyntaxDiagnosticsAsync(DiagnosticAnalyzer analyzer, CultureInfo culture, CancellationToken cancellationToken)
             {
-                return _owner._executor.ComputeDiagnosticsAsync(_analyzerDriverOpt, _document, analyzer, AnalysisKind.Syntax, _range, cancellationToken);
+                return _owner._executor.ComputeDiagnosticsAsync(_analyzerDriverOpt, _document, analyzer, AnalysisKind.Syntax, culture, _range, cancellationToken);
             }
 
-            private Task<IEnumerable<DiagnosticData>> GetSemanticDiagnosticsAsync(DiagnosticAnalyzer analyzer, CancellationToken cancellationToken)
+            private Task<IEnumerable<DiagnosticData>> GetSemanticDiagnosticsAsync(DiagnosticAnalyzer analyzer, CultureInfo culture, CancellationToken cancellationToken)
             {
                 var supportsSemanticInSpan = analyzer.SupportsSpanBasedSemanticDiagnosticAnalysis();
 
                 var analysisSpan = supportsSemanticInSpan ? (TextSpan?)_range : null;
-                return _owner._executor.ComputeDiagnosticsAsync(_analyzerDriverOpt, _document, analyzer, AnalysisKind.Semantic, analysisSpan, cancellationToken);
+                return _owner._executor.ComputeDiagnosticsAsync(_analyzerDriverOpt, _document, analyzer, AnalysisKind.Semantic, culture, analysisSpan, cancellationToken);
             }
 
-            private async Task<IEnumerable<DiagnosticData>> GetProjectDiagnosticsAsync(DiagnosticAnalyzer analyzer, CancellationToken cancellationToken)
+            private async Task<IEnumerable<DiagnosticData>> GetProjectDiagnosticsAsync(DiagnosticAnalyzer analyzer, CultureInfo culture, CancellationToken cancellationToken)
             {
                 if (_projectResultCache == null)
                 {
                     // execute whole project as one shot and cache the result.
                     var forceAnalyzerRun = true;
-                    var analysisResult = await _owner._executor.GetProjectAnalysisDataAsync(_analyzerDriverOpt, _project, _stateSets, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
+                    var analysisResult = await _owner._executor.GetProjectAnalysisDataAsync(_analyzerDriverOpt, _project, _stateSets, culture, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
 
                     _projectResultCache = analysisResult.Result;
                 }
@@ -305,6 +306,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 AnalysisKind kind,
                 DiagnosticsGetterAsync diagnosticGetterAsync,
                 List<DiagnosticData> list,
+                CultureInfo culture,
                 CancellationToken cancellationToken)
             {
                 if (!_owner.Owner.SupportAnalysisKind(stateSet.Analyzer, stateSet.Language, kind))
@@ -339,7 +341,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                     return false;
                 }
 
-                var dx = await diagnosticGetterAsync(stateSet.Analyzer, cancellationToken).ConfigureAwait(false);
+                var dx = await diagnosticGetterAsync(stateSet.Analyzer, culture, cancellationToken).ConfigureAwait(false);
                 if (dx != null)
                 {
                     // no state yet
@@ -353,6 +355,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 StateSet stateSet,
                 DiagnosticsGetterAsync diagnosticGetterAsync,
                 List<DiagnosticData> list,
+                CultureInfo culture,
                 CancellationToken cancellationToken)
             {
                 if (!stateSet.Analyzer.SupportsProjectDiagnosticAnalysis())
@@ -388,7 +391,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                     return false;
                 }
 
-                var dx = await diagnosticGetterAsync(stateSet.Analyzer, cancellationToken).ConfigureAwait(false);
+                var dx = await diagnosticGetterAsync(stateSet.Analyzer, culture, cancellationToken).ConfigureAwait(false);
                 if (dx != null)
                 {
                     // no state yet

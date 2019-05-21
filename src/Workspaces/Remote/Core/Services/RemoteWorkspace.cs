@@ -32,7 +32,7 @@ namespace Microsoft.CodeAnalysis.Remote
         {
             var exportProvider = (IMefHostExportProvider)Services.HostServices;
             var primaryWorkspace = exportProvider.GetExports<PrimaryWorkspace>().Single().Value;
-            primaryWorkspace.Register(this);
+            primaryWorkspace.Workspace = this;
 
             foreach (var providerFactory in exportProvider.GetExports<IDocumentOptionsProviderFactory>())
             {

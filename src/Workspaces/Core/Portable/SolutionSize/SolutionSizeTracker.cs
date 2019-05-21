@@ -2,6 +2,7 @@
 
 using System.Collections.Concurrent;
 using System.Composition;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Host;
@@ -72,7 +73,7 @@ namespace Microsoft.CodeAnalysis.SolutionSize
                 return Task.CompletedTask;
             }
 
-            public async Task AnalyzeSyntaxAsync(Document document, InvocationReasons reasons, CancellationToken cancellationToken)
+            public async Task AnalyzeSyntaxAsync(Document document, InvocationReasons reasons, CultureInfo culture, CancellationToken cancellationToken)
             {
                 if (!document.SupportsSyntaxTree)
                 {
@@ -116,7 +117,7 @@ namespace Microsoft.CodeAnalysis.SolutionSize
             }
 
             #region Not Used
-            public Task AnalyzeDocumentAsync(Document document, SyntaxNode bodyOpt, InvocationReasons reasons, CancellationToken cancellationToken)
+            public Task AnalyzeDocumentAsync(Document document, SyntaxNode bodyOpt, InvocationReasons reasons, CultureInfo culture, CancellationToken cancellationToken)
             {
                 return Task.CompletedTask;
             }
@@ -141,7 +142,7 @@ namespace Microsoft.CodeAnalysis.SolutionSize
                 return false;
             }
 
-            public Task AnalyzeProjectAsync(Project project, bool semanticsChanged, InvocationReasons reasons, CancellationToken cancellationToken)
+            public Task AnalyzeProjectAsync(Project project, bool semanticsChanged, InvocationReasons reasons, CultureInfo culture, CancellationToken cancellationToken)
             {
                 return Task.CompletedTask;
             }

@@ -123,7 +123,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
             private async Task AnalyzeForKind(Document document, AnalysisKind kind, CancellationToken cancellationToken)
             {
-                var diagnosticData = await _service._analyzerService.GetDiagnosticsAsync(document, GetAnalyzers(), kind, cancellationToken).ConfigureAwait(false);
+                var diagnosticData = await _service._analyzerService.GetDiagnosticsAsync(document, GetAnalyzers(), kind, _workspace.UICulture, cancellationToken).ConfigureAwait(false);
 
                 _service.RaiseDiagnosticsUpdated(
                     DiagnosticsUpdatedArgs.DiagnosticsCreated(new DefaultUpdateArgsId(_workspace.Kind, kind, document.Id),

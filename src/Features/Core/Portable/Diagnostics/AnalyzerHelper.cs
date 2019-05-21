@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -311,7 +312,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         /// that provide all kinds of knobs/cache/persistency/OOP to get better perf over simplicity
         /// </summary>
         public static async Task<ImmutableArray<DiagnosticData>> GetDiagnosticsAsync(
-           this IDiagnosticAnalyzerService service, Document document, IEnumerable<DiagnosticAnalyzer> analyzers, AnalysisKind kind, CancellationToken cancellationToken)
+           this IDiagnosticAnalyzerService service, Document document, IEnumerable<DiagnosticAnalyzer> analyzers, AnalysisKind kind, CultureInfo culture, CancellationToken cancellationToken)
         {
             // given service must be DiagnosticAnalyzerService
             var diagnosticService = (DiagnosticAnalyzerService)service;
@@ -323,19 +324,19 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             foreach (var analyzer in analyzers)
             {
                 builder.AddRange(await diagnosticService.ComputeDiagnosticsAsync(
-                    analyzerDriverOpt, document, analyzer, kind, spanOpt: null, logAggregatorOpt: null, cancellationToken).ConfigureAwait(false));
+                    analyzerDriverOpt, document, analyzer, kind, culture, spanOpt: null, logAggregatorOpt: null, cancellationToken).ConfigureAwait(false));
             }
 
             return builder.ToImmutableAndFree();
         }
 
         public static async Task<CompilationWithAnalyzers> CreateAnalyzerDriverAsync(
-                this DiagnosticAnalyzerService service,
-                Project project,
-                IEnumerable<DiagnosticAnalyzer> analyzers,
-                bool includeSuppressedDiagnostics,
-                DiagnosticLogAggregator logAggregatorOpt,
-                CancellationToken cancellationToken)
+            this DiagnosticAnalyzerService service,
+            Project project,
+            IEnumerable<DiagnosticAnalyzer> analyzers,
+            bool includeSuppressedDiagnostics,
+            DiagnosticLogAggregator logAggregatorOpt,
+            CancellationToken cancellationToken)
         {
             if (!project.SupportsCompilation)
             {
@@ -405,6 +406,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             Document document,
             DiagnosticAnalyzer analyzer,
             AnalysisKind kind,
+            CultureInfo culture,
             TextSpan? spanOpt,
             DiagnosticLogAggregator logAggregatorOpt,
             CancellationToken cancellationToken)
@@ -413,12 +415,12 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             {
                 var diagnostics = await ComputeDocumentDiagnosticAnalyzerDiagnosticsAsync(
                     service, document, documentAnalyzer, kind, analyzerDriverOpt?.Compilation, logAggregatorOpt, cancellationToken).ConfigureAwait(false);
-                return diagnostics.ConvertToLocalDiagnostics(document);
+                return diagnostics.ConvertToLocalDiagnostics(document, culture);
             }
 
             var documentDiagnostics = await ComputeDiagnosticAnalyzerDiagnosticsAsync().ConfigureAwait(false);
 
-            return documentDiagnostics.ConvertToLocalDiagnostics(document);
+            return documentDiagnostics.ConvertToLocalDiagnostics(document, culture);
 
             async Task<IEnumerable<Diagnostic>> ComputeDiagnosticAnalyzerDiagnosticsAsync()
             {
@@ -515,13 +517,13 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         }
 
         public static async Task<IEnumerable<Diagnostic>> ComputeDocumentDiagnosticAnalyzerDiagnosticsAsync(
-                this DiagnosticAnalyzerService service,
-                Document document,
-                DocumentDiagnosticAnalyzer analyzer,
-                AnalysisKind kind,
-                Compilation compilationOpt,
-                DiagnosticLogAggregator logAggregatorOpt,
-                CancellationToken cancellationToken)
+            this DiagnosticAnalyzerService service,
+            Document document,
+            DocumentDiagnosticAnalyzer analyzer,
+            AnalysisKind kind,
+            Compilation compilationOpt,
+            DiagnosticLogAggregator logAggregatorOpt,
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -700,7 +702,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             }
         }
 
-        public static IEnumerable<DiagnosticData> ConvertToLocalDiagnostics(this IEnumerable<Diagnostic> diagnostics, Document targetDocument, TextSpan? span = null)
+        public static IEnumerable<DiagnosticData> ConvertToLocalDiagnostics(this IEnumerable<Diagnostic> diagnostics, Document targetDocument, CultureInfo culture, TextSpan? span = null)
         {
             var project = targetDocument.Project;
 
@@ -731,7 +733,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                         continue;
                     }
 
-                    yield return DiagnosticData.Create(targetDocument, diagnostic);
+                    yield return DiagnosticData.Create(targetDocument, diagnostic, culture);
                 }
             }
 
@@ -752,7 +754,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                         continue;
                     }
 
-                    yield return DiagnosticData.Create(document, diagnostic);
+                    yield return DiagnosticData.Create(document, diagnostic, culture);
                 }
             }
         }

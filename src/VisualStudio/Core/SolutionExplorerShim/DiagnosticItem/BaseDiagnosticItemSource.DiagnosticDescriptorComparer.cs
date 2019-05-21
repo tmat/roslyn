@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.CodeAnalysis;
+using Roslyn.Utilities;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplorer
 {
@@ -11,23 +12,29 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
     {
         internal sealed class DiagnosticDescriptorComparer : IComparer<DiagnosticDescriptor>
         {
+            private readonly CultureInfo _culture;
+
+            public DiagnosticDescriptorComparer(CultureInfo culture)
+            {
+                Contract.ThrowIfNull(culture);
+                _culture = culture;
+            }
+
             public int Compare(DiagnosticDescriptor x, DiagnosticDescriptor y)
             {
-                var comparison = StringComparer.CurrentCulture.Compare(x.Id, y.Id);
+                var comparison = StringComparer.OrdinalIgnoreCase.Compare(x.Id, y.Id);
                 if (comparison != 0)
                 {
                     return comparison;
                 }
 
-                comparison = StringComparer.CurrentCulture.Compare(x.Title.ToString(CultureInfo.CurrentUICulture), y.Title.ToString(CultureInfo.CurrentUICulture));
+                comparison = _culture.CompareInfo.Compare(x.Title.ToString(_culture), y.Title.ToString(_culture));
                 if (comparison != 0)
                 {
                     return comparison;
                 }
 
-                comparison = StringComparer.CurrentCulture.Compare(x.MessageFormat.ToString(CultureInfo.CurrentUICulture), y.MessageFormat.ToString(CultureInfo.CurrentUICulture));
-
-                return comparison;
+                return _culture.CompareInfo.Compare(x.MessageFormat.ToString(_culture), y.MessageFormat.ToString(_culture));
             }
         }
     }
