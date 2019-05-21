@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -36,6 +37,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             _commandHandler = commandHandler;
             _diagnosticAnalyzerService = diagnosticAnalyzerService;
         }
+
+        internal CultureInfo Culture => _workspace.UICulture; 
 
         public abstract AnalyzerReference AnalyzerReference { get; }
         protected abstract BaseDiagnosticItem CreateItem(DiagnosticDescriptor diagnostic, ReportDiagnostic effectiveSeverity);

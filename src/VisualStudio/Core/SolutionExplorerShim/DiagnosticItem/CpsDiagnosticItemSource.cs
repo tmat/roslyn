@@ -2,6 +2,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -44,9 +45,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
         public override object SourceItem => _item;
 
         public override AnalyzerReference AnalyzerReference => _analyzerReference;
+
         protected override BaseDiagnosticItem CreateItem(DiagnosticDescriptor diagnostic, ReportDiagnostic effectiveSeverity)
         {
-            return new CpsDiagnosticItem(this, diagnostic, effectiveSeverity);
+            return new CpsDiagnosticItem(this, diagnostic, effectiveSeverity, _culture);
         }
 
         private void OnWorkspaceChangedLookForAnalyzer(object sender, WorkspaceChangeEventArgs e)

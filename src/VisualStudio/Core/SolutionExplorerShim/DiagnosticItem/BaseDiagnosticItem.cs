@@ -2,6 +2,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -15,16 +16,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
     internal abstract partial class BaseDiagnosticItem : BaseItem
     {
         protected readonly DiagnosticDescriptor _descriptor;
+        protected readonly CultureInfo _culture;
         protected ReportDiagnostic _effectiveSeverity;
 
         public override event PropertyChangedEventHandler PropertyChanged;
 
 
-        public BaseDiagnosticItem(DiagnosticDescriptor descriptor, ReportDiagnostic effectiveSeverity)
+        public BaseDiagnosticItem(DiagnosticDescriptor descriptor, ReportDiagnostic effectiveSeverity, CultureInfo culture)
             : base(string.Format("{0}: {1}", descriptor.Id, descriptor.Title))
         {
             _descriptor = descriptor;
             _effectiveSeverity = effectiveSeverity;
+            _culture = culture;
         }
 
         public override ImageMoniker IconMoniker

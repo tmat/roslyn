@@ -12,6 +12,8 @@ using System.Runtime.CompilerServices;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using System.Globalization;
+using System.Threading;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplorer
 {
@@ -128,7 +130,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
                 var itemId = projectRootItem.HierarchyIdentity.NestedItemID;
                 if (hierarchy.GetCanonicalName(itemId, out string projectCanonicalName) == VSConstants.S_OK)
                 {
-                    return new CpsDiagnosticItemSource(workspace, projectCanonicalName, projectId, item, _commandHandler, analyzerService);
+                    return new CpsDiagnosticItemSource(workspace, projectCanonicalName, projectId, item, _commandHandler, analyzerService, CultureInfo.CurrentUICulture);
                 }
             }
 

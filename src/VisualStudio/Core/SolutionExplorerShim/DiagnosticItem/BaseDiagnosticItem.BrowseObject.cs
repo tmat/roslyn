@@ -34,7 +34,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             {
                 get
                 {
-                    return _diagnosticItem.Descriptor.Title.ToString(CultureInfo.CurrentUICulture);
+                    return _diagnosticItem.Descriptor.Title.ToString(_culture);
                 }
             }
 
@@ -43,7 +43,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.SolutionExplore
             {
                 get
                 {
-                    return _diagnosticItem.Descriptor.Description.ToString(CultureInfo.CurrentUICulture);
+                    return _diagnosticItem.Descriptor.Description.ToString(_culture);
                 }
             }
 

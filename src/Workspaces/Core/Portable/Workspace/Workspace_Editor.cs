@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,6 +44,8 @@ namespace Microsoft.CodeAnalysis
         /// True if this workspace supports manually changing the active context document of a text buffer by calling <see cref="SetDocumentContext(DocumentId)" />.
         /// </summary>
         internal virtual bool CanChangeActiveContextDocument => false;
+
+        public CultureInfo UICulture { get; internal set; }
 
         private void ClearOpenDocuments()
         {
