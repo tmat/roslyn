@@ -137,7 +137,7 @@ jobs:
         _name: CoreClr
         _configuration: Debug
       mono:
-        _args: --testMono --docker
+        _args: --testMono --docker Mono
         _name: Mono
         _configuration: Debug
   timeoutInMinutes: 90
