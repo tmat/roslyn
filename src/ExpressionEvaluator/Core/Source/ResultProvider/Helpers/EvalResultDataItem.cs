@@ -24,29 +24,26 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         public readonly TypeAndCustomInfo DeclaredTypeAndInfo;
         public readonly DkmClrValue Value;
         public readonly Expansion Expansion;
-        public readonly bool ChildShouldParenthesize;
-        public readonly string FullNameWithoutFormatSpecifiers;
+        public readonly DkmFullNameDescriptor FullName;
         public readonly ReadOnlyCollection<string> FormatSpecifiers;
-        public readonly string ChildFullNamePrefix;
+        public readonly DkmFullNameDescriptor ChildFullNamePrefix;
 
         public EvalResultDataItem(
             string name,
             TypeAndCustomInfo declaredTypeAndInfo,
             DkmClrValue value,
             Expansion expansion,
-            bool childShouldParenthesize,
-            string fullNameWithoutFormatSpecifiers,
-            string childFullNamePrefixOpt,
+            DkmFullNameDescriptor fullName,
+            DkmFullNameDescriptor childFullNamePrefixOpt,
             ReadOnlyCollection<string> formatSpecifiers)
         {
-            this.Name = name;
-            this.DeclaredTypeAndInfo = declaredTypeAndInfo;
-            this.Value = value;
-            this.ChildShouldParenthesize = childShouldParenthesize;
-            this.FullNameWithoutFormatSpecifiers = fullNameWithoutFormatSpecifiers;
-            this.ChildFullNamePrefix = childFullNamePrefixOpt;
-            this.FormatSpecifiers = formatSpecifiers;
-            this.Expansion = expansion;
+            Name = name;
+            DeclaredTypeAndInfo = declaredTypeAndInfo;
+            Value = value;
+            FullName = fullName;
+            ChildFullNamePrefix = childFullNamePrefixOpt;
+            FormatSpecifiers = formatSpecifiers;
+            Expansion = expansion;
         }
 
         protected override void OnClose()
@@ -90,44 +87,26 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         public readonly string DisplayValue; // overrides the "Value" text displayed for certain kinds of DataItems (errors, invalid pointer dereferences, etc)...not to be confused with DebuggerDisplayAttribute Value...
         public readonly string DisplayType;
         public readonly Expansion Expansion;
-        public readonly bool ChildShouldParenthesize;
-        public readonly string FullNameWithoutFormatSpecifiers;
+        public readonly DkmFullNameDescriptor FullName;
         public readonly ReadOnlyCollection<string> FormatSpecifiers;
-        public readonly string ChildFullNamePrefix;
+        public readonly DkmFullNameDescriptor ChildFullNamePrefix;
         public readonly DkmEvaluationResultCategory Category;
         public readonly DkmEvaluationResultFlags Flags;
         public readonly string EditableValue;
         public readonly DkmInspectionContext InspectionContext;
 
-        public string FullName
-        {
-            get
-            {
-                var name = this.FullNameWithoutFormatSpecifiers;
-                if (name != null)
-                {
-                    foreach (var formatSpecifier in this.FormatSpecifiers)
-                    {
-                        name += ", " + formatSpecifier;
-                    }
-                }
-                return name;
-            }
-        }
-
         public EvalResult(string name, string errorMessage, DkmInspectionContext inspectionContext)
             : this(
                 ExpansionKind.Error,
                 name: name,
-                typeDeclaringMemberAndInfo: default(TypeAndCustomInfo),
-                declaredTypeAndInfo: default(TypeAndCustomInfo),
+                typeDeclaringMemberAndInfo: default,
+                declaredTypeAndInfo: default,
                 useDebuggerDisplay: false,
                 value: null,
                 displayValue: errorMessage,
                 expansion: null,
-                childShouldParenthesize: false,
-                fullName: null,
-                childFullNamePrefixOpt: null,
+                fullName: default,
+                childFullNamePrefixOpt: default,
                 formatSpecifiers: Formatter.NoFormatSpecifiers,
                 category: DkmEvaluationResultCategory.Other,
                 flags: DkmEvaluationResultFlags.None,
@@ -145,9 +124,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             DkmClrValue value,
             string displayValue,
             Expansion expansion,
-            bool childShouldParenthesize,
-            string fullName,
-            string childFullNamePrefixOpt,
+            DkmFullNameDescriptor fullName,
+            DkmFullNameDescriptor childFullNamePrefixOpt,
             ReadOnlyCollection<string> formatSpecifiers,
             DkmEvaluationResultCategory category,
             DkmEvaluationResultFlags flags,
@@ -160,24 +138,23 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             Debug.Assert(formatSpecifiers != null);
             Debug.Assert((flags & DkmEvaluationResultFlags.Expandable) == 0);
 
-            this.Kind = kind;
-            this.Name = name;
-            this.TypeDeclaringMemberAndInfo = typeDeclaringMemberAndInfo;
-            this.DeclaredTypeAndInfo = declaredTypeAndInfo;
-            this.UseDebuggerDisplay = useDebuggerDisplay;
-            this.Value = value;
-            this.DisplayValue = displayValue;
-            this.ChildShouldParenthesize = childShouldParenthesize;
-            this.FullNameWithoutFormatSpecifiers = fullName;
-            this.ChildFullNamePrefix = childFullNamePrefixOpt;
-            this.FormatSpecifiers = formatSpecifiers;
-            this.Category = category;
-            this.EditableValue = editableValue;
-            this.Flags = flags | GetFlags(value, inspectionContext) | ((expansion == null) ? DkmEvaluationResultFlags.None : DkmEvaluationResultFlags.Expandable);
-            this.Expansion = expansion;
-            this.InspectionContext = inspectionContext;
-            this.DisplayName = displayName;
-            this.DisplayType = displayType;
+            Kind = kind;
+            Name = name;
+            TypeDeclaringMemberAndInfo = typeDeclaringMemberAndInfo;
+            DeclaredTypeAndInfo = declaredTypeAndInfo;
+            UseDebuggerDisplay = useDebuggerDisplay;
+            Value = value;
+            DisplayValue = displayValue;
+            FullName = fullName;
+            ChildFullNamePrefix = childFullNamePrefixOpt;
+            FormatSpecifiers = formatSpecifiers;
+            Category = category;
+            EditableValue = editableValue;
+            Flags = flags | GetFlags(value, inspectionContext) | ((expansion == null) ? DkmEvaluationResultFlags.None : DkmEvaluationResultFlags.Expandable);
+            Expansion = expansion;
+            InspectionContext = inspectionContext;
+            DisplayName = displayName;
+            DisplayType = displayType;
         }
 
         internal EvalResultDataItem ToDataItem()
@@ -187,8 +164,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 DeclaredTypeAndInfo,
                 Value,
                 Expansion,
-                ChildShouldParenthesize,
-                FullNameWithoutFormatSpecifiers,
+                FullName,
                 ChildFullNamePrefix,
                 FormatSpecifiers);
         }

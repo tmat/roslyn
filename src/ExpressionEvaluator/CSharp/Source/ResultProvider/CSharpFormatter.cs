@@ -33,57 +33,5 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         {
             return SyntaxFacts.IsWhitespace(c);
         }
-
-        internal override string TrimAndGetFormatSpecifiers(string expression, out ReadOnlyCollection<string> formatSpecifiers)
-        {
-            expression = RemoveComments(expression);
-            expression = RemoveFormatSpecifiers(expression, out formatSpecifiers);
-            return RemoveLeadingAndTrailingContent(expression, 0, expression.Length, IsWhitespace, ch => ch == ';' || IsWhitespace(ch));
-        }
-
-        private static string RemoveComments(string expression)
-        {
-            var pooledBuilder = PooledStringBuilder.GetInstance();
-            var builder = pooledBuilder.Builder;
-            var inMultilineComment = false;
-            int length = expression.Length;
-            for (int i = 0; i < length; i++)
-            {
-                var ch = expression[i];
-                if (inMultilineComment)
-                {
-                    if (ch == '*' && i + 1 < length && expression[i + 1] == '/')
-                    {
-                        i++;
-                        inMultilineComment = false;
-                    }
-                }
-                else
-                {
-                    if (ch == '/' && i + 1 < length)
-                    {
-                        var next = expression[i + 1];
-                        if (next == '*')
-                        {
-                            i++;
-                            inMultilineComment = true;
-                            continue;
-                        }
-                        else if (next == '/')
-                        {
-                            // Ignore remainder of string.
-                            break;
-                        }
-                    }
-                    builder.Append(ch);
-                }
-            }
-            if (builder.Length < length)
-            {
-                expression = builder.ToString();
-            }
-            pooledBuilder.Free();
-            return expression;
-        }
     }
 }

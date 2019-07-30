@@ -87,7 +87,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         private readonly TypeAndCustomInfo _declaredTypeAndInfo;
         private readonly DkmClrValue _value;
         private readonly bool _childShouldParenthesize;
-        private readonly string _fullName;
+        private readonly DkmFullNameDescriptor _fullName;
         private readonly string _childFullNamePrefix;
         private readonly ReadOnlyCollection<string> _formatSpecifiers;
         private readonly DkmEvaluationResultFlags _flags;
@@ -140,7 +140,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     displayValue: null,
                     expansion: proxyMembers,
                     childShouldParenthesize: false,
-                    fullName: null,
+                    fullName: default,
                     childFullNamePrefixOpt: proxyMemberFullNamePrefix,
                     formatSpecifiers: Formatter.NoFormatSpecifiers,
                     category: default(DkmEvaluationResultCategory),

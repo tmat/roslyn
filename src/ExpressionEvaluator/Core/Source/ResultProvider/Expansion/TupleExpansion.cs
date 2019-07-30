@@ -90,12 +90,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             var fullNameProvider = resultProvider.FullNameProvider;
             var parentFullName = parent.ChildFullNamePrefix;
-            if (parentFullName != null)
+            if (!parentFullName.IsDefault)
             {
-                if (parent.ChildShouldParenthesize)
-                {
-                    parentFullName = parentFullName.Parenthesize();
-                }
                 var parentRuntimeType = parent.Value.Type;
                 if (!parent.DeclaredTypeAndInfo.Type.Equals(parentRuntimeType.GetLmrType()))
                 {
@@ -376,7 +372,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 displayValue: displayValue,
                 expansion: expansion,
                 childShouldParenthesize: parent.ChildShouldParenthesize,
-                fullName: parent.FullNameWithoutFormatSpecifiers,
+                fullName: parent.FullName,
                 childFullNamePrefixOpt: parent.ChildFullNamePrefix,
                 formatSpecifiers: Formatter.AddFormatSpecifier(parent.FormatSpecifiers, "raw"),
                 category: DkmEvaluationResultCategory.Data,

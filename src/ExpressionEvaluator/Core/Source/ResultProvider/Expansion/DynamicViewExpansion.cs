@@ -88,8 +88,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             var proxyTypeAndInfo = new TypeAndCustomInfo(_proxyValue.Type);
             var isRootExpression = parent == null;
-            var fullName = isRootExpression ? name : parent.ChildFullNamePrefix;
-            var childFullNamePrefix = (fullName == null) ?
+            var fullName = isRootExpression ? new DkmFullNameDescriptor(name) : parent.FullName;
+            var childFullNamePrefix = (fullName.BaseExpression == null) ?
                 null :
                 fullNameProvider.GetClrObjectCreationExpression(
                     inspectionContext,

@@ -112,9 +112,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         }
 
         string IDkmClrFullNameProvider.GetClrExpressionAndFormatSpecifiers(DkmInspectionContext inspectionContext, string expression, out ReadOnlyCollection<string> formatSpecifiers)
-        {
-            return TrimAndGetFormatSpecifiers(expression, out formatSpecifiers);
-        }
+            => throw new NotImplementedException();
 
         bool IDkmClrFullNameProvider.ClrExpressionMayRequireParentheses(DkmInspectionContext inspectionContext, string expression)
         {
@@ -234,8 +232,6 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             return (index > 0) && (expr[index - 1] == ')');
         }
-
-        internal abstract string TrimAndGetFormatSpecifiers(string expression, out ReadOnlyCollection<string> formatSpecifiers);
 
         internal static readonly ReadOnlyCollection<string> NoFormatSpecifiers = new ReadOnlyCollection<string>(new string[0]);
 

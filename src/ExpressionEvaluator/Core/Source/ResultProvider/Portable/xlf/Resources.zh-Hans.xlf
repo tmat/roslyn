@@ -22,9 +22,9 @@
         <target state="translated">错误</target>
         <note>Error result name</note>
       </trans-unit>
-      <trans-unit id="ExceptionThrown">
-        <source>'{0}' threw an exception of type '{1}'</source>
-        <target state="translated">'“{0}”引发了类型“{1}”的异常</target>
+      <trans-unit id="EvaluationThrewExceptionOfType">
+        <source>Evaluation threw an exception of type '{0}'</source>
+        <target state="new">Evaluation threw an exception of type '{0}'</target>
         <note>Threw an exception while evaluating a value.</note>
       </trans-unit>
       <trans-unit id="InvalidPointerDereference">

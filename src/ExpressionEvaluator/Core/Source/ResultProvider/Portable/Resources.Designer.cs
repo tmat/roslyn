@@ -100,9 +100,9 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator {
         /// <summary>
         ///   Looks up a localized string similar to &apos;{0}&apos; threw an exception of type &apos;{1}&apos;.
         /// </summary>
-        internal static string ExceptionThrown {
+        internal static string EvaluationThrewExceptionOfType {
             get {
-                return ResourceManager.GetString("ExceptionThrown", resourceCulture);
+                return ResourceManager.GetString("EvaluationThrewExceptionOfType", resourceCulture);
             }
         }
         

@@ -331,7 +331,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     displayValue: null,
                     expansion: expansion,
                     childShouldParenthesize: parent.ChildShouldParenthesize,
-                    fullName: parent.FullNameWithoutFormatSpecifiers,
+                    fullName: parent.FullName,
                     childFullNamePrefixOpt: parent.ChildFullNamePrefix,
                     formatSpecifiers: s_hiddenFormatSpecifiers,
                     category: DkmEvaluationResultCategory.Data,
@@ -386,11 +386,11 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 DkmClrValue value,
                 Expansion expansion)
             {
-                var fullName = resultProvider.FullNameProvider.GetClrTypeName(inspectionContext, declaredTypeAndInfo.ClrType, declaredTypeAndInfo.Info);
+                var fullName = new DkmFullNameDescriptor(resultProvider.FullNameProvider.GetClrTypeName(inspectionContext, declaredTypeAndInfo.ClrType, declaredTypeAndInfo.Info));
                 return new EvalResult(
                     ExpansionKind.StaticMembers,
                     name: resultProvider.StaticMembersString,
-                    typeDeclaringMemberAndInfo: default(TypeAndCustomInfo),
+                    typeDeclaringMemberAndInfo: default,
                     declaredTypeAndInfo: declaredTypeAndInfo,
                     useDebuggerDisplay: false,
                     value: value,
@@ -477,7 +477,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             }
 
             var parentFullName = parent.ChildFullNamePrefix;
-            if (parentFullName == null)
+            if (parentFullName.IsDefault)
             {
                 return null;
             }

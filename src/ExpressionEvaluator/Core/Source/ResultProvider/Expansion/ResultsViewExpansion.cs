@@ -41,7 +41,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             }
             else if (value.HasExceptionThrown())
             {
-                errorMessage = value.GetExceptionMessage(inspectionContext, name);
+                errorMessage = value.GetExceptionMessage(inspectionContext);
             }
             else
             {

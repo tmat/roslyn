@@ -133,8 +133,8 @@
     <value>Error</value>
     <comment>Error result name</comment>
   </data>
-  <data name="ExceptionThrown" xml:space="preserve">
-    <value>'{0}' threw an exception of type '{1}'</value>
+  <data name="EvaluationThrewExceptionOfType" xml:space="preserve">
+    <value>Evaluation threw an exception of type '{0}'</value>
     <comment>Threw an exception while evaluating a value.</comment>
   </data>
   <data name="InvalidPointerDereference" xml:space="preserve">

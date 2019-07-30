@@ -50,19 +50,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         void IDkmClrResultProvider.GetResult(DkmClrValue value, DkmWorkList workList, DkmClrType declaredType, DkmClrCustomTypeInfo declaredTypeInfo, DkmInspectionContext inspectionContext, ReadOnlyCollection<string> formatSpecifiers, string resultName, string resultFullName, DkmCompletionRoutine<DkmEvaluationAsyncResult> completionRoutine)
         {
-            if (formatSpecifiers == null)
-            {
-                formatSpecifiers = Formatter.NoFormatSpecifiers;
-            }
-            if (resultFullName != null)
-            {
-                ReadOnlyCollection<string> otherSpecifiers;
-                resultFullName = FullNameProvider.GetClrExpressionAndFormatSpecifiers(inspectionContext, resultFullName, out otherSpecifiers);
-                foreach (var formatSpecifier in otherSpecifiers)
-                {
-                    formatSpecifiers = Formatter.AddFormatSpecifier(formatSpecifiers, formatSpecifier);
-                }
-            }
+            formatSpecifiers ??= Formatter.NoFormatSpecifiers;
+
             var wl = new WorkList(workList, e => completionRoutine(DkmEvaluationAsyncResult.CreateErrorResult(e)));
             wl.ContinueWith(
                 () => GetRootResultAndContinue(
@@ -854,7 +843,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             string display;
             if (value.HasExceptionThrown())
             {
-                display = result.DisplayValue ?? value.GetExceptionMessage(inspectionContext, result.FullNameWithoutFormatSpecifiers ?? result.Name);
+                display = result.DisplayValue ?? value.GetExceptionMessage(inspectionContext);
             }
             else if (displayValue != null)
             {
