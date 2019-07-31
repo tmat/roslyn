@@ -12,9 +12,16 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
     internal abstract class AbstractRoslynTableDataSource<TItem> : AbstractTableDataSource<TItem>
         where TItem : TableItem
     {
-        public AbstractRoslynTableDataSource(Workspace workspace) : base(workspace)
+        public AbstractRoslynTableDataSource(TableWorkspaceProtocol workspace)
+            : base(workspace)
         {
-            ConnectToSolutionCrawlerService(workspace);
+            workspace.SolutionCrawlerProgressChanged += running =>
+            {
+                IsStable = !running;
+                ChangeStableState(IsStable);
+            };
+
+            workspace.ConnectToSolutionCrawlerService();
         }
 
         protected ImmutableArray<DocumentId> GetDocumentsWithSameFilePath(Solution solution, DocumentId documentId)
@@ -26,41 +33,6 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             }
 
             return solution.GetDocumentIdsWithFilePath(document.FilePath);
-        }
-
-        private void ConnectToSolutionCrawlerService(Workspace workspace)
-        {
-            var crawlerService = workspace.Services.GetService<ISolutionCrawlerService>();
-            if (crawlerService == null)
-            {
-                // can happen depends on host such as testing host.
-                return;
-            }
-
-            var reporter = crawlerService.GetProgressReporter(workspace);
-            reporter.ProgressChanged += OnSolutionCrawlerProgressChanged;
-
-            // set initial value
-            SolutionCrawlerProgressChanged(reporter.InProgress);
-        }
-
-        private void OnSolutionCrawlerProgressChanged(object sender, ProgressData progressData)
-        {
-            switch (progressData.Status)
-            {
-                case ProgressStatus.Started:
-                    SolutionCrawlerProgressChanged(running: true);
-                    break;
-                case ProgressStatus.Stoped:
-                    SolutionCrawlerProgressChanged(running: false);
-                    break;
-            }
-        }
-
-        private void SolutionCrawlerProgressChanged(bool running)
-        {
-            IsStable = !running;
-            ChangeStableState(IsStable);
         }
     }
 }

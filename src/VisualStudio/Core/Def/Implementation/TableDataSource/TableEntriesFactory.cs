@@ -10,7 +10,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
 {
-    internal class TableEntriesFactory<TItem> : ITableEntriesSnapshotFactory
+    internal sealed class TableEntriesFactory<TItem> : ITableEntriesSnapshotFactory
         where TItem : TableItem
     {
         private readonly object _gate = new object();
@@ -124,7 +124,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             return snapshot;
         }
 
-        private class AggregatedEntriesSource
+        private sealed class AggregatedEntriesSource
         {
             private readonly EntriesSourceCollections _sources;
             private readonly AbstractTableDataSource<TItem> _tableSource;
@@ -209,7 +209,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
                 }
             }
 
-            private class EntriesSourceCollections
+            private sealed class EntriesSourceCollections
             {
                 private AbstractTableEntriesSource<TItem> _primary;
                 private Dictionary<object, AbstractTableEntriesSource<TItem>> _sources;

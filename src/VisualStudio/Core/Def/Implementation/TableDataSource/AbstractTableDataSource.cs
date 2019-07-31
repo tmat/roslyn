@@ -30,7 +30,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
         private ImmutableArray<SubscriptionWithoutLock> _subscriptions;
         protected bool IsStable;
 
-        public AbstractTableDataSource(Workspace workspace)
+        public AbstractTableDataSource(TableWorkspaceProtocol workspace)
         {
             _gate = new object();
             _map = new Dictionary<object, TableEntriesFactory<TItem>>();
@@ -42,7 +42,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             IsStable = true;
         }
 
-        public Workspace Workspace { get; }
+        public TableWorkspaceProtocol Workspace { get; }
 
         public abstract string DisplayName { get; }
 
@@ -197,12 +197,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
         {
             // reuse factory. it is okay to re-use factory since we make sure we remove the factory before
             // adding it back
-            var newFactory = false;
-            ImmutableArray<SubscriptionWithoutLock> snapshot;
             lock (_gate)
             {
-                snapshot = _subscriptions;
-                GetOrCreateFactory_NoLock(data, out var factory, out newFactory);
+                var snapshot = _subscriptions;
+                GetOrCreateFactory_NoLock(data, out var factory, out var newFactory);
 
                 factory.OnDataAddedOrChanged(data);
 

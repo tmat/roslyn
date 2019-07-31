@@ -19,7 +19,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
 {
-    internal class VisualStudioBaseTodoListTable : AbstractTable
+    internal abstract class VisualStudioBaseTodoListTable : AbstractTable
     {
         private static readonly string[] s_columns = new string[]
         {
@@ -33,18 +33,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
 
         private readonly TableDataSource _source;
 
-        protected VisualStudioBaseTodoListTable(Workspace workspace, ITodoListProvider todoListProvider, string identifier, ITableManagerProvider provider)
+        protected VisualStudioBaseTodoListTable(TableWorkspaceProtocol workspace, ITodoListProvider todoListProvider, string identifier, ITableManagerProvider provider)
             : base(workspace, provider, StandardTables.TasksTable)
         {
             _source = new TableDataSource(workspace, todoListProvider, identifier);
-            AddInitialTableSource(workspace.CurrentSolution, _source);
+            AddInitialTableSource(_source);
         }
 
         internal override IReadOnlyCollection<string> Columns => s_columns;
 
-        protected override void AddTableSourceIfNecessary(Solution solution)
+        protected override void AddTableSourceIfNecessary(bool hasAnyProjects)
         {
-            if (solution.ProjectIds.Count == 0 || this.TableManager.Sources.Any(s => s == _source))
+            if (!hasAnyProjects || TableManager.Sources.Any(s => s == _source))
             {
                 return;
             }
@@ -52,14 +52,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             AddTableSource(_source);
         }
 
-        protected override void RemoveTableSourceIfNecessary(Solution solution)
+        protected override void RemoveTableSourceIfNecessary(bool hasAnyProjects)
         {
-            if (solution.ProjectIds.Count > 0 || !this.TableManager.Sources.Any(s => s == _source))
+            if (hasAnyProjects || !TableManager.Sources.Any(s => s == _source))
             {
                 return;
             }
 
-            this.TableManager.RemoveSource(_source);
+            TableManager.RemoveSource(_source);
         }
 
         protected override void ShutdownSource()
@@ -67,16 +67,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             _source.Shutdown();
         }
 
-        private class TableDataSource : AbstractRoslynTableDataSource<TodoTableItem>
+        private sealed class TableDataSource : AbstractRoslynTableDataSource<TodoTableItem>
         {
-            private readonly Workspace _workspace;
             private readonly string _identifier;
             private readonly ITodoListProvider _todoListProvider;
 
-            public TableDataSource(Workspace workspace, ITodoListProvider todoListProvider, string identifier)
+            public TableDataSource(TableWorkspaceProtocol workspace, ITodoListProvider todoListProvider, string identifier)
                 : base(workspace)
             {
-                _workspace = workspace;
                 _identifier = identifier;
 
                 _todoListProvider = todoListProvider;

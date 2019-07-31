@@ -28,8 +28,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
 
         private sealed class MiscellaneousTodoListTable : VisualStudioBaseTodoListTable
         {
-            public MiscellaneousTodoListTable(Workspace workspace, ITodoListProvider todoListProvider, ITableManagerProvider provider) :
-                base(workspace, todoListProvider, IdentifierString, provider)
+            public MiscellaneousTodoListTable(TableWorkspaceProtocol workspace, ITodoListProvider todoListProvider, ITableManagerProvider provider)
+              : base(workspace, todoListProvider, IdentifierString, provider)
             {
                 ConnectWorkspaceEvents();
             }

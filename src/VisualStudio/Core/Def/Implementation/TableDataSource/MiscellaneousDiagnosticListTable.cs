@@ -22,7 +22,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             _tableManagerProvider = tableManagerProvider;
         }
 
-        public void StartListening(Workspace workspace, IDiagnosticService diagnosticService)
+        public void StartListening(TableWorkspaceProtocol workspace, IDiagnosticService diagnosticService)
         {
             new MiscellaneousDiagnosticListTable(workspace, diagnosticService, _tableManagerProvider);
         }
@@ -31,33 +31,28 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
         {
             private readonly LiveTableDataSource _source;
 
-            public MiscellaneousDiagnosticListTable(Workspace workspace, IDiagnosticService diagnosticService, ITableManagerProvider provider) :
-                base(workspace, provider)
+            public MiscellaneousDiagnosticListTable(TableWorkspaceProtocol workspace, IDiagnosticService diagnosticService, ITableManagerProvider provider)
+              : base(workspace, provider)
             {
                 _source = new LiveTableDataSource(workspace, diagnosticService, IdentifierString);
-
-                AddInitialTableSource(workspace.CurrentSolution, _source);
+                AddInitialTableSource(_source);
                 ConnectWorkspaceEvents();
             }
 
-            protected override void AddTableSourceIfNecessary(Solution solution)
+            protected override void AddTableSourceIfNecessary(bool hasAnyProjects)
             {
-                if (solution.ProjectIds.Count == 0 || this.TableManager.Sources.Any(s => s == _source))
+                if (hasAnyProjects && !TableManager.Sources.Any(s => s == _source))
                 {
-                    return;
+                    AddTableSource(_source);
                 }
-
-                AddTableSource(_source);
             }
 
-            protected override void RemoveTableSourceIfNecessary(Solution solution)
+            protected override void RemoveTableSourceIfNecessary(bool hasAnyProjects)
             {
-                if (solution.ProjectIds.Count > 0 || !this.TableManager.Sources.Any(s => s == _source))
+                if (!hasAnyProjects && TableManager.Sources.Any(s => s == _source))
                 {
-                    return;
+                    TableManager.RemoveSource(_source);
                 }
-
-                this.TableManager.RemoveSource(_source);
             }
 
             protected override void ShutdownSource()

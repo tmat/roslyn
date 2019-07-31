@@ -15,6 +15,59 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
 {
     internal static class Extensions
     {
+        public static ImmutableArray<TResult> ToImmutableArray<TSource, TResult>(this IList<TSource> list, Func<TSource, TResult> selector)
+        {
+            var builder = ArrayBuilder<TResult>.GetInstance(list.Count);
+            for (var i = 0; i < list.Count; i++)
+            {
+                builder.Add(selector(list[i]));
+            }
+
+            return builder.ToImmutableAndFree();
+        }
+
+        public static ImmutableArray<TItem> MergeDuplicatesOrderedBy<TItem>(this IEnumerable<IList<TItem>> groupedItems, Func<IEnumerable<TItem>, IEnumerable<TItem>> orderer)
+            where TItem : TableItem
+        {
+            var builder = ArrayBuilder<TItem>.GetInstance();
+            foreach (var item in orderer(groupedItems.Select(Deduplicate)))
+            {
+                builder.Add(item);
+            }
+
+            return builder.ToImmutableAndFree();
+        }
+
+        private static TItem Deduplicate<TItem>(this IList<TItem> items)
+            where TItem : TableItem
+        {
+            if (items.Count == 1)
+            {
+                return items[0];
+            }
+
+            Contract.ThrowIfTrue(items.Count == 0);
+            Contract.ThrowIfTrue(items.Any(i => i.DocumentId == null), "Contains an item with null PrimaryDocumentId");
+
+#if DEBUG
+            var key = items[0].DeduplicationKey;
+            foreach (var item in items)
+            {
+                Contract.ThrowIfFalse(item.DeduplicationKey == key);
+            }
+#endif
+            // deterministic ordering
+            var orderedItems = items.OrderBy(i => i.DocumentId.Id).ToList();
+
+            // order of item is important. make sure we maintain it.
+            int orderedItemsHash = Hash.CombineValues(orderedItems.Select(item => item.DocumentId.Id));
+
+            var cache = SharedInfoCache.GetOrAdd(orderedItemsHash, orderedItems, items =>
+                new SharedInfoCache(items.Select(i => i.DocumentId.ProjectId).Distinct().OrderBy(p => p.Id).ToImmutableArray()));
+
+            return (TItem)orderedItems[0].WithCache(cache);
+        }
+
         public static ImmutableArray<ITrackingPoint> CreateTrackingPoints<TItem>(this Workspace workspace, DocumentId documentId, ImmutableArray<TItem> items)
             where TItem : TableItem
         {
@@ -72,6 +125,49 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
 
             var adjustedColumn = Math.Max(position.Character, 0);
             return snapshot.CreateTrackingPoint(textLine.Start + adjustedColumn, PointTrackingMode.Positive);
+        }
+
+        public static string GetProjectName(this Solution solution, ImmutableArray<ProjectId> projectIds)
+        {
+            var projectNames = GetProjectNames(solution, projectIds);
+            if (projectNames.Length == 0)
+            {
+                return null;
+            }
+
+            return string.Join(", ", projectNames.OrderBy(StringComparer.CurrentCulture));
+        }
+
+        public static string GetProjectName(this Solution solution, ProjectId projectId)
+        {
+            if (projectId == null)
+            {
+                return null;
+            }
+
+            var project = solution.GetProject(projectId);
+            if (project == null)
+            {
+                return null;
+            }
+
+            return project.Name;
+        }
+
+        public static string[] GetProjectNames(this Solution solution, ImmutableArray<ProjectId> projectIds)
+        {
+            return projectIds.Select(p => GetProjectName(solution, p)).WhereNotNull().Distinct().ToArray();
+        }
+
+        public static Guid GetProjectGuid(this Workspace workspace, ProjectId projectId)
+        {
+            if (projectId == null)
+            {
+                return Guid.Empty;
+            }
+
+            var vsWorkspace = workspace as VisualStudioWorkspace;
+            return vsWorkspace?.GetProjectGuid(projectId) ?? Guid.Empty;
         }
     }
 }

@@ -24,7 +24,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
 
                 private readonly ExternalErrorDiagnosticUpdateSource _buildErrorSource;
 
-                public BuildTableDataSource(Workspace workspace, ExternalErrorDiagnosticUpdateSource errorSource)
+                public BuildTableDataSource(TableWorkspaceProtocol workspace, ExternalErrorDiagnosticUpdateSource errorSource)
                     : base(workspace)
                 {
                     _buildErrorSource = errorSource;

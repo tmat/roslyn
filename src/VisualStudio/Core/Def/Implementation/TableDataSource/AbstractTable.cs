@@ -13,63 +13,39 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
     /// </summary>
     internal abstract class AbstractTable
     {
-        protected AbstractTable(Workspace workspace, ITableManagerProvider provider, string tableIdentifier)
+        private readonly TableWorkspaceProtocol _workspace;
+        internal ITableManager TableManager { get; }
+
+        protected AbstractTable(TableWorkspaceProtocol workspace, ITableManagerProvider provider, string tableIdentifier)
         {
-            Workspace = workspace;
-            this.TableManager = provider.GetTableManager(tableIdentifier);
+            _workspace = workspace;
+            TableManager = provider.GetTableManager(tableIdentifier);
         }
 
-        protected Workspace Workspace { get; }
+        protected abstract void AddTableSourceIfNecessary(bool hasAnyProjects);
+        protected abstract void RemoveTableSourceIfNecessary(bool hasAnyProjects);
 
-        protected abstract void AddTableSourceIfNecessary(Solution solution);
-        protected abstract void RemoveTableSourceIfNecessary(Solution solution);
         protected abstract void ShutdownSource();
 
         protected void ConnectWorkspaceEvents()
         {
-            Workspace.WorkspaceChanged += OnWorkspaceChanged;
-        }
+            _workspace.AddTableSource += AddTableSourceIfNecessary;
+            _workspace.RemoveTableSource += hasAnyProjects =>
 
-        private void OnWorkspaceChanged(object sender, WorkspaceChangeEventArgs e)
-        {
-            switch (e.Kind)
             {
-                case WorkspaceChangeKind.SolutionAdded:
-                case WorkspaceChangeKind.ProjectAdded:
-                    AddTableSourceIfNecessary(e.NewSolution);
-                    break;
-                case WorkspaceChangeKind.SolutionRemoved:
-                case WorkspaceChangeKind.ProjectRemoved:
-                    ShutdownSourceIfNecessary(e.NewSolution);
-                    RemoveTableSourceIfNecessary(e.NewSolution);
-                    break;
-                case WorkspaceChangeKind.SolutionChanged:
-                case WorkspaceChangeKind.SolutionCleared:
-                case WorkspaceChangeKind.SolutionReloaded:
-                case WorkspaceChangeKind.ProjectChanged:
-                case WorkspaceChangeKind.ProjectReloaded:
-                case WorkspaceChangeKind.DocumentAdded:
-                case WorkspaceChangeKind.DocumentRemoved:
-                case WorkspaceChangeKind.DocumentReloaded:
-                case WorkspaceChangeKind.DocumentChanged:
-                case WorkspaceChangeKind.AdditionalDocumentAdded:
-                case WorkspaceChangeKind.AdditionalDocumentRemoved:
-                case WorkspaceChangeKind.AdditionalDocumentReloaded:
-                case WorkspaceChangeKind.AdditionalDocumentChanged:
-                case WorkspaceChangeKind.AnalyzerConfigDocumentAdded:
-                case WorkspaceChangeKind.AnalyzerConfigDocumentRemoved:
-                case WorkspaceChangeKind.AnalyzerConfigDocumentChanged:
-                case WorkspaceChangeKind.AnalyzerConfigDocumentReloaded:
-                    break;
-                default:
-                    Contract.Fail("Can't reach here");
-                    return;
-            }
+                ShutdownSourceIfNecessary(hasAnyProjects);
+                RemoveTableSourceIfNecessary(hasAnyProjects);
+            };
+
+            _workspace.Connect();
         }
 
-        private void ShutdownSourceIfNecessary(Solution solution)
+        protected bool WorkspaceHasAnyProjects()
+            => !_workspace.IsCurrentSolutionEmpty;
+
+        private void ShutdownSourceIfNecessary(bool hasAnyProjects)
         {
-            if (solution.ProjectIds.Count > 0)
+            if (hasAnyProjects)
             {
                 return;
             }
@@ -77,22 +53,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             ShutdownSource();
         }
 
-        protected void AddInitialTableSource(Solution solution, ITableDataSource source)
+        protected void AddInitialTableSource(ITableDataSource source)
         {
-            if (solution.ProjectIds.Count == 0)
+            if (WorkspaceHasAnyProjects())
             {
-                return;
+                AddTableSource(source);
             }
-
-            AddTableSource(source);
         }
 
         protected void AddTableSource(ITableDataSource source)
         {
-            this.TableManager.AddSource(source, Columns);
+            TableManager.AddSource(source, Columns);
         }
-
-        internal ITableManager TableManager { get; }
 
         internal abstract IReadOnlyCollection<string> Columns { get; }
     }

@@ -38,7 +38,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             _tableManagerProvider = tableManagerProvider;
         }
 
-        public void StartListening(Workspace workspace, IDiagnosticService diagnosticService)
+        public void StartListening(TableWorkspaceProtocol workspace, IDiagnosticService diagnosticService)
         {
             var errorList = _threadingContext.JoinableTaskFactory.Run(async () =>
             {
@@ -55,7 +55,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             }
 
             var table = new VisualStudioDiagnosticListTable(
-                (VisualStudioWorkspaceImpl)workspace,
+                workspace,
                 diagnosticService,
                 _tableManagerProvider,
                 errorList);
@@ -69,18 +69,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.TableDataSource
             private readonly IErrorList _errorList;
 
             public VisualStudioDiagnosticListTable(
-                VisualStudioWorkspaceImpl workspace,
+                TableWorkspaceProtocol workspace,
                 IDiagnosticService diagnosticService,
                 ITableManagerProvider provider,
-                IErrorList errorList) :
-                base(workspace, provider)
+                IErrorList errorList)
+                : base(workspace, provider)
             {
                 _errorList = errorList;
 
                 _liveTableSource = new LiveTableDataSource(workspace, diagnosticService, IdentifierString);
                 _buildTableSource = new BuildTableDataSource(workspace, workspace.ExternalErrorDiagnosticUpdateSource);
 
-                AddInitialTableSource(Workspace.CurrentSolution, GetCurrentDataSource());
+                AddInitialTableSource(workspace.CurrentSolution, GetCurrentDataSource());
                 ConnectWorkspaceEvents();
 
                 _errorList.PropertyChanged += OnErrorListPropertyChanged;
