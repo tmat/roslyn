@@ -10304,7 +10304,7 @@ public class Program
 ");
         }
 
-        [ConditionalFact(typeof(WindowsDesktopOnly), AlwaysSkip = "https://github.com/dotnet/roslyn/issues/37047")]
+        [Fact]
         public void OutVar_InSwitchExpression()
         {
             var source0 = MarkedSource(@"
@@ -10346,11 +10346,10 @@ public class Program
             var v0 = CompileAndVerify(compilation0);
             v0.VerifyIL("Program.G(int)", @"
 {
-  // Code size       27 (0x1b)
+  // Code size       25 (0x19)
   .maxstack  1
   .locals init (int V_0,
-                int V_1,
-                object V_2)
+                object V_1)
   IL_0000:  nop
   IL_0001:  ldarg.0
   IL_0002:  brfalse.s  IL_0006
@@ -10362,15 +10361,12 @@ public class Program
   IL_000b:  stloc.0
   IL_000c:  br.s       IL_000e
   IL_000e:  ldloc.0
-  IL_000f:  stloc.1
-  IL_0010:  ldloc.1
-  IL_0011:  box        ""int""
-  IL_0016:  stloc.2
-  IL_0017:  br.s       IL_0019
-  IL_0019:  ldloc.2
-  IL_001a:  ret
-}
-");
+  IL_000f:  box        ""int""
+  IL_0014:  stloc.1
+  IL_0015:  br.s       IL_0017
+  IL_0017:  ldloc.1
+  IL_0018:  ret
+}");
             v0.VerifyIL("Program.N(out int)", @"
 {
   // Code size       10 (0xa)
@@ -10400,60 +10396,39 @@ public class Program
 
             diff1.VerifyIL("Program.G(int)", @"
 {
-  // Code size       50 (0x32)
+  // Code size       44 (0x2c)
   .maxstack  2
   .locals init ([int] V_0,
-                [int] V_1,
-                [object] V_2,
-                int V_3, //x
+                [object] V_1,
+                int V_2, //x
+                int V_3,
                 int V_4,
                 int V_5,
-                int V_6,
-                int V_7,
-                object V_8)
+                object V_6)
   IL_0000:  nop
   IL_0001:  ldarg.0
-  IL_0002:  stloc.s    V_4
-  IL_0004:  ldloca.s   V_3
-  IL_0006:  call       ""int Program.N(out int)""
-  IL_000b:  stloc.s    V_6
-  IL_000d:  ldloc.s    V_6
-  IL_000f:  brfalse.s  IL_0013
-  IL_0011:  br.s       IL_0018
-  IL_0013:  ldc.i4.0
-  IL_0014:  stloc.s    V_5
-  IL_0016:  br.s       IL_001d
-  IL_0018:  ldc.i4.1
-  IL_0019:  stloc.s    V_5
-  IL_001b:  br.s       IL_001d
-  IL_001d:  ldloc.s    V_5
-  IL_001f:  stloc.s    V_7
-  IL_0021:  ldloc.s    V_4
-  IL_0023:  ldloc.s    V_7
-  IL_0025:  add
-  IL_0026:  box        ""int""
-  IL_002b:  stloc.s    V_8
-  IL_002d:  br.s       IL_002f
-  IL_002f:  ldloc.s    V_8
-  IL_0031:  ret
-}
-");
-            diff1.VerifyIL("Program.N(out int)", @"
-{
-  // Code size       10 (0xa)
-  .maxstack  2
-  .locals init (int V_0)
-  IL_0000:  nop
-  IL_0001:  ldarg.0
-  IL_0002:  ldc.i4.1
-  IL_0003:  stind.i4
-  IL_0004:  ldc.i4.0
-  IL_0005:  stloc.0
-  IL_0006:  br.s       IL_0008
-  IL_0008:  ldloc.0
-  IL_0009:  ret
-}
-");
+  IL_0002:  stloc.3
+  IL_0003:  ldloca.s   V_2
+  IL_0005:  call       ""int Program.N(out int)""
+  IL_000a:  stloc.s    V_5
+  IL_000c:  ldloc.s    V_5
+  IL_000e:  brfalse.s  IL_0012
+  IL_0010:  br.s       IL_0017
+  IL_0012:  ldc.i4.0
+  IL_0013:  stloc.s    V_4
+  IL_0015:  br.s       IL_001c
+  IL_0017:  ldc.i4.1
+  IL_0018:  stloc.s    V_4
+  IL_001a:  br.s       IL_001c
+  IL_001c:  ldloc.3
+  IL_001d:  ldloc.s    V_4
+  IL_001f:  add
+  IL_0020:  box        ""int""
+  IL_0025:  stloc.s    V_6
+  IL_0027:  br.s       IL_0029
+  IL_0029:  ldloc.s    V_6
+  IL_002b:  ret
+}");
 
             var diff2 = compilation2.EmitDifference(
                 diff1.NextGeneration,
@@ -10464,53 +10439,34 @@ public class Program
 
             diff2.VerifyIL("Program.G(int)", @"
 {
-  // Code size       53 (0x35)
-  .maxstack  4
-  .locals init (System.Collections.Generic.IEnumerable<int> V_0) //query
+  // Code size       30 (0x1e)
+  .maxstack  1
+  .locals init ([int] V_0,
+                [object] V_1,
+                [int] V_2,
+                [int] V_3,
+                [int] V_4,
+                [int] V_5,
+                [object] V_6,
+                int V_7,
+                object V_8)
   IL_0000:  nop
-  IL_0001:  ldc.i4.2
-  IL_0002:  newarr     ""int""
-  IL_0007:  dup
-  IL_0008:  ldc.i4.0
-  IL_0009:  ldc.i4.1
-  IL_000a:  stelem.i4
-  IL_000b:  dup
-  IL_000c:  ldc.i4.1
-  IL_000d:  ldc.i4.2
-  IL_000e:  stelem.i4
-  IL_000f:  ldsfld     ""System.Func<int, int> Program.<>c.<>9__1_0""
-  IL_0014:  dup
-  IL_0015:  brtrue.s   IL_002e
-  IL_0017:  pop
-  IL_0018:  ldsfld     ""Program.<>c Program.<>c.<>9""
-  IL_001d:  ldftn      ""int Program.<>c.<N>b__1_0(int)""
-  IL_0023:  newobj     ""System.Func<int, int>..ctor(object, System.IntPtr)""
-  IL_0028:  dup
-  IL_0029:  stsfld     ""System.Func<int, int> Program.<>c.<>9__1_0""
-  IL_002e:  call       ""System.Collections.Generic.IEnumerable<int> System.Linq.Enumerable.Select<int, int>(System.Collections.Generic.IEnumerable<int>, System.Func<int, int>)""
-  IL_0033:  stloc.0
-  IL_0034:  ret
-}
-");
-            diff2.VerifyIL("Program.N(out int)", @"
-{
-  // Code size       20 (0x14)
-  .maxstack  3
-  .locals init (int V_0, //x
-                [int] V_1,
-                int V_2) //y
-  IL_0000:  ldarg.1
-  IL_0001:  ldloca.s   V_0
-  IL_0003:  call       ""int Program.M(int, out int)""
-  IL_0008:  ldloc.0
-  IL_0009:  add
-  IL_000a:  ldarg.1
-  IL_000b:  ldloca.s   V_2
-  IL_000d:  call       ""int Program.M(int, out int)""
-  IL_0012:  add
-  IL_0013:  ret
-}
-");
+  IL_0001:  ldarg.0
+  IL_0002:  brfalse.s  IL_0006
+  IL_0004:  br.s       IL_000b
+  IL_0006:  ldc.i4.0
+  IL_0007:  stloc.s    V_7
+  IL_0009:  br.s       IL_0010
+  IL_000b:  ldc.i4.1
+  IL_000c:  stloc.s    V_7
+  IL_000e:  br.s       IL_0010
+  IL_0010:  ldloc.s    V_7
+  IL_0012:  box        ""int""
+  IL_0017:  stloc.s    V_8
+  IL_0019:  br.s       IL_001b
+  IL_001b:  ldloc.s    V_8
+  IL_001d:  ret
+}");
         }
     }
 }
