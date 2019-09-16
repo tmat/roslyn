@@ -151,5 +151,119 @@ F(new C())
             var missingB = m.ReferencedAssemblySymbols.Single(a => a.Name == "libA").Modules.Single().ReferencedAssemblySymbols.Single(a => a.Name == "libB");
             Assert.IsType(typeof(MissingAssemblySymbol), missingB);
         }
+
+        [Fact]
+        public async Task LibraryReference_ImplicitDependency()
+        {
+            var libASource = @"
+public class C
+{
+    public static int F(B x) => 1;
+}
+";
+            var libBSource = @"
+public class B
+{
+}
+";
+
+            var dir = Temp.CreateDirectory();
+            var libBImage = CreateCSharpCompilation(libBSource, TargetFrameworkUtil.NetStandard20References, "libB").EmitToArray();
+            var libBFile = dir.CreateFile("libB.dll").WriteAllBytes(libBImage);
+            var libBRef = MetadataReference.CreateFromFile(libBFile.Path);
+
+            var libAImage = CreateCSharpCompilation(libASource, TargetFrameworkUtil.NetStandard20References.Concat(libBRef), "libA").EmitToArray();
+            var libAFile = dir.CreateFile("libA.dll").WriteAllBytes(libAImage);
+
+            var s0 = CSharpScript.Create($@"
+#r ""{libAFile.Path}""
+C.F(null)
+");
+            var diagnostics = s0.Compile();
+            Assert.Empty(diagnostics);
+
+            var result = await s0.EvaluateAsync();
+            Assert.Equal(1, (int)result);
+        }
+
+        [Fact]
+        public async Task LibraryReference_ImplicitDependencyReferencedExplicitly()
+        {
+            var libASource = @"
+public class C
+{
+    public readonly int X = D.Y;
+}
+";
+            var libBSource = @"
+public static class D
+{
+    public static readonly int Y = 1;
+    public static readonly int Z = 2;
+}
+";
+
+            var dir = Temp.CreateDirectory();
+            var libBImage = CreateCSharpCompilation(libBSource, TargetFrameworkUtil.NetStandard20References, "libB").EmitToArray();
+            var libBFile = dir.CreateFile("libB.dll").WriteAllBytes(libBImage);
+            var libBRef = MetadataReference.CreateFromFile(libBFile.Path);
+
+            var libAImage = CreateCSharpCompilation(libASource, TargetFrameworkUtil.NetStandard20References.Concat(libBRef), "libA").EmitToArray();
+            var libAFile = dir.CreateFile("libA.dll").WriteAllBytes(libAImage);
+
+            var s0 = CSharpScript.Create($@"
+#r ""{libAFile.Path}""
+int F(C c) => c.X;
+");
+            var s1 = s0.ContinueWith($@"
+#r ""{libBFile.Path}""
+F(new C()) + D.Z
+");
+            var diagnostics = s1.Compile();
+            Assert.Empty(diagnostics);
+
+            var result = await s1.EvaluateAsync();
+            Assert.Equal(2, (int)result);
+        }
+
+//        [Fact]
+//        public async Task OlderExplicitReferenceReplacedByPreviousImplicitReference()
+//        {
+//            var libASource = @"
+//public class C
+//{
+//    public readonly int X = D.Y;
+//}
+//";
+//            var libBSource = @"
+//public static class D
+//{
+//    public static readonly int Y = 1;
+//    public static readonly int Z = 2;
+//}
+//";
+
+//            var dir = Temp.CreateDirectory();
+//            var libBImage = CreateCSharpCompilation(libBSource, TargetFrameworkUtil.NetStandard20References, "libB").EmitToArray();
+//            var libBFile = dir.CreateFile("libB.dll").WriteAllBytes(libBImage);
+//            var libBRef = MetadataReference.CreateFromFile(libBFile.Path);
+
+//            var libAImage = CreateCSharpCompilation(libASource, TargetFrameworkUtil.NetStandard20References.Concat(libBRef), "libA").EmitToArray();
+//            var libAFile = dir.CreateFile("libA.dll").WriteAllBytes(libAImage);
+
+//            var s0 = CSharpScript.Create($@"
+//#r ""{libAFile.Path}""
+//int F(C c) => c.X;
+//");
+//            var s1 = s0.ContinueWith($@"
+//#r ""{libBFile.Path}""
+//F(new C()) + D.Z
+//");
+//            var diagnostics = s1.Compile();
+//            Assert.Empty(diagnostics);
+
+//            var result = await s1.EvaluateAsync();
+//            Assert.Equal(2, (int)result);
+//        }
     }
 }

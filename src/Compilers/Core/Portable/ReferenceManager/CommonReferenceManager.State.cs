@@ -41,7 +41,7 @@ namespace Microsoft.CodeAnalysis
 
         internal abstract MetadataReference GetMetadataReference(IAssemblySymbol assemblySymbol);
         internal abstract ImmutableArray<MetadataReference> ExplicitReferences { get; }
-        internal abstract ImmutableDictionary<AssemblyIdentity, PortableExecutableReference> ImplicitReferenceResolutions { get; }
+        internal abstract ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity, PortableExecutableReference)> ImplicitReferenceResolutions { get; }
     }
 
     internal partial class CommonReferenceManager<TCompilation, TAssemblySymbol> : CommonReferenceManager
@@ -116,16 +116,18 @@ namespace Microsoft.CodeAnalysis
         private ImmutableArray<MetadataReference> _lazyExplicitReferences;
 
         /// <summary>
-        /// Stores the results of implicit reference resolutions.
+        /// Stores the results of implicit reference resolutions. Maps the requested identity to the resolved identity and reference.
+        /// 
         /// If <see cref="MetadataReferenceResolver.ResolveMissingAssemblies"/> is true the reference manager attempts to resolve assembly identities,
         /// that do not match any explicit metadata references passed to the compilation (or specified via #r directive).
         /// For each such assembly identity <see cref="MetadataReferenceResolver.ResolveMissingAssembly(MetadataReference, AssemblyIdentity)"/> is called
         /// and its result is captured in this map.
-        /// The map also stores failures - the reference is null if the assembly of the given identity is not found by the resolver.
+        /// 
+        /// The map also stores failures - the value is (null, null) if the assembly of the given identity is not found by the resolver.
         /// This is important to maintain consistency, especially across multiple submissions (e.g. the reference is not found during compilation of the first submission
         /// but then it is available when the second submission is compiled).
         /// </summary>
-        private ImmutableDictionary<AssemblyIdentity, PortableExecutableReference> _lazyImplicitReferenceResolutions;
+        private ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity, PortableExecutableReference)> _lazyImplicitReferenceResolutions;
 
         /// <summary>
         /// Diagnostics produced during reference resolution and binding.
@@ -245,7 +247,7 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        internal override ImmutableDictionary<AssemblyIdentity, PortableExecutableReference> ImplicitReferenceResolutions
+        internal override ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity, PortableExecutableReference)> ImplicitReferenceResolutions
         {
             get
             {
@@ -387,7 +389,7 @@ namespace Microsoft.CodeAnalysis
             IDictionary<(string, string), MetadataReference> boundReferenceDirectiveMap,
             ImmutableArray<MetadataReference> directiveReferences,
             ImmutableArray<MetadataReference> explicitReferences,
-            ImmutableDictionary<AssemblyIdentity, PortableExecutableReference> implicitReferenceResolutions,
+            ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity, PortableExecutableReference)> implicitReferenceResolutions,
             bool containsCircularReferences,
             ImmutableArray<Diagnostic> diagnostics,
             TAssemblySymbol corLibraryOpt,
@@ -484,11 +486,17 @@ namespace Microsoft.CodeAnalysis
             {
                 foreach (var assemblyReference in assemblyReferencesBySimpleName)
                 {
-                    // the item in the list is the highest version, by construction
+                    // The first assembly reference in the list has the highest version, by construction.
+                    // Set aliases of all the other references to superseded alias, so that they can't be referenced directly 
+                    // and thus don't contribute to member lookups.
+                    // Skip references that have no index in this compilation. Those represent implicit assemblies inherited
+                    // from previous script compilations.
                     for (int i = 1; i < assemblyReference.Value.Count; i++)
                     {
-                        int assemblyIndex = assemblyReference.Value[i].GetAssemblyIndex(explicitlyReferencedAssemblyCount);
-                        aliasesOfReferencedAssembliesBuilder[assemblyIndex] = s_supersededAlias;
+                        if (assemblyReference.Value[i].TryGetAssemblyIndex(explicitlyReferencedAssemblyCount, out int assemblyIndex))
+                        {
+                            aliasesOfReferencedAssembliesBuilder[assemblyIndex] = s_supersededAlias;
+                        }
                     }
                 }
             }

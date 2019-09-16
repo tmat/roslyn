@@ -98,7 +98,7 @@ namespace Microsoft.CodeAnalysis
             out ImmutableArray<AssemblyData> allAssemblies,
             out ImmutableArray<MetadataReference> implicitlyResolvedReferences,
             out ImmutableArray<ResolvedReference> implicitlyResolvedReferenceMap,
-            ref ImmutableDictionary<AssemblyIdentity, PortableExecutableReference> implicitReferenceResolutions,
+            ref ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity Identity, PortableExecutableReference Reference)> implicitReferenceResolutions,
             [In, Out] DiagnosticBag resolutionDiagnostics,
             out bool hasCircularReference,
             out int corLibraryIndex)
@@ -203,7 +203,7 @@ namespace Microsoft.CodeAnalysis
             out ImmutableArray<AssemblyData> allAssemblies,
             out ImmutableArray<MetadataReference> metadataReferences,
             out ImmutableArray<ResolvedReference> resolvedReferences,
-            ref ImmutableDictionary<AssemblyIdentity, PortableExecutableReference> implicitReferenceResolutions,
+            ref ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity Identity, PortableExecutableReference Reference)> implicitReferenceResolutions,
             DiagnosticBag resolutionDiagnostics)
         {
             Debug.Assert(explicitAssemblies[0] is AssemblyDataForAssemblyBeingBuilt);
@@ -271,10 +271,10 @@ namespace Microsoft.CodeAnalysis
                         // -1 for assembly being built:
                         int index = explicitAssemblyCount - 1 + metadataReferencesBuilder.Count;
 
-                        var existingReference = TryAddAssembly(resolvedAssemblyIdentity, resolvedReference, index, resolutionDiagnostics, Location.None, assemblyReferencesBySimpleName, supersedeLowerVersions);
-                        if (existingReference != null)
+                        var existing = GetOrAddReferencedAssemblyIdentity(resolvedAssemblyIdentity, resolvedReference, index, assemblyReferencesBySimpleName, supersedeLowerVersions);
+                        if (existing.Reference != null)
                         {
-                            MergeReferenceProperties(existingReference, resolvedReference, resolutionDiagnostics, ref lazyAliasMap);
+                            MergeReferenceProperties(existing.Reference, resolvedReference, resolutionDiagnostics, ref lazyAliasMap);
                             continue;
                         }
 
@@ -292,7 +292,7 @@ namespace Microsoft.CodeAnalysis
                 // record failures for resolution in subsequent submissions: 
                 foreach (var assemblyIdentity in resolutionFailures)
                 {
-                    implicitReferenceResolutions = implicitReferenceResolutions.Add(assemblyIdentity, null);
+                    implicitReferenceResolutions = implicitReferenceResolutions.Add(assemblyIdentity, default);
                 }
 
                 if (implicitAssemblies.Count == 0)
@@ -485,7 +485,7 @@ namespace Microsoft.CodeAnalysis
         private bool TryResolveMissingReference(
             MetadataReference requestingReference,
             AssemblyIdentity referenceIdentity,
-            ref ImmutableDictionary<AssemblyIdentity, PortableExecutableReference> implicitReferenceResolutions,
+            ref ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity Identity, PortableExecutableReference Reference)> implicitReferenceResolutions,
             MetadataReferenceResolver resolver,
             DiagnosticBag resolutionDiagnostics,
             out AssemblyIdentity resolvedAssemblyIdentity,
@@ -499,7 +499,11 @@ namespace Microsoft.CodeAnalysis
             // Check if we have previously resolved an identity and reuse the previously resolved reference if so. 
             // Use the resolver to find the missing reference.
             // Note that the resolver may return an assembly of a different identity than requested, e.g. a higher version.
-            if (!implicitReferenceResolutions.TryGetValue(referenceIdentity, out resolvedReference))
+            if (implicitReferenceResolutions.TryGetValue(referenceIdentity, out var previouslyResolved))
+            {
+                resolvedReference = previouslyResolved.Reference;
+            }
+            else
             {
                 resolvedReference = resolver.ResolveMissingAssembly(requestingReference, referenceIdentity);
                 isNewlyResolvedReference = true;
@@ -527,7 +531,7 @@ namespace Microsoft.CodeAnalysis
             }
 
             resolvedAssemblyIdentity = resolvedAssembly.Identity;
-            implicitReferenceResolutions = implicitReferenceResolutions.Add(referenceIdentity, resolvedReference);
+            implicitReferenceResolutions = implicitReferenceResolutions.Add(referenceIdentity, (resolvedAssemblyIdentity, resolvedReference));
             return true;
         }
 

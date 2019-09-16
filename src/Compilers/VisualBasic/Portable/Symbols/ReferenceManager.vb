@@ -323,7 +323,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     ' Avoid resolving previously resolved missing references. If we call to the resolver again we would create new assembly symbols for them,
                     ' which would not match the previously created ones. As a result we would get duplicate PE types And conversion errors.
                     Dim implicitReferenceResolutions = If(compilation.ScriptCompilationInfo?.PreviousScriptCompilation?.GetBoundReferenceManager().ImplicitReferenceResolutions,
-                        ImmutableDictionary(Of AssemblyIdentity, PortableExecutableReference).Empty)
+                        ImmutableDictionary(Of AssemblyIdentity, (AssemblyIdentity, PortableExecutableReference)).Empty)
 
                     Dim bindingResult() As BoundInputAssembly = Bind(compilation,
                                                                      explicitAssemblyData,
