@@ -74,6 +74,7 @@ namespace Microsoft.CodeAnalysis
 
             public override AssemblyReferenceBinding[] BindAssemblyReferences(
                 ImmutableArray<AssemblyData> assemblies,
+                ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity Identity, PortableExecutableReference Reference)> implicitReferenceResolutions,
                 AssemblyIdentityComparer assemblyIdentityComparer)
             {
                 var boundReferences = new AssemblyReferenceBinding[_referencedAssemblies.Length];
@@ -92,6 +93,7 @@ namespace Microsoft.CodeAnalysis
                 {
                     boundReferences[i] = ResolveReferencedAssembly(
                         _referencedAssemblies[i],
+                        implicitReferenceResolutions,
                         assemblies,
                         definitionStartIndex,
                         assemblyIdentityComparer);

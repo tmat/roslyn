@@ -113,7 +113,7 @@ namespace Microsoft.CodeAnalysis
                 // bind its references against the other assemblies we have.
                 for (int i = 0; i < explicitAssemblies.Length; i++)
                 {
-                    referenceBindings.Add(explicitAssemblies[i].BindAssemblyReferences(explicitAssemblies, IdentityComparer));
+                    referenceBindings.Add(explicitAssemblies[i].BindAssemblyReferences(explicitAssemblies, implicitReferenceResolutions, IdentityComparer));
                 }
 
                 if (resolverOpt?.ResolveMissingAssemblies == true)
@@ -210,6 +210,8 @@ namespace Microsoft.CodeAnalysis
             Debug.Assert(referenceBindings.Count == explicitAssemblies.Length);
             Debug.Assert(explicitReferences.Length == explicitReferenceMap.Length);
 
+            var previousImplicitReferenceResolutions = implicitReferenceResolutions;
+
             // -1 for assembly being built:
             int totalReferencedAssemblyCount = explicitAssemblies.Length - 1;
 
@@ -283,7 +285,7 @@ namespace Microsoft.CodeAnalysis
                         var data = CreateAssemblyDataForResolvedMissingAssembly(resolvedAssemblyMetadata, resolvedReference, importOptions);
                         implicitAssemblies.Add(data);
 
-                        var referenceBinding = data.BindAssemblyReferences(explicitAssemblies, IdentityComparer);
+                        var referenceBinding = data.BindAssemblyReferences(explicitAssemblies, previousImplicitReferenceResolutions, IdentityComparer);
                         referenceBindings.Add(referenceBinding);
                         referenceBindingsToProcess.Push((resolvedReference, new ArraySegment<AssemblyReferenceBinding>(referenceBinding)));
                     }
@@ -329,6 +331,7 @@ namespace Microsoft.CodeAnalysis
                         // since we already resolved against explicitly specified ones.
                         referenceBinding[i] = ResolveReferencedAssembly(
                             binding.ReferenceIdentity,
+                            previousImplicitReferenceResolutions,
                             allAssemblies,
                             explicitAssemblyCount,
                             IdentityComparer);

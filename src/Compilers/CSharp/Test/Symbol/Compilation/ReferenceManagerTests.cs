@@ -3266,7 +3266,7 @@ public class C : A
         }
 
         [Fact]
-        public void MissingAssemblyResolution_NewerExplicitReferenceReplacesImplicitReference_SupersededByEvenNewerExplicitReference()
+        public void MissingAssemblyResolution_NewerExplicitReferencesSupersedeImplicitReference()
         {
             // Submission 0: a -> "b, V1"
             // Submission 1: "b, V2"
@@ -3281,38 +3281,39 @@ public class C : A
                 { "B, 1.0.0.0", b1Ref }
             });
 
-            var c0 = CreateSubmissionWithExactReferences("var b = A.F(null);", new[] { MscorlibRef_v4_0_30316_17626, aRef },
+            var c0 = CreateSubmissionWithExactReferences("B b1 = A.F(null);", new[] { MscorlibRef_v4_0_30316_17626, aRef },
                 TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver));
+
+            c0.VerifyAssemblyVersionsAndAliasesAndDependencies(
+                "mscorlib, Version=4.0.0.0",
+                "A, Version=1.0.0.0: [mscorlib, Version=4.0.0.0] [B, Version=1.0.0.0]",
+                "B, Version=1.0.0.0: [mscorlib, Version=4.0.0.0]");
 
             c0.VerifyEmitDiagnostics();
 
-            c0.VerifyAssemblyVersionsAndAliases(
-                "mscorlib, Version=4.0.0.0",
-                "A, Version=1.0.0.0",
-                "B, Version=1.0.0.0");
-
-            var c1 = CreateSubmissionWithExactReferences("A.F(b)", new[] { b2Ref, b3Ref },
+            var c1 = CreateSubmissionWithExactReferences("B b2 = A.F(b1);", new[] { b2Ref, b3Ref },
                 TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver), previous: c0);
 
-            c1.VerifyEmitDiagnostics(
-                // (1,1): warning CS1701: Assuming assembly reference 'B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' used by 'A' 
-                // matches identity 'B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' of 'B', you may need to supply runtime policy
-                Diagnostic(ErrorCode.WRN_UnifyReferenceMajMin, "A.F").WithArguments(
-                    "B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "A",
-                    "B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "B"));
-
-            c1.VerifyAssemblyVersionsAndAliases(
-                "B, Version=2.0.0.0: <superseded>",
-                "B, Version=3.0.0.0",
+            c1.VerifyAssemblyVersionsAndAliasesAndDependencies(
+                "B, Version=2.0.0.0: <superseded>: [mscorlib, Version=4.0.0.0]",
+                "B, Version=3.0.0.0: [mscorlib, Version=4.0.0.0]",
                 "mscorlib, Version=4.0.0.0",
-                "A, Version=1.0.0.0");
+                "A, Version=1.0.0.0: [mscorlib, Version=4.0.0.0] [B, Version=1.0.0.0]",
+                "B, Version=1.0.0.0: <superseded>: [mscorlib, Version=4.0.0.0]");
+
+            c1.VerifyEmitDiagnostics(
+                // (1,8): error CS0029: Cannot implicitly convert type 'B [B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2]'
+                // to 'B [B, Version=3.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2]'
+                Diagnostic(ErrorCode.ERR_NoImplicitConv, "A.F(b1)").WithArguments(
+                    "B [B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2]",
+                    "B [B, Version=3.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2]"));
 
             resolver.VerifyResolutionAttempts(
                 "A -> B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2");
         }
 
         [Fact]
-        public void MissingAssemblyResolution_OlderExplicitReferenceReplacedByPreviousImplicitReference()
+        public void MissingAssemblyResolution_ExplicitReferenceSupersededByPreviousNewerImplicitReference()
         {
             // Submission 0: a -> "b, V1" resolves to "b, V3"
             // Submission 1: "b, V2"
@@ -3326,8 +3327,13 @@ public class C : A
                 { "B, 1.0.0.0", b3Ref }
             });
 
-            var c0 = CreateSubmissionWithExactReferences("var b = A.F(null);", new[] { MscorlibRef_v4_0_30316_17626, aRef },
+            var c0 = CreateSubmissionWithExactReferences("B b1 = A.F(null);", new[] { MscorlibRef_v4_0_30316_17626, aRef },
                 TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver));
+
+            c0.VerifyAssemblyVersionsAndAliasesAndDependencies(
+                "mscorlib, Version=4.0.0.0",
+                "A, Version=1.0.0.0: [mscorlib, Version=4.0.0.0] [B, Version=3.0.0.0]",
+                "B, Version=3.0.0.0: [mscorlib, Version=4.0.0.0]");
 
             c0.VerifyEmitDiagnostics(
                 // (1,1): warning CS1701: Assuming assembly reference 'B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' used by 'A'
@@ -3336,25 +3342,21 @@ public class C : A
                     "B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "A",
                     "B, Version=3.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "B"));
 
-            c0.VerifyAssemblyVersionsAndAliases(
-                "mscorlib, Version=4.0.0.0",
-                "A, Version=1.0.0.0",
-                "B, Version=3.0.0.0");
-
-            var c1 = CreateSubmissionWithExactReferences("A.F(b)", new[] { b2Ref },
+            var c1 = CreateSubmissionWithExactReferences("B b2 = A.F(b1);", new[] { b2Ref },
                 TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver), previous: c0);
+
+            c1.VerifyAssemblyVersionsAndAliasesAndDependencies(
+                "B, Version=2.0.0.0: <superseded>: [mscorlib, Version=4.0.0.0]",
+                "mscorlib, Version=4.0.0.0",
+                "A, Version=1.0.0.0: [mscorlib, Version=4.0.0.0] [B, Version=3.0.0.0]",
+                "B, Version=3.0.0.0: [mscorlib, Version=4.0.0.0]");
 
             c1.VerifyEmitDiagnostics(
                 // (1,1): warning CS1701: Assuming assembly reference 'B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' used by 'A'
-                // matches identity 'B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' of 'B', you may need to supply runtime policy
+                // matches identity 'B, Version=3.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' of 'B', you may need to supply runtime policy
                 Diagnostic(ErrorCode.WRN_UnifyReferenceMajMin, "A.F").WithArguments(
                     "B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "A",
-                    "B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "B"));
-
-            c1.VerifyAssemblyVersionsAndAliases(
-                "B, Version=2.0.0.0",
-                "mscorlib, Version=4.0.0.0",
-                "A, Version=1.0.0.0");
+                    "B, Version=3.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "B"));
 
             resolver.VerifyResolutionAttempts(
                 "A -> B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2");
@@ -3363,7 +3365,7 @@ public class C : A
         [Fact]
         public void MissingAssemblyResolution_TwoImplicitDependenciesWithDifferentVersions_Signed()
         {
-            // Signed identities with different version are considered different.
+            // Strong-name identities with different version are considered different.
 
             // Submission 0: a -> "b, V1"
             // Submission 1: d -> "b, V2"
@@ -3428,6 +3430,20 @@ public class C : A
         }
 
         [Fact]
+        public void ExplicitReferences_TwoImplicitDependenciesWithDifferentVersions_Unsigned()
+        {
+            var b1Ref = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")] public class B { }", new[] { MscorlibRef }, options: TestOptions.ReleaseDll, assemblyName: "B").EmitToImageReference();
+            var b2Ref = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""2.0.0.0"")] public class B { }", new[] { MscorlibRef }, options: TestOptions.ReleaseDll, assemblyName: "B").EmitToImageReference();
+            var aRef = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")]public static class A { public static B F(B b) => new B(); }", new[] { MscorlibRef, b1Ref }, TestOptions.ReleaseDll, assemblyName: "A").EmitToImageReference();
+            var dRef = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")]public static class D { public static B F(B b) => new B(); }", new[] { MscorlibRef, b2Ref }, TestOptions.ReleaseDll, assemblyName: "D").EmitToImageReference();
+
+            var c = CreateEmptyCompilation("class C { B b1 = A.F(null); }", new[] { MscorlibRef, b1Ref, b2Ref, aRef, dRef });
+            c.VerifyEmitDiagnostics(
+                // error CS1704: An assembly with the same simple name 'B' has already been imported. Try removing one of the references (e.g. 'B') or sign them to enable side-by-side.
+                Diagnostic(ErrorCode.ERR_DuplicateImportSimple).WithArguments("B", "B"));
+        }
+
+        [Fact]
         public void MissingAssemblyResolution_TwoImplicitDependenciesWithDifferentVersions_Unsigned()
         {
             // Weak/unsigned identities with different version are considered the same.
@@ -3445,6 +3461,7 @@ public class C : A
                 { "B, 2.0.0.0", b2Ref }
             });
 
+            // B binds to B, v1
             var c0 = CreateSubmissionWithExactReferences("B b1 = A.F(null);", new[] { MscorlibRef_v4_0_30316_17626, aRef },
                 TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver));
 
@@ -3459,13 +3476,18 @@ public class C : A
             var c1 = CreateSubmissionWithExactReferences("B b2 = D.F(null);", new[] { dRef },
                 TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver), previous: c0);
 
-            // TODO:
             c1.VerifyEmitDiagnostics(
                 // (1,8): error CS0029: Cannot implicitly convert type 'B [B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]'
                 // to 'B [B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null]'
                 Diagnostic(ErrorCode.ERR_NoImplicitConv, "D.F(null)").WithArguments(
                     "B [B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]",
                     "B [B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null]"));
+
+            // var binds to B, v1
+            c1 = CreateSubmissionWithExactReferences("var b2 = D.F(null);", new[] { dRef },
+                TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver), previous: c0);
+
+            c1.VerifyEmitDiagnostics();
 
             c1.VerifyAssemblyVersionsAndAliases(
                 "D, Version=1.0.0.0",
@@ -3475,8 +3497,9 @@ public class C : A
                 "B, Version=2.0.0.0");
 
             resolver.VerifyResolutionAttempts(
-                "A -> B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2",
-                "D -> B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2");
+                "A -> B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+                "D -> B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null",
+                "D -> B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null");
         }
 
         [Fact]
@@ -3486,8 +3509,8 @@ public class C : A
             // Submission 1: d -> "b, V2"
             var b1Ref = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")] public class B { }", new[] { MscorlibRef }, options: s_signedDll, assemblyName: "B").EmitToImageReference();
             var b2Ref = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""2.0.0.0"")] public class B { }", new[] { MscorlibRef }, options: s_signedDll, assemblyName: "B").EmitToImageReference();
-            var aRef = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")]public class A { public static void F(B b) { } }", new[] { MscorlibRef, b1Ref }, TestOptions.ReleaseDll, assemblyName: "A").EmitToImageReference();
-            var dRef = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")]public class D { public static void F(B b) { } }", new[] { MscorlibRef, b2Ref }, TestOptions.ReleaseDll, assemblyName: "D").EmitToImageReference();
+            var aRef = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")]public static class A { public static B F(B b) => new B(); }", new[] { MscorlibRef, b1Ref }, TestOptions.ReleaseDll, assemblyName: "A").EmitToImageReference();
+            var dRef = CreateEmptyCompilation(@"[assembly: System.Reflection.AssemblyVersion(""1.0.0.0"")]public static class D { public static B F(B b) => new B(); }", new[] { MscorlibRef, b2Ref }, TestOptions.ReleaseDll, assemblyName: "D").EmitToImageReference();
 
             var resolver = new TestMissingMetadataReferenceResolver(new Dictionary<string, MetadataReference>
             {
@@ -3495,8 +3518,13 @@ public class C : A
                 { "B, 2.0.0.0", b2Ref }
             });
 
-            var c0 = CreateSubmissionWithExactReferences("A.F(null)", new[] { MscorlibRef_v4_0_30316_17626, aRef },
+            var c0 = CreateSubmissionWithExactReferences("B b1 = A.F(null);", new[] { MscorlibRef_v4_0_30316_17626, aRef },
                 TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver));
+
+            c0.VerifyAssemblyVersionsAndAliases(
+                "mscorlib, Version=4.0.0.0",
+                "A, Version=1.0.0.0",
+                "B, Version=2.0.0.0");
 
             c0.VerifyEmitDiagnostics(
                 // (1,1): warning CS1701: Assuming assembly reference 'B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' used by 'A'
@@ -3505,19 +3533,24 @@ public class C : A
                     "B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "A",
                     "B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "B"));
 
-            var c1 = CreateSubmissionWithExactReferences("A.F(null)", new[] { dRef },
+            var c1 = CreateSubmissionWithExactReferences("B b2 = A.F(null);", new[] { dRef },
                 TestOptions.ReleaseDll.WithMetadataReferenceResolver(resolver), previous: c0);
 
-            c1.VerifyEmitDiagnostics();
+            c1.VerifyEmitDiagnostics(
+                // (1,8): warning CS1701: Assuming assembly reference 'B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' used by 'A'
+                // matches identity 'B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2' of 'B', you may need to supply runtime policy
+                Diagnostic(ErrorCode.WRN_UnifyReferenceMajMin, "A.F").WithArguments(
+                    "B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "A",
+                    "B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2", "B"));
 
             c1.VerifyAssemblyVersionsAndAliases(
                 "D, Version=1.0.0.0",
                 "mscorlib, Version=4.0.0.0",
                 "A, Version=1.0.0.0",
-                "B, Version=2.0.0.0xx");
+                "B, Version=2.0.0.0");
 
             resolver.VerifyResolutionAttempts(
-                "A -> B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2",
+                "A -> B, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2",
                 "D -> B, Version=2.0.0.0, Culture=neutral, PublicKeyToken=ce65828c82a341f2");
         }
 

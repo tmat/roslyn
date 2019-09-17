@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -851,7 +852,9 @@ namespace Microsoft.CodeAnalysis
                 var previousScriptCompilation = compilation.ScriptCompilationInfo?.PreviousScriptCompilation;
                 if (previousScriptCompilation != null)
                 {
-                    referencesBuilder.AddRange(previousScriptCompilation.GetBoundReferenceManager().ExplicitReferences);
+                    var previousReferenceManager = previousScriptCompilation.GetBoundReferenceManager();
+                    referencesBuilder.AddRange(previousReferenceManager.ExplicitReferences);
+                    referencesBuilder.AddRange(previousReferenceManager.ImplicitReferenceResolutions.Values.Select(r => r.Reference));
                 }
 
                 if (boundReferenceDirectives == null)
@@ -900,22 +903,39 @@ namespace Microsoft.CodeAnalysis
         internal static AssemblyReferenceBinding[] ResolveReferencedAssemblies(
             ImmutableArray<AssemblyIdentity> references,
             ImmutableArray<AssemblyData> definitions,
+            ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity Identity, PortableExecutableReference Reference)> implicitReferenceResolutions,
             int definitionStartIndex,
             AssemblyIdentityComparer assemblyIdentityComparer)
         {
             var boundReferences = new AssemblyReferenceBinding[references.Length];
             for (int j = 0; j < references.Length; j++)
             {
-                boundReferences[j] = ResolveReferencedAssembly(references[j], definitions, definitionStartIndex, assemblyIdentityComparer);
+                boundReferences[j] = ResolveReferencedAssembly(references[j], implicitReferenceResolutions, definitions, definitionStartIndex, assemblyIdentityComparer);
             }
 
             return boundReferences;
+        }
+
+        internal static AssemblyReferenceBinding ResolveReferencedAssembly(
+            AssemblyIdentity reference,
+            ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity Identity, PortableExecutableReference Reference)> implicitReferenceResolutions,
+            ImmutableArray<AssemblyData> definitions,
+            int definitionStartIndex,
+            AssemblyIdentityComparer assemblyIdentityComparer)
+        {
+            // If the reference identity matches an identity that was implicitly resolved in a previous script compilation,
+            // require the version of the matching definition to be greater than or equal to the already resolved version.
+            var minDefinitionVersion = implicitReferenceResolutions.TryGetValue(reference, out var previousImplicitResolution) ?
+                previousImplicitResolution.Identity.Version : AssemblyIdentity.NullVersion;
+
+            return ResolveReferencedAssembly(reference, minDefinitionVersion, definitions, definitionStartIndex, assemblyIdentityComparer);
         }
 
         /// <summary>
         /// Used to match AssemblyRef with AssemblyDef.
         /// </summary>
         /// <param name="definitions">Array of definition identities to match against.</param>
+        /// <param name="minDefinitionVersion">Minimal required version of the definition.</param>
         /// <param name="definitionStartIndex">An index of the first definition to consider, <paramref name="definitions"/> preceding this index are ignored.</param>
         /// <param name="reference">Reference identity to resolve.</param>
         /// <param name="assemblyIdentityComparer">Assembly identity comparer.</param>
@@ -924,6 +944,7 @@ namespace Microsoft.CodeAnalysis
         /// </returns>
         internal static AssemblyReferenceBinding ResolveReferencedAssembly(
             AssemblyIdentity reference,
+            Version minDefinitionVersion,
             ImmutableArray<AssemblyData> definitions,
             int definitionStartIndex,
             AssemblyIdentityComparer assemblyIdentityComparer)
@@ -953,6 +974,11 @@ namespace Microsoft.CodeAnalysis
                         return new AssemblyReferenceBinding(reference, i);
 
                     case AssemblyIdentityComparer.ComparisonResult.EquivalentIgnoringVersion:
+                        if (definition.Version < minDefinitionVersion)
+                        {
+                            continue;
+                        }
+
                         if (reference.Version < definition.Version)
                         {
                             // Refers to an older assembly than we have

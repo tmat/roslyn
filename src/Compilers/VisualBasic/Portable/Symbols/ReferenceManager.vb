@@ -778,8 +778,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End Get
                 End Property
 
-                Public Overrides Function BindAssemblyReferences(assemblies As ImmutableArray(Of AssemblyData), assemblyIdentityComparer As AssemblyIdentityComparer) As AssemblyReferenceBinding()
-                    Return ResolveReferencedAssemblies(_referencedAssemblies, assemblies, definitionStartIndex:=0, assemblyIdentityComparer:=assemblyIdentityComparer)
+                Public Overrides Function BindAssemblyReferences(
+                    assemblies As ImmutableArray(Of AssemblyData),
+                    implicitReferenceResolutions As ImmutableDictionary(Of AssemblyIdentity, (AssemblyIdentity, PortableExecutableReference)),
+                    assemblyIdentityComparer As AssemblyIdentityComparer) As AssemblyReferenceBinding()
+
+                    Return ResolveReferencedAssemblies(_referencedAssemblies, assemblies, implicitReferenceResolutions, definitionStartIndex:=0, assemblyIdentityComparer:=assemblyIdentityComparer)
                 End Function
 
                 Public NotOverridable Overrides ReadOnly Property IsLinked As Boolean

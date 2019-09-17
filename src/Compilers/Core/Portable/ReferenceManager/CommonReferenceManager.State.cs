@@ -37,11 +37,11 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Enumerates all referenced assemblies and their aliases.
         /// </summary>
-        internal abstract IEnumerable<(IAssemblySymbol, ImmutableArray<string>)> GetReferencedAssemblyAliases();
+        internal abstract IEnumerable<(IAssemblySymbol Assembly, ImmutableArray<string> Aliases)> GetReferencedAssemblyAliases();
 
         internal abstract MetadataReference GetMetadataReference(IAssemblySymbol assemblySymbol);
         internal abstract ImmutableArray<MetadataReference> ExplicitReferences { get; }
-        internal abstract ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity, PortableExecutableReference)> ImplicitReferenceResolutions { get; }
+        internal abstract ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity ResolvedIdentity, PortableExecutableReference Reference)> ImplicitReferenceResolutions { get; }
     }
 
     internal partial class CommonReferenceManager<TCompilation, TAssemblySymbol> : CommonReferenceManager

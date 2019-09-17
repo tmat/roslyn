@@ -52,7 +52,10 @@ namespace Microsoft.CodeAnalysis
             /// For each assembly referenced by this assembly (<see cref="AssemblyReferences"/>) 
             /// a description of how it binds to one of the input assemblies.
             /// </returns>
-            public abstract AssemblyReferenceBinding[] BindAssemblyReferences(ImmutableArray<AssemblyData> assemblies, AssemblyIdentityComparer assemblyIdentityComparer);
+            public abstract AssemblyReferenceBinding[] BindAssemblyReferences(
+                ImmutableArray<AssemblyData> assemblies,
+                ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity Identity, PortableExecutableReference Reference)> implicitReferenceResolutions,
+                AssemblyIdentityComparer assemblyIdentityComparer);
 
             public abstract bool ContainsNoPiaLocalTypes { get; }
 

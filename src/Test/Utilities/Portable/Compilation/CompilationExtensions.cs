@@ -146,10 +146,30 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             }
         }
 
+        private static string InspectIdentity(AssemblyIdentity identity)
+            => $"{identity.Name}, Version={identity.Version}";
+
+        private static string InspectAliases(ImmutableArray<string> aliases)
+            => aliases.IsEmpty ? "" : ": " + string.Join(",", aliases);
+
+        private static string InspectDependencies(IAssemblySymbol assembly)
+        {
+            var referencedSymbols = assembly.Modules.Single().ReferencedAssemblySymbols;
+            return referencedSymbols.IsEmpty ? "" : ": " + string.Join(" ", referencedSymbols.Select(t => $"[{InspectIdentity(t.Identity)}]"));
+        }
+
         internal static void VerifyAssemblyVersionsAndAliases(this Compilation compilation, params string[] expectedAssembliesAndAliases)
         {
             var actual = compilation.GetBoundReferenceManager().GetReferencedAssemblyAliases().
-               Select(t => $"{t.Item1.Identity.Name}, Version={t.Item1.Identity.Version}{(t.Item2.IsEmpty ? "" : ": " + string.Join(",", t.Item2))}");
+               Select(t => $"{InspectIdentity(t.Assembly.Identity)}{InspectAliases(t.Aliases)}");
+
+            AssertEx.Equal(expectedAssembliesAndAliases, actual, itemInspector: s => '"' + s + '"');
+        }
+
+        internal static void VerifyAssemblyVersionsAndAliasesAndDependencies(this Compilation compilation, params string[] expectedAssembliesAndAliases)
+        {
+            var actual = compilation.GetBoundReferenceManager().GetReferencedAssemblyAliases().
+               Select(t => $"{InspectIdentity(t.Assembly.Identity)}{InspectAliases(t.Aliases)}{InspectDependencies(t.Assembly)}");
 
             AssertEx.Equal(expectedAssembliesAndAliases, actual, itemInspector: s => '"' + s + '"');
         }
@@ -157,7 +177,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
         internal static void VerifyAssemblyAliases(this Compilation compilation, params string[] expectedAssembliesAndAliases)
         {
             var actual = compilation.GetBoundReferenceManager().GetReferencedAssemblyAliases().
-               Select(t => $"{t.Item1.Identity.Name}{(t.Item2.IsEmpty ? "" : ": " + string.Join(",", t.Item2))}");
+               Select(t => $"{t.Assembly.Identity.Name}{InspectAliases(t.Aliases)}");
 
             AssertEx.Equal(expectedAssembliesAndAliases, actual, itemInspector: s => '"' + s + '"');
         }

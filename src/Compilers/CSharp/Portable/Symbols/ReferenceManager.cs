@@ -899,9 +899,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
 
                 public override AssemblyReferenceBinding[] BindAssemblyReferences(
-                    ImmutableArray<AssemblyData> assemblies, AssemblyIdentityComparer assemblyIdentityComparer)
+                    ImmutableArray<AssemblyData> assemblies,
+                    ImmutableDictionary<AssemblyIdentity, (AssemblyIdentity Identity, PortableExecutableReference Reference)> implicitReferenceResolutions,
+                    AssemblyIdentityComparer assemblyIdentityComparer)
                 {
-                    return ResolveReferencedAssemblies(_referencedAssemblies, assemblies, definitionStartIndex: 0, assemblyIdentityComparer: assemblyIdentityComparer);
+                    return ResolveReferencedAssemblies(_referencedAssemblies, assemblies, implicitReferenceResolutions, definitionStartIndex: 0, assemblyIdentityComparer: assemblyIdentityComparer);
                 }
 
                 public sealed override bool IsLinked
