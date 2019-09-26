@@ -187,6 +187,11 @@
         <target state="translated">범위를 벗어나기 전에 개체를 삭제하십시오.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DocumentIsOutOfSyncWithDebuggee">
+        <source>The current content of source file '{0}' does not match the built source. The file is likely being updated by a background build. The debug session can't continue until the update has been completed.</source>
+        <target state="new">The current content of source file '{0}' does not match the built source. The file is likely being updated by a background build. The debug session can't continue until the update has been completed.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EditAndContinue">
         <source>Edit and Continue</source>
         <target state="translated">편집하며 계속하기</target>

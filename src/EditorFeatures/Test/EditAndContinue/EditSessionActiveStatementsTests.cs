@@ -121,7 +121,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             var editSession = new EditSession(debuggingSession, telemetry);
 
             return (await editSession.BaseActiveStatements.GetValueAsync(CancellationToken.None).ConfigureAwait(false),
-                    await editSession.BaseActiveExceptionRegions.GetValueAsync(CancellationToken.None).ConfigureAwait(false),
+                    await editSession.GetBaseActiveExceptionRegionsAsync(CancellationToken.None).ConfigureAwait(false),
                     docsIds.ToImmutableArray());
         }
 

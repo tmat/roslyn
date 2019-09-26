@@ -221,6 +221,15 @@ namespace Microsoft.CodeAnalysis
         }
 
         /// <summary>
+        /// Override this method to act immediately when the text loader of a document has changed (the document was updated on disk),
+        /// as opposed to waiting for the corresponding workspace changed event to fire asynchronously.
+        /// </summary>
+        internal virtual void OnDocumentTextLoaderChanged(Document newDocument)
+        {
+            OnDocumentTextChanged(newDocument);
+        }
+
+        /// <summary>
         /// Override this method to act immediately when a document is closing, as opposed
         /// to waiting for the corresponding workspace changed event to fire asynchronously.
         /// </summary>
@@ -695,7 +704,7 @@ namespace Microsoft.CodeAnalysis
                 newSolution = this.SetCurrentSolution(newSolution);
 
                 var newDocument = newSolution.GetDocument(documentId)!;
-                this.OnDocumentTextChanged(newDocument);
+                this.OnDocumentTextLoaderChanged(newDocument);
 
                 this.RaiseWorkspaceChangedEventAsync(WorkspaceChangeKind.DocumentChanged, oldSolution, newSolution, documentId: documentId);
             }

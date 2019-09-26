@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.EditAndContinue;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -61,6 +62,17 @@ namespace Microsoft.VisualStudio.LanguageServices
             if (_backgroundParser != null)
             {
                 _backgroundParser.Parse(document);
+            }
+        }
+
+        internal override void OnDocumentTextLoaderChanged(Document newDocument)
+        {
+            base.OnDocumentTextLoaderChanged(newDocument);
+
+            // notify EnC that document content has been updated from disk:
+            if (newDocument.FilePath != null)
+            {
+                Services.GetService<IEditAndContinueWorkspaceService>()?.OnSourceFileUpdated(newDocument);
             }
         }
 

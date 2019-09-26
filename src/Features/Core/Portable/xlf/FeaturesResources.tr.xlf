@@ -187,6 +187,11 @@
         <target state="translated">Kapsamı kaybetmeden çnce nesneleri bırakın</target>
         <note />
       </trans-unit>
+      <trans-unit id="DocumentIsOutOfSyncWithDebuggee">
+        <source>The current content of source file '{0}' does not match the built source. The file is likely being updated by a background build. The debug session can't continue until the update has been completed.</source>
+        <target state="new">The current content of source file '{0}' does not match the built source. The file is likely being updated by a background build. The debug session can't continue until the update has been completed.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EditAndContinue">
         <source>Edit and Continue</source>
         <target state="translated">Düzenle ve Devam Et</target>
