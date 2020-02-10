@@ -60,7 +60,8 @@
           Condition="'$(DotNetBuildFromSource)' != 'true'">
 
     <ItemGroup>
-      <_File Include="@(DesktopCompilerArtifact)">
+      <!-- Exclude files installed by MSBuild (Microsoft.DiaSymReader.Native) -->      
+      <_File Include="@(DesktopCompilerArtifact)" Condition="'%(DesktopCompilerArtifact.InstalledByMSBuild)' != 'true'">
         <Path Condition="'%(DesktopCompilerArtifact._OptimizeAssembly)' == ''">%(DesktopCompilerArtifact.Identity)</Path>
         <Path Condition="'%(DesktopCompilerArtifact._OptimizeAssembly)' != ''">%(DesktopCompilerArtifact._OptimizeAssembly)</Path>
         <NGenArchitectureString Condition="'%(DesktopCompilerArtifact.NgenArchitecture)' != ''"> vs.file.ngenArchitecture=%(DesktopCompilerArtifact.NgenArchitecture)</NGenArchitectureString>

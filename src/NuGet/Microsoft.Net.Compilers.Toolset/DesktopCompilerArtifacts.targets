@@ -29,8 +29,6 @@
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)Microsoft.CodeAnalysis.Scripting\$(Configuration)\netstandard2.0\Microsoft.CodeAnalysis.Scripting.dll" NgenArchitecture="all" NgenApplication="csi.exe"/>
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)Microsoft.CodeAnalysis.CSharp.Scripting\$(Configuration)\netstandard2.0\Microsoft.CodeAnalysis.CSharp.Scripting.dll" NgenArchitecture="all" NgenApplication="csi.exe"/>
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)Microsoft.CodeAnalysis.VisualBasic\$(Configuration)\netstandard2.0\Microsoft.CodeAnalysis.VisualBasic.dll" NgenArchitecture="all" NgenApplication="VBCSCompiler.exe"/>
-      <DesktopCompilerArtifact Include="$(ArtifactsBinDir)csc\$(Configuration)\net472\Microsoft.DiaSymReader.Native.amd64.dll"/>
-      <DesktopCompilerArtifact Include="$(ArtifactsBinDir)csc\$(Configuration)\net472\Microsoft.DiaSymReader.Native.x86.dll"/>
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)csc\$(Configuration)\net472\csc.exe" NgenArchitecture="all" NgenApplication="csc.exe" NgenPriority="2"/>
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)csc\$(Configuration)\net472\csc.exe.config"/>
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)csc\$(Configuration)\net472\csc.rsp"/>
@@ -46,6 +44,10 @@
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)Microsoft.Build.Tasks.CodeAnalysis\$(Configuration)\net472\Microsoft.Managed.Core.targets"/>
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)Microsoft.Build.Tasks.CodeAnalysis\$(Configuration)\net472\Microsoft.CSharp.Core.targets"/>
       <DesktopCompilerArtifact Include="$(ArtifactsBinDir)Microsoft.Build.Tasks.CodeAnalysis\$(Configuration)\net472\Microsoft.VisualBasic.Core.targets"/>
+
+      <!-- The following files are installed by Visual Studio MSBuild package, not by Roslyn package. -->
+      <DesktopCompilerArtifact Include="$(ArtifactsBinDir)csc\$(Configuration)\net472\Microsoft.DiaSymReader.Native.amd64.dll" InstalledByMSBuild="true" />
+      <DesktopCompilerArtifact Include="$(ArtifactsBinDir)csc\$(Configuration)\net472\Microsoft.DiaSymReader.Native.x86.dll" InstalledByMSBuild="true" />
 
       <!--
         Do not overwrite optimization data of System.Threading.Tasks.Extensions.dll
