@@ -9,6 +9,8 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Remote;
 using Microsoft.ServiceHub.Client;
 using Roslyn.Utilities;
@@ -19,7 +21,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
     {
         private partial class ConnectionManager : IDisposable
         {
-            private readonly Workspace _workspace;
+            private readonly HostWorkspaceServices _services;
             private readonly HubClient _hubClient;
             private readonly HostGroup _hostGroup;
 
@@ -37,14 +39,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
             private bool _isDisposed;
 
             public ConnectionManager(
-                Workspace workspace,
+                HostWorkspaceServices services,
                 HubClient hubClient,
                 HostGroup hostGroup,
                 bool enableConnectionPool,
                 int maxPoolConnection,
                 ReferenceCountedDisposable<RemotableDataJsonRpc> remotableDataRpc)
             {
-                _workspace = workspace;
+                _workspaceServices = services;
                 _hubClient = hubClient;
                 _hostGroup = hostGroup;
 
@@ -127,9 +129,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 
                 // get stream from service hub to communicate service specific information
                 // this is what consumer actually use to communicate information
-                var serviceStream = await RequestServiceAsync(_workspace, _hubClient, serviceName, _hostGroup, cancellationToken).ConfigureAwait(false);
+                var serviceStream = await RequestServiceAsync(_workspaceServices, _hubClient, serviceName, _hostGroup, cancellationToken).ConfigureAwait(false);
 
-                return new JsonRpcConnection(_workspace, _hubClient.Logger, callbackTarget, serviceStream, dataRpc);
+                return new JsonRpcConnection(_services, _hubClient.Logger, callbackTarget, serviceStream, dataRpc);
             }
 
             private void Free(string serviceName, JsonRpcConnection connection)

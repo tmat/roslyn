@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Extensions;
+using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Remote;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Utilities;
 
@@ -22,10 +24,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 
         private static bool s_infoBarReported = false;
 
-        public static void ShowInfoBar(Workspace workspace, Exception exception = null)
+        public static void ShowInfoBar(HostWorkspaceServices services, Exception exception = null)
         {
             // use info bar to show warning to users
-            if (workspace == null || s_infoBarReported)
+            if (services == null || s_infoBarReported)
             {
                 return;
             }
@@ -39,8 +41,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                 new InfoBarUI(ServicesVSResources.Learn_more, InfoBarUI.UIKind.HyperLink, () =>
                     BrowserHelper.StartBrowser(new Uri(OOPKilledMoreInfoLink)), closeAfterAction: false));
 
-            var service = workspace.Services.GetService<IRemoteHostClientService>();
-            var allowRestarting = workspace.Options.GetOption(RemoteHostOptions.RestartRemoteHostAllowed);
+            var service = workspaceServices.GetService<IRemoteHostClientService>();
+            var allowRestarting = options.GetOption(RemoteHostOptions.RestartRemoteHostAllowed);
             if (allowRestarting && service != null)
             {
                 // this is hidden restart option. by default, user can't restart remote host that got killed
@@ -54,7 +56,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                     }, closeAfterAction: true));
             }
 
-            var errorReportingService = workspace.Services.GetRequiredService<IErrorReportingService>();
+            var errorReportingService = workspaceServices.GetRequiredService<IErrorReportingService>();
 
             if (exception != null)
             {

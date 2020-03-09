@@ -95,8 +95,8 @@ namespace Microsoft.CodeAnalysis.Remote
 
             Initialize(client, connection);
 
-            _remoteHostClientService = client.Workspace.Services.GetRequiredService<IRemoteHostClientService>();
-            _remotableDataService = client.Workspace.Services.GetRequiredService<IRemotableDataService>();
+            _remoteHostClientService = client.Services.GetRequiredService<IRemoteHostClientService>();
+            _remotableDataService = client.Services.GetRequiredService<IRemotableDataService>();
 
             _serviceName = serviceName;
             _callbackTarget = callbackTarget;

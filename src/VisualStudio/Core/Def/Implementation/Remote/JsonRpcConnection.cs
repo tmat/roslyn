@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Remote;
 using Roslyn.Utilities;
 
@@ -18,7 +18,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 {
     internal class JsonRpcConnection : RemoteHostClient.Connection
     {
-        private readonly Workspace _workspace;
+        private readonly HostWorkspaceServices _services;
 
         // communication channel related to service information
         private readonly RemoteEndPoint _serviceEndPoint;
@@ -27,7 +27,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         private readonly ReferenceCountedDisposable<RemotableDataJsonRpc> _remoteDataRpc;
 
         public JsonRpcConnection(
-            Workspace workspace,
+            HostWorkspaceServices services,
             TraceSource logger,
             object? callbackTarget,
             Stream serviceStream,
@@ -35,7 +35,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         {
             Contract.ThrowIfNull(dataRpc);
 
-            _workspace = workspace;
+            _services = services;
             _remoteDataRpc = dataRpc;
             _serviceEndPoint = new RemoteEndPoint(serviceStream, logger, callbackTarget);
             _serviceEndPoint.UnexpectedExceptionThrown += UnexpectedExceptionThrown;
@@ -43,7 +43,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         }
 
         private void UnexpectedExceptionThrown(Exception exception)
-            => RemoteHostCrashInfoBar.ShowInfoBar(_workspace, exception);
+            => RemoteHostCrashInfoBar.ShowInfoBar(_services, exception);
 
         public override Task InvokeAsync(string targetName, IReadOnlyList<object?> arguments, CancellationToken cancellationToken)
             => _serviceEndPoint.InvokeAsync(targetName, arguments, cancellationToken);

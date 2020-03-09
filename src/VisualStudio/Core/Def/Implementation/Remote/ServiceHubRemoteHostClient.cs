@@ -11,6 +11,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.ErrorReporting;
+using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Notification;
 using Microsoft.CodeAnalysis.Remote;
@@ -47,11 +48,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         private Task<GlobalNotificationState> _globalNotificationsTask = Task.FromResult(GlobalNotificationState.NotStarted);
 
         private ServiceHubRemoteHostClient(
-            Workspace workspace,
+            HostWorkspaceServices services,
             TraceSource logger,
             ConnectionManager connectionManager,
             Stream stream)
-            : base(workspace)
+            : base(services)
         {
             _shutdownCancellationTokenSource = new CancellationTokenSource();
 
@@ -64,14 +65,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         }
 
         private void OnUnexpectedExceptionThrown(Exception unexpectedException)
-            => RemoteHostCrashInfoBar.ShowInfoBar(Workspace, unexpectedException);
+            => RemoteHostCrashInfoBar.ShowInfoBar(Services, unexpectedException);
 
-        public static async Task<RemoteHostClient?> CreateAsync(Workspace workspace, CancellationToken cancellationToken)
+        public static async Task<RemoteHostClient?> CreateAsync(HostWorkspaceServices services, CancellationToken cancellationToken)
         {
             using (Logger.LogBlock(FunctionId.ServiceHubRemoteHostClient_CreateAsync, cancellationToken))
             {
-                var enableConnectionPool = workspace.Options.GetOption(RemoteHostOptions.EnableConnectionPool);
-                var maxConnection = workspace.Options.GetOption(RemoteHostOptions.MaxPoolConnection);
+                var enableConnectionPool = options.GetOption(RemoteHostOptions.EnableConnectionPool);
+                var maxConnection = options.GetOption(RemoteHostOptions.MaxPoolConnection);
 
                 // let each client to have unique id so that we can distinguish different clients when service is restarted
                 var clientId = CreateClientId(Process.GetCurrentProcess().Id.ToString());
@@ -83,13 +84,13 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                 WatsonReporter.InitializeLogger(hubClient.Logger);
 
                 // Create the RemotableDataJsonRpc before we create the remote host: this call implicitly sets up the remote IExperimentationService so that will be available for later calls
-                var snapshotServiceStream = await RequestServiceAsync(workspace, hubClient, WellKnownServiceHubServices.SnapshotService, hostGroup, cancellationToken).ConfigureAwait(false);
-                var remoteHostStream = await RequestServiceAsync(workspace, hubClient, WellKnownRemoteHostServices.RemoteHostService, hostGroup, cancellationToken).ConfigureAwait(false);
+                var snapshotServiceStream = await RequestServiceAsync(workspaceServices, hubClient, WellKnownServiceHubServices.SnapshotService, hostGroup, cancellationToken).ConfigureAwait(false);
+                var remoteHostStream = await RequestServiceAsync(workspaceServices, hubClient, WellKnownRemoteHostServices.RemoteHostService, hostGroup, cancellationToken).ConfigureAwait(false);
 
-                var remotableDataRpc = new RemotableDataJsonRpc(workspace, hubClient.Logger, snapshotServiceStream);
-                var connectionManager = new ConnectionManager(workspace, hubClient, hostGroup, enableConnectionPool, maxConnection, new ReferenceCountedDisposable<RemotableDataJsonRpc>(remotableDataRpc));
+                var remotableDataRpc = new RemotableDataJsonRpc(workspaceServices, hubClient.Logger, snapshotServiceStream);
+                var connectionManager = new ConnectionManager(workspaceServices, hubClient, hostGroup, enableConnectionPool, maxConnection, new ReferenceCountedDisposable<RemotableDataJsonRpc>(remotableDataRpc));
 
-                var client = new ServiceHubRemoteHostClient(workspace, hubClient.Logger, connectionManager, remoteHostStream);
+                var client = new ServiceHubRemoteHostClient(workspaceServices, hubClient.Logger, connectionManager, remoteHostStream);
 
                 var uiCultureLCID = CultureInfo.CurrentUICulture.LCID;
                 var cultureLCID = CultureInfo.CurrentCulture.LCID;
@@ -119,7 +120,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         }
 
         public static async Task<Stream> RequestServiceAsync(
-            Workspace workspace,
+            HostWorkspaceServices sServices,
             HubClient client,
             string serviceName,
             HostGroup hostGroup,
@@ -140,7 +141,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                 // we can assume that these exceptions indicate a failure and should be reported to the user.
                 cancellationToken.ThrowIfCancellationRequested();
 
-                RemoteHostCrashInfoBar.ShowInfoBar(workspace, e);
+                RemoteHostCrashInfoBar.ShowInfoBar(services, e);
 
                 // TODO: Propagate the original exception (see https://github.com/dotnet/roslyn/issues/40476)
                 throw new SoftCrashException("Unexpected exception from HubClient", e, cancellationToken);

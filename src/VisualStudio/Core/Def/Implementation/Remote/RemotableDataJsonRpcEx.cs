@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Execution;
 using Microsoft.CodeAnalysis.Experiments;
+using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Remote;
 using Microsoft.VisualStudio.Threading;
@@ -32,15 +33,15 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
     /// </summary>
     internal sealed class RemotableDataJsonRpc : IDisposable
     {
-        private readonly Workspace _workspace;
+        private readonly HostWorkspaceServices _services;
         private readonly IRemotableDataService _remotableDataService;
         private readonly CancellationTokenSource _shutdownCancellationSource;
         private readonly RemoteEndPoint _endPoint;
 
-        public RemotableDataJsonRpc(Workspace workspace, TraceSource logger, Stream snapshotServiceStream)
+        public RemotableDataJsonRpc(HostWorkspaceServices services, TraceSource logger, Stream snapshotServiceStream)
         {
-            _workspace = workspace;
-            _remotableDataService = workspace.Services.GetRequiredService<IRemotableDataService>();
+            _services = services;
+            _remotableDataService = services.GetRequiredService<IRemotableDataService>();
 
             _shutdownCancellationSource = new CancellationTokenSource();
 
@@ -51,7 +52,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         }
 
         private void UnexpectedExceptionThrown(Exception exception)
-            => RemoteHostCrashInfoBar.ShowInfoBar(_workspace, exception);
+            => RemoteHostCrashInfoBar.ShowInfoBar(_services, exception);
 
         private void OnDisconnected(JsonRpcDisconnectedEventArgs e)
         {
@@ -96,7 +97,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         {
             try
             {
-                return Task.FromResult(_workspace.Services.GetRequiredService<IExperimentationService>().IsExperimentEnabled(experimentName));
+                return Task.FromResult(_services.GetRequiredService<IExperimentationService>().IsExperimentEnabled(experimentName));
             }
             catch (Exception ex) when (FatalError.ReportWithoutCrashUnlessCanceledAndPropagate(ex, cancellationToken))
             {

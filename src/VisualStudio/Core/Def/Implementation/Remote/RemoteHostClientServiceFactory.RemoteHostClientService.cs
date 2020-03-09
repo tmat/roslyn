@@ -13,7 +13,9 @@ using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Execution;
 using Microsoft.CodeAnalysis.Experiments;
+using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Internal.Log;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Remote;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
@@ -31,7 +33,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
             private static Task<RemoteHostClient?>? s_lastRemoteClientTask;
 
             private readonly IAsynchronousOperationListener _listener;
-            private readonly Workspace _workspace;
+            private readonly HostWorkspaceServices _services;
             private readonly HostDiagnosticAnalyzers _hostAnalyzers;
 
             private readonly object _gate;
@@ -43,19 +45,27 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
             public RemoteHostClientService(
                 IThreadingContext threadingContext,
                 IAsynchronousOperationListener listener,
-                Workspace workspace,
+                HostWorkspaceServices services,
                 HostDiagnosticAnalyzers hostAnalyzers)
                 : base(threadingContext)
             {
                 _gate = new object();
 
                 _listener = listener;
-                _workspace = workspace;
+                _services = services;
                 _hostAnalyzers = hostAnalyzers;
             }
 
-            public Workspace Workspace => _workspace;
+            public HostWorkspaceServices Services => _services;
             public IAsynchronousOperationListener Listener => _listener;
+
+            private bool IsAllowed()
+            {
+                var options = _services.GetService<IOptionService>();
+
+                return options != null &&
+                       (options.GetOption(RemoteHostOptions.RemoteHostTest) || options.GetOption(RemoteHostOptions.RemoteHost));
+            }
 
             public void Enable()
             {
@@ -67,18 +77,15 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                         return;
                     }
 
-                    // We enable the remote host if either RemoteHostTest or RemoteHost are on.
-                    if (!_workspace.Options.GetOption(RemoteHostOptions.RemoteHostTest) &&
-                        !_workspace.Options.GetOption(RemoteHostOptions.RemoteHost))
+                    if (!IsAllowed())
                     {
-                        // not turned on
                         return;
                     }
 
                     // log that remote host is enabled
                     Logger.Log(FunctionId.RemoteHostClientService_Enabled, KeyValueLogMessage.NoProperty);
 
-                    var remoteHostClientFactory = _workspace.Services.GetService<IRemoteHostClientFactory>();
+                    var remoteHostClientFactory = _services.GetService<IRemoteHostClientFactory>();
                     if (remoteHostClientFactory == null)
                     {
                         // dev14 doesn't have remote host client factory
@@ -150,24 +157,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
             }
 
             bool IRemoteHostClientService.IsEnabled()
-            {
-                // We enable the remote host if either RemoteHostTest or RemoteHost are on.
-                if (!_workspace.Options.GetOption(RemoteHostOptions.RemoteHostTest)
-                    && !_workspace.Options.GetOption(RemoteHostOptions.RemoteHost))
-                {
-                    // not turned on
-                    return false;
-                }
-
-                var remoteHostClientFactory = _workspace.Services.GetService<IRemoteHostClientFactory>();
-                if (remoteHostClientFactory is null)
-                {
-                    // not available
-                    return false;
-                }
-
-                return true;
-            }
+                => IsAllowed() && _services.GetService<IRemoteHostClientFactory>() != null;
 
             public Task<RemoteHostClient?> TryGetRemoteHostClientAsync(CancellationToken cancellationToken)
             {
@@ -190,7 +180,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 
             private void SetRemoteHostBitness()
             {
-                bool x64 = RemoteHostOptions.IsServiceHubProcess64Bit(_workspace);
+                bool x64 = RemoteHostOptions.IsServiceHubProcess64Bit(_services);
 
                 // log OOP bitness
                 Logger.Log(FunctionId.RemoteHost_Bitness, KeyValueLogMessage.Create(LogType.Trace, m => m["64bit"] = x64));
@@ -204,7 +194,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
             {
                 // if we reached here, IRemoteHostClientFactory must exist.
                 // this will make VS.Next dll to be loaded
-                var client = await _workspace.Services.GetRequiredService<IRemoteHostClientFactory>().CreateAsync(_workspace, cancellationToken).ConfigureAwait(false);
+                var client = await _services.GetRequiredService<IRemoteHostClientFactory>().CreateAsync(_services, cancellationToken).ConfigureAwait(false);
                 if (client != null)
                 {
                     client.StatusChanged += OnStatusChanged;
@@ -216,7 +206,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                     var success = await client.TryRunRemoteAsync(
                         WellKnownRemoteHostServices.RemoteHostService,
                         nameof(IRemoteHostService.SynchronizeGlobalAssetsAsync),
-                        _workspace.CurrentSolution,
+                        _services.CurrentSolution,
                         new[] { (object)checksums },
                         callbackTarget: null,
                         cancellationToken).ConfigureAwait(false);
@@ -236,8 +226,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 
                 using (Logger.LogBlock(FunctionId.RemoteHostClientService_AddGlobalAssetsAsync, cancellationToken))
                 {
-                    var snapshotService = _workspace.Services.GetRequiredService<IRemotableDataService>();
-                    var assetBuilder = new CustomAssetBuilder(_workspace);
+                    var snapshotService = _services.GetRequiredService<IRemotableDataService>();
+                    var assetBuilder = new CustomAssetBuilder(_services);
 
                     foreach (var (_, reference) in _hostAnalyzers.GetHostAnalyzerReferencesMap())
                     {
@@ -255,7 +245,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
             {
                 using (Logger.LogBlock(FunctionId.RemoteHostClientService_RemoveGlobalAssets, CancellationToken.None))
                 {
-                    var snapshotService = _workspace.Services.GetRequiredService<IRemotableDataService>();
+                    var snapshotService = _services.Services.GetRequiredService<IRemotableDataService>();
 
                     foreach (var (_, reference) in _hostAnalyzers.GetHostAnalyzerReferencesMap())
                     {
@@ -290,14 +280,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 
                         // save NoOpRemoteHostClient to remoteClient so that all RemoteHost call becomes
                         // No Op. this basically have same effect as disabling all RemoteHost features
-                        _remoteClientTask = Task.FromResult<RemoteHostClient?>(new RemoteHostClient.NoOpClient(_workspace));
+                        _remoteClientTask = Task.FromResult<RemoteHostClient?>(new RemoteHostClient.NoOpClient(_services));
                     }
 
                     // s_lastRemoteClientTask info should be saved in the dump
                     // report NFW when connection is closed unless it is proper shutdown
                     FatalError.ReportWithoutCrash(new InvalidOperationException("Connection to remote host closed"));
 
-                    RemoteHostCrashInfoBar.ShowInfoBar(_workspace);
+                    RemoteHostCrashInfoBar.ShowInfoBar(_services);
                 }
             }
 

@@ -12,6 +12,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Execution;
+using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
@@ -24,15 +25,15 @@ namespace Microsoft.CodeAnalysis.Remote
     /// </summary>
     internal abstract partial class RemoteHostClient : IDisposable
     {
-        public readonly Workspace Workspace;
+        public readonly HostWorkspaceServices Services;
         public event EventHandler<bool>? StatusChanged;
 
         private readonly IRemotableDataService _remoteDataService;
 
-        protected RemoteHostClient(Workspace workspace)
+        protected RemoteHostClient(HostWorkspaceServices services)
         {
-            Workspace = workspace;
-            _remoteDataService = workspace.Services.GetRequiredService<IRemotableDataService>();
+            Services = services;
+            _remoteDataService = services.GetRequiredService<IRemotableDataService>();
         }
 
         /// <summary>
@@ -89,8 +90,11 @@ namespace Microsoft.CodeAnalysis.Remote
         }
 
         public static Task<RemoteHostClient?> TryGetClientAsync(Workspace workspace, CancellationToken cancellationToken)
+            => TryGetClientAsync(workspace.Services, cancellationToken);
+
+        public static Task<RemoteHostClient?> TryGetClientAsync(HostWorkspaceServices services, CancellationToken cancellationToken)
         {
-            var service = workspace.Services.GetService<IRemoteHostClientService>();
+            var service = services.GetService<IRemoteHostClientService>();
             if (service == null)
             {
                 return SpecializedTasks.Null<RemoteHostClient>();
@@ -192,8 +196,8 @@ namespace Microsoft.CodeAnalysis.Remote
         /// </summary>
         public class NoOpClient : RemoteHostClient
         {
-            public NoOpClient(Workspace workspace)
-                : base(workspace)
+            public NoOpClient(HostWorkspaceServices services)
+                : base(services)
             {
             }
 

@@ -53,17 +53,9 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 Contract.ThrowIfFalse(compilation.Analyzers.Length != 0);
 
                 var workspace = project.Solution.Workspace;
-                var service = workspace.Services.GetService<IRemoteHostClientService>();
-                if (service == null)
-                {
-                    // host doesn't support RemoteHostService such as under unit test
-                    return await AnalyzeInProcAsync(compilation, project, client: null, cancellationToken).ConfigureAwait(false);
-                }
-
-                var remoteHostClient = await service.TryGetRemoteHostClientAsync(cancellationToken).ConfigureAwait(false);
+                var remoteHostClient = await RemoteHostClient.TryGetClientAsync(workspace, cancellationToken).ConfigureAwait(false);
                 if (remoteHostClient == null)
                 {
-                    // remote host is not running. this can happen if remote host is disabled.
                     return await AnalyzeInProcAsync(compilation, project, client: null, cancellationToken).ConfigureAwait(false);
                 }
 

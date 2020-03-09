@@ -30,8 +30,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 
             public SolutionChecksumUpdater(RemoteHostClientService service, CancellationToken shutdownToken)
                 : base(service.Listener,
-                       service.Workspace.Services.GetService<IGlobalOperationNotificationService>(),
-                       service.Workspace.Options.GetOption(RemoteHostOptions.SolutionChecksumMonitorBackOffTimeSpanInMS), shutdownToken)
+                       service.Services.Services.GetService<IGlobalOperationNotificationService>(),
+                       service.Services.Options.GetOption(RemoteHostOptions.SolutionChecksumMonitorBackOffTimeSpanInMS), shutdownToken)
             {
                 _service = service;
                 _textChangeQueue = new SimpleTaskQueue(TaskScheduler.Default);
@@ -40,7 +40,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                 _gate = new object();
 
                 // start listening workspace change event
-                _service.Workspace.WorkspaceChanged += OnWorkspaceChanged;
+                _service.Services.WorkspaceChanged += OnWorkspaceChanged;
 
                 // create its own cancellation token source
                 _globalOperationCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(shutdownToken);
@@ -85,7 +85,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                 base.Shutdown();
 
                 // stop listening workspace change event
-                _service.Workspace.WorkspaceChanged -= OnWorkspaceChanged;
+                _service.Services.WorkspaceChanged -= OnWorkspaceChanged;
 
                 CancelAndDispose(_globalOperationCancellationSource);
             }
@@ -121,7 +121,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
 
             private Task SynchronizePrimaryWorkspaceAsync(CancellationToken cancellationToken)
             {
-                return _service.Workspace.SynchronizePrimaryWorkspaceAsync(_service.Workspace.CurrentSolution, cancellationToken);
+                return _service.Services.SynchronizePrimaryWorkspaceAsync(_service.Services.CurrentSolution, cancellationToken);
             }
 
             private static void CancelAndDispose(CancellationTokenSource cancellationSource)
@@ -177,7 +177,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
                 var token = Listener.BeginAsyncOperation(nameof(PushTextChanges));
                 _textChangeQueue.ScheduleTask(async () =>
                 {
-                    var client = await RemoteHostClient.TryGetClientAsync(_service.Workspace, CancellationToken).ConfigureAwait(false);
+                    var client = await RemoteHostClient.TryGetClientAsync(_service.Services, CancellationToken).ConfigureAwait(false);
                     if (client == null)
                     {
                         return;
