@@ -78,7 +78,7 @@ namespace Roslyn.Utilities
             }
 
             var maxSize = Math.Min(maxItemsToHash, values.Length);
-            var hashCode = 0;
+            var hashCode = values.Length;
 
             for (int i = 0; i < maxSize; i++)
             {
@@ -101,7 +101,7 @@ namespace Roslyn.Utilities
                 return 0;
             }
 
-            var hashCode = 0;
+            var hashCode = values.Length;
             var count = 0;
             foreach (var value in values)
             {

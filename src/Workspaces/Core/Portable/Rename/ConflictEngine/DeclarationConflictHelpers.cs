@@ -12,6 +12,8 @@ namespace Microsoft.CodeAnalysis.Rename.ConflictEngine
 {
     internal static class DeclarationConflictHelpers
     {
+        private static readonly IEqualityComparer<ImmutableArray<ITypeSymbol>> s_conflictingSignatureComparer = new SequenceEqualityComparer<ITypeSymbol>();
+
         public static ImmutableArray<Location> GetMembersWithConflictingSignatures(IMethodSymbol renamedMethod, bool trimOptionalParameters)
         {
             var potentiallyConfictingMethods =
@@ -39,7 +41,7 @@ namespace Microsoft.CodeAnalysis.Rename.ConflictEngine
             bool isMethod,
             Func<ISymbol, ImmutableArray<ImmutableArray<ITypeSymbol>>> getAllSignatures)
         {
-            var signatureToConflictingMember = new Dictionary<ImmutableArray<ITypeSymbol>, ISymbol>(ConflictingSignatureComparer.Instance);
+            var signatureToConflictingMember = new Dictionary<ImmutableArray<ITypeSymbol>, ISymbol>(s_conflictingSignatureComparer);
 
             foreach (var member in potentiallyConfictingMembers)
             {
@@ -73,26 +75,6 @@ namespace Microsoft.CodeAnalysis.Rename.ConflictEngine
             }
 
             return builder.ToImmutableAndFree();
-        }
-
-        private sealed class ConflictingSignatureComparer : IEqualityComparer<ImmutableArray<ITypeSymbol>>
-        {
-            public static readonly ConflictingSignatureComparer Instance = new ConflictingSignatureComparer();
-
-            private ConflictingSignatureComparer() { }
-
-            public bool Equals(ImmutableArray<ITypeSymbol> x, ImmutableArray<ITypeSymbol> y)
-            {
-                return x.SequenceEqual(y);
-            }
-
-            public int GetHashCode(ImmutableArray<ITypeSymbol> obj)
-            {
-                // This is a very simple GetHashCode implementation. Doing something "fancier" here
-                // isn't really worth it, since to compute a proper hash we'd end up walking all the
-                // ITypeSymbols anyways.
-                return obj.Length;
-            }
         }
 
         private static ImmutableArray<ImmutableArray<ITypeSymbol>> GetAllSignatures(ImmutableArray<IParameterSymbol> parameters, bool trimOptionalParameters)
