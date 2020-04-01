@@ -4,10 +4,12 @@
 
 #nullable enable
 
+using System;
 using System.ComponentModel.Composition;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Debugging;
 using Microsoft.CodeAnalysis.EditAndContinue;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.VisualStudio.Debugger.UI.Interfaces;
 using Roslyn.Utilities;
 
