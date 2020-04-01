@@ -66,12 +66,7 @@ namespace Microsoft.VisualStudio.LanguageServices.EditAndContinue
         private readonly DebuggeeModuleInfoCache _baselineMetadata;
 
         [ImportingConstructor]
-<<<<<<< HEAD
-        public VisualStudioDebuggeeModuleMetadataProvider()
-=======
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
         public VisualStudioDebuggeeModuleMetadataProvider(IManagedModuleInfoProvider managedModuleInfoProvider)
->>>>>>> 099d1993a3d... Use new debugger EnC APIs
         {
             _managedModuleInfoProvider = managedModuleInfoProvider;
             _baselineMetadata = new DebuggeeModuleInfoCache();
