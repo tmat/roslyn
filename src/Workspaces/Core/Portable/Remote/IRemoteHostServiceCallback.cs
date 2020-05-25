@@ -4,6 +4,7 @@
 
 #nullable enable
 
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +12,7 @@ namespace Microsoft.CodeAnalysis.Remote
 {
     internal interface IRemoteHostServiceCallback
     {
-        Task GetAssetsAsync(int scopeId, Checksum[] checksums, string pipeName, CancellationToken cancellationToken);
+        Task GetAssetsAsync(int scopeId, Checksum[] checksums, Stream outputStream, CancellationToken cancellationToken);
 
         // TODO: remove (https://github.com/dotnet/roslyn/issues/43477)
         Task<bool> IsExperimentEnabledAsync(string experimentName, CancellationToken cancellationToken);

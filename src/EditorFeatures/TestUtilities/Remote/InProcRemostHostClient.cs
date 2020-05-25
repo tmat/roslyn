@@ -72,9 +72,9 @@ namespace Roslyn.Test.Utilities.Remote
         /// <summary>
         /// Remote API.
         /// </summary>
-        public Task GetAssetsAsync(int scopeId, Checksum[] checksums, string pipeName, CancellationToken cancellationToken)
+        public Task GetAssetsAsync(int scopeId, Checksum[] checksums, Stream outputStream, CancellationToken cancellationToken)
             => RemoteEndPoint.WriteDataToNamedPipeAsync(
-                pipeName,
+                outputStream,
                 (scopeId, checksums),
                 (writer, data, cancellationToken) => RemoteHostAssetSerialization.WriteDataAsync(writer, RemotableDataService, data.scopeId, data.checksums, cancellationToken),
                 cancellationToken);

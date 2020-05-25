@@ -400,7 +400,7 @@ namespace Microsoft.CodeAnalysis.Internal.Log
 
         SolutionChecksumUpdater_SynchronizePrimaryWorkspace = 320,
 
-        JsonRpcSession_RequestAssetAsync = 321,
+        // obsolete: JsonRpcSession_RequestAssetAsync = 321,
 
         SolutionService_GetSolutionAsync = 322,
         SolutionService_UpdatePrimaryWorkspaceAsync = 323,

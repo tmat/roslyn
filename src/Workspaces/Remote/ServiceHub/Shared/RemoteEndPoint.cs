@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.ErrorReporting;
+using Nerdbank.Streams;
 using Newtonsoft.Json;
 using Roslyn.Utilities;
 using StreamJsonRpc;
@@ -142,192 +143,57 @@ namespace Microsoft.CodeAnalysis.Remote
 
         /// <summary>
         /// Invokes a remote method <paramref name="targetName"/> with specified <paramref name="arguments"/> and
-        /// establishes a pipe through which the target method may transfer large binary data. The name of the pipe is
-        /// passed to the target method as an additional argument following the specified <paramref name="arguments"/>.
+        /// establishes a stream through which the target method may transfer large binary data back to the caller. 
+        /// The stream is passed to the target method as an additional argument following the specified <paramref name="arguments"/>.
         /// The target method is expected to use
-        /// <see cref="WriteDataToNamedPipeAsync{TData}(string, TData, Func{Stream, TData, CancellationToken, Task}, CancellationToken)"/>
+        /// <see cref="WriteDataToNamedPipeAsync{TData}(Stream, TData, Func{Stream, TData, CancellationToken, Task}, CancellationToken)"/>
         /// to write the data to the pipe stream.
         /// </summary>
         public async Task<T> InvokeAsync<T>(string targetName, IReadOnlyList<object?> arguments, Func<Stream, CancellationToken, Task<T>> dataReader, CancellationToken cancellationToken)
         {
-            const int BufferSize = 12 * 1024;
-
             Contract.ThrowIfFalse(_startedListening);
 
             // if this end-point is already disconnected do not log more errors:
             var logError = _disconnectedReason == null;
 
-            using var linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-            var pipeName = Guid.NewGuid().ToString();
-
-            var pipe = new NamedPipeServerStream(pipeName, PipeDirection.In, maxNumberOfServerInstances: 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-
             try
             {
-                // Transfer ownership of the pipe to BufferedStream, it will dispose it:
-                using var stream = new BufferedStream(pipe, BufferSize);
-
-                // send request to asset source
-                var task = _rpc.InvokeWithCancellationAsync(targetName, arguments.Concat(pipeName).ToArray(), cancellationToken);
-
-                // if invoke throws an exception, make sure we raise cancellation.
-                RaiseCancellationIfInvokeFailed(task, linkedCancellationSource, cancellationToken);
-
-                // wait for asset source to respond
-                await pipe.WaitForConnectionAsync(linkedCancellationSource.Token).ConfigureAwait(false);
-
-                // run user task with direct stream
-                var result = await dataReader(stream, linkedCancellationSource.Token).ConfigureAwait(false);
-
-                // wait task to finish
-                await task.ConfigureAwait(false);
-
-                return result;
+                var (clientStream, serverStream) = FullDuplexStream.CreatePair();
+                await _rpc.InvokeWithCancellationAsync(targetName, arguments.Concat(serverStream).ToArray(), cancellationToken).ConfigureAwait(false);
+                var result = await dataReader(clientStream, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex) when (!logError || ReportUnlessCanceled(ex, linkedCancellationSource.Token, cancellationToken))
+            catch (Exception ex) when (!logError || ReportUnlessCanceled(ex, cancellationToken))
             {
                 // Remote call may fail with different exception even when our cancellation token is signaled
-                // (e.g. on shutdown if the connection is dropped).
-                // It's important to use cancelationToken here rather than linked token as there is a slight 
-                // delay in between linked token being signaled and cancellation token being signaled.
+                // (e.g. on shutdown if the connection is dropped):
                 cancellationToken.ThrowIfCancellationRequested();
 
                 throw CreateSoftCrashException(ex, cancellationToken);
             }
         }
 
-        public static Task WriteDataToNamedPipeAsync<TData>(string pipeName, TData data, Func<ObjectWriter, TData, CancellationToken, Task> dataWriter, CancellationToken cancellationToken)
-            => WriteDataToNamedPipeAsync(pipeName, data,
+        public static Task WriteDataToNamedPipeAsync<TData>(Stream outputStream, TData data, Func<ObjectWriter, TData, CancellationToken, Task> dataWriter, CancellationToken cancellationToken)
+            => WriteDataToNamedPipeAsync(outputStream, data,
                 async (stream, data, cancellationToken) =>
                 {
                     using var objectWriter = new ObjectWriter(stream, leaveOpen: true, cancellationToken);
                     await dataWriter(objectWriter, data, cancellationToken).ConfigureAwait(false);
                 }, cancellationToken);
 
-        public static async Task WriteDataToNamedPipeAsync<TData>(string pipeName, TData data, Func<Stream, TData, CancellationToken, Task> dataWriter, CancellationToken cancellationToken)
+        public static async Task WriteDataToNamedPipeAsync<TData>(Stream outputStream, TData data, Func<Stream, TData, CancellationToken, Task> dataWriter, CancellationToken cancellationToken)
         {
-            const int BufferSize = 4 * 1024;
-
             try
             {
-                var pipe = new NamedPipeClientStream(serverName: ".", pipeName, PipeDirection.Out);
+                await dataWriter(outputStream, data, cancellationToken).ConfigureAwait(false);
 
-                var success = false;
-                try
-                {
-                    await ConnectPipeAsync(pipe, cancellationToken).ConfigureAwait(false);
-                    success = true;
-                }
-                finally
-                {
-                    if (!success)
-                    {
-                        pipe.Dispose();
-                    }
-                }
-
-                // Transfer ownership of the pipe to BufferedStream, it will dispose it:
-                using var stream = new BufferedStream(pipe, BufferSize);
-
-                await dataWriter(stream, data, cancellationToken).ConfigureAwait(false);
-                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                // stream must be disposed once all data have been written:
+                outputStream.Dispose();
             }
             catch (Exception) when (cancellationToken.IsCancellationRequested)
             {
                 // The stream has closed before we had chance to check cancellation.
                 cancellationToken.ThrowIfCancellationRequested();
             }
-        }
-
-        private static async Task ConnectPipeAsync(NamedPipeClientStream pipe, CancellationToken cancellationToken)
-        {
-            const int ConnectWithoutTimeout = 1;
-            const int MaxRetryAttemptsForFileNotFoundException = 3;
-            const int ErrorSemTimeoutHResult = unchecked((int)0x80070079);
-            var connectRetryInterval = TimeSpan.FromMilliseconds(20);
-
-            var retryCount = 0;
-            while (true)
-            {
-                try
-                {
-                    // Try connecting without wait.
-                    // Connecting with anything else will consume CPU causing a spin wait.
-                    pipe.Connect(ConnectWithoutTimeout);
-                    return;
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Prefer to throw OperationCanceledException if the caller requested cancellation.
-                    cancellationToken.ThrowIfCancellationRequested();
-                    throw;
-                }
-                catch (IOException ex) when (ex.HResult == ErrorSemTimeoutHResult)
-                {
-                    // Ignore and retry.
-                }
-                catch (TimeoutException)
-                {
-                    // Ignore and retry.
-                }
-                catch (FileNotFoundException) when (retryCount < MaxRetryAttemptsForFileNotFoundException)
-                {
-                    // Ignore and retry
-                    retryCount++;
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                await Task.Delay(connectRetryInterval, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        private static void RaiseCancellationIfInvokeFailed(Task task, CancellationTokenSource linkedCancellationSource, CancellationToken cancellationToken)
-        {
-            // if invoke throws an exception, make sure we raise cancellation
-            _ = task.ContinueWith(p =>
-            {
-                try
-                {
-                    // now, we allow user to kill OOP process, when that happen, 
-                    // just raise cancellation. 
-                    // otherwise, stream.WaitForDirectConnectionAsync can stuck there forever since
-                    // cancellation from user won't be raised
-                    linkedCancellationSource.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // merged cancellation is already disposed
-                }
-            }, cancellationToken, TaskContinuationOptions.NotOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-        }
-
-        private static bool ReportUnlessCanceled(Exception ex, CancellationToken linkedCancellationToken, CancellationToken cancellationToken)
-        {
-            // check whether we are in cancellation mode
-
-            // things are either cancelled by us (cancellationToken) or cancelled by OOP (linkedCancellationToken). 
-            // "cancelled by us" means operation user invoked is cancelled by another user action such as explicit cancel, or typing.
-            // "cancelled by OOP" means operation user invoked is cancelled due to issue on OOP such as user killed OOP process.
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                // we are under our own cancellation, we don't care what the exception is.
-                // due to the way we do cancellation (forcefully closing connection in the middle of reading/writing)
-                // various exceptions can be thrown. for example, if we close our own named pipe stream in the middle of
-                // object reader/writer using it, we could get invalid operation exception or invalid cast exception.
-                return true;
-            }
-
-            if (linkedCancellationToken.IsCancellationRequested)
-            {
-                // Connection can be closed when the remote process is killed.
-                // That will manifest as remote token cancellation.
-                return true;
-            }
-
-            ReportNonFatalWatson(ex);
-            return true;
         }
 
         private static bool ReportUnlessCanceled(Exception ex, CancellationToken cancellationToken)

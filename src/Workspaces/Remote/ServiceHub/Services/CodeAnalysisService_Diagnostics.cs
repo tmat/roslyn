@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -21,7 +22,7 @@ namespace Microsoft.CodeAnalysis.Remote
         /// since in proc and out of proc runs quite differently due to concurrency and due to possible amount of data
         /// that needs to pass through between processes
         /// </summary>
-        public Task CalculateDiagnosticsAsync(PinnedSolutionInfo solutionInfo, DiagnosticArguments arguments, string pipeName, CancellationToken cancellationToken)
+        public Task CalculateDiagnosticsAsync(PinnedSolutionInfo solutionInfo, DiagnosticArguments arguments, Stream outputStream, CancellationToken cancellationToken)
         {
             return RunServiceAsync(async () =>
             {
@@ -37,7 +38,7 @@ namespace Microsoft.CodeAnalysis.Remote
                     var result = await new DiagnosticComputer(solution.GetProject(projectId), _analyzerInfoCache).GetDiagnosticsAsync(
                         arguments.AnalyzerIds, arguments.ReportSuppressedDiagnostics, arguments.LogAnalyzerExecutionTime, cancellationToken).ConfigureAwait(false);
 
-                    await RemoteEndPoint.WriteDataToNamedPipeAsync(pipeName, result, (writer, data, cancellationToken) =>
+                    await RemoteEndPoint.WriteDataToNamedPipeAsync(outputStream, result, (writer, data, cancellationToken) =>
                     {
                         var (diagnostics, telemetry) = DiagnosticResultSerializer.WriteDiagnosticAnalysisResults(writer, data, cancellationToken);
 

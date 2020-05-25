@@ -193,18 +193,15 @@ namespace Microsoft.VisualStudio.LanguageServices.Remote
         /// <summary>
         /// Remote API.
         /// </summary>
-        public async Task GetAssetsAsync(int scopeId, Checksum[] checksums, string pipeName, CancellationToken cancellationToken)
+        public async Task GetAssetsAsync(int scopeId, Checksum[] checksums, Stream outputStream, CancellationToken cancellationToken)
         {
             try
             {
-                using (Logger.LogBlock(FunctionId.JsonRpcSession_RequestAssetAsync, pipeName, cancellationToken))
-                {
-                    await RemoteEndPoint.WriteDataToNamedPipeAsync(
-                        pipeName,
-                        (scopeId, checksums),
-                        (writer, data, cancellationToken) => RemoteHostAssetSerialization.WriteDataAsync(writer, RemotableDataService, data.scopeId, data.checksums, cancellationToken),
-                        cancellationToken).ConfigureAwait(false);
-                }
+                await RemoteEndPoint.WriteDataToNamedPipeAsync(
+                    outputStream,
+                    (scopeId, checksums),
+                    (writer, data, cancellationToken) => RemoteHostAssetSerialization.WriteDataAsync(writer, RemotableDataService, data.scopeId, data.checksums, cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (FatalError.ReportWithoutCrashUnlessCanceledAndPropagate(ex, cancellationToken))
             {
