@@ -32,9 +32,11 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task CreateSolutionSnapshotId_Empty()
         {
-            var solution = new AdhocWorkspace().CurrentSolution;
+            using var workspace = new AdhocWorkspace();
+            var solution = workspace.CurrentSolution;
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
             var checksum = snapshot.SolutionChecksum;
             var solutionSyncObject = await snapshot.GetRemotableDataAsync(checksum, CancellationToken.None).ConfigureAwait(false);
@@ -54,9 +56,11 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task CreateSolutionSnapshotId_Empty_Serialization()
         {
-            var solution = new AdhocWorkspace().CurrentSolution;
+            using var workspace = new AdhocWorkspace();
+            var solution = workspace.CurrentSolution;
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
             await VerifySolutionStateSerializationAsync(snapshotService, solution, snapshot.SolutionChecksum).ConfigureAwait(false);
         }
@@ -64,9 +68,13 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task CreateSolutionSnapshotId_Project()
         {
-            var project = new AdhocWorkspace().CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp);
+            using var workspace = new AdhocWorkspace();
+            var solution = workspace.CurrentSolution;
+            var project = solution.AddProject("Project", "Project.dll", LanguageNames.CSharp);
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(project.Solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(project.Solution, CancellationToken.None).ConfigureAwait(false);
             var checksum = snapshot.SolutionChecksum;
             var solutionSyncObject = await snapshot.GetRemotableDataAsync(checksum, CancellationToken.None).ConfigureAwait(false);
@@ -88,9 +96,12 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task CreateSolutionSnapshotId_Project_Serialization()
         {
-            var project = new AdhocWorkspace().CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp);
+            using var workspace = new AdhocWorkspace();
+            var project = workspace.CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp);
 
-            var snapshotService = (new RemotableDataServiceFactory()).CreateService(project.Solution.Workspace.Services) as IRemotableDataService;
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(project.Solution, CancellationToken.None).ConfigureAwait(false);
             await VerifySolutionStateSerializationAsync(snapshotService, project.Solution, snapshot.SolutionChecksum).ConfigureAwait(false);
         }
@@ -100,9 +111,12 @@ namespace Microsoft.CodeAnalysis.UnitTests
         {
             var code = "class A { }";
 
-            var document = new AdhocWorkspace().CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp).AddDocument("Document", SourceText.From(code));
+            using var workspace = new AdhocWorkspace();
+            var document = workspace.CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp).AddDocument("Document", SourceText.From(code));
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(document.Project.Solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(document.Project.Solution, CancellationToken.None).ConfigureAwait(false);
             var syncObject = await snapshot.GetRemotableDataAsync(snapshot.SolutionChecksum, CancellationToken.None).ConfigureAwait(false);
             var solutionObject = await snapshotService.GetValueAsync<SolutionStateChecksums>(syncObject.Checksum).ConfigureAwait(false);
@@ -121,9 +135,13 @@ namespace Microsoft.CodeAnalysis.UnitTests
         {
             var code = "class A { }";
 
-            var document = new AdhocWorkspace().CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp).AddDocument("Document", SourceText.From(code));
+            using var workspace = new AdhocWorkspace();
+            var solution = workspace.CurrentSolution;
+            var document = solution.AddProject("Project", "Project.dll", LanguageNames.CSharp).AddDocument("Document", SourceText.From(code));
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(document.Project.Solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(document.Project.Solution, CancellationToken.None).ConfigureAwait(false);
             await VerifySolutionStateSerializationAsync(snapshotService, document.Project.Solution, snapshot.SolutionChecksum).ConfigureAwait(false);
         }
@@ -131,12 +149,15 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task CreateSolutionSnapshotId_Full()
         {
-            var solution = CreateFullSolution();
+            using var workspace = new AdhocWorkspace();
+            var solution = CreateFullSolution(workspace);
 
             var firstProjectChecksum = await solution.GetProject(solution.ProjectIds[0]).State.GetChecksumAsync(CancellationToken.None);
             var secondProjectChecksum = await solution.GetProject(solution.ProjectIds[1]).State.GetChecksumAsync(CancellationToken.None);
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
             var syncObject = await snapshot.GetRemotableDataAsync(snapshot.SolutionChecksum, CancellationToken.None).ConfigureAwait(false);
             var solutionObject = await snapshotService.GetValueAsync<SolutionStateChecksums>(syncObject.Checksum).ConfigureAwait(false);
@@ -156,9 +177,12 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task CreateSolutionSnapshotId_Full_Serialization()
         {
-            var solution = CreateFullSolution();
+            using var workspace = new AdhocWorkspace();
+            var solution = CreateFullSolution(workspace);
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
             await VerifySolutionStateSerializationAsync(snapshotService, solution, snapshot.SolutionChecksum).ConfigureAwait(false);
         }
@@ -166,9 +190,12 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task CreateSolutionSnapshotId_Full_Asset_Serialization()
         {
-            var solution = CreateFullSolution();
+            using var workspace = new AdhocWorkspace();
+            var solution = CreateFullSolution(workspace);
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
             var solutionObject = await snapshotService.GetValueAsync<SolutionStateChecksums>(snapshot.SolutionChecksum);
             await VerifyAssetAsync(snapshotService, solutionObject).ConfigureAwait(false);
@@ -178,11 +205,14 @@ namespace Microsoft.CodeAnalysis.UnitTests
         public async Task CreateSolutionSnapshotId_Full_Asset_Serialization_Desktop()
         {
             var hostServices = MefHostServices.Create(
-                MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory.TemporaryStorageService).Assembly));
+                MefHostServices.DefaultAssemblies.Add(typeof(TemporaryStorageServiceFactory.TemporaryStorageService).Assembly));
 
-            var solution = CreateFullSolution(hostServices);
+            using var workspace = new AdhocWorkspace(hostServices);
+            var solution = CreateFullSolution(workspace);
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
             var solutionObject = await snapshotService.GetValueAsync<SolutionStateChecksums>(snapshot.SolutionChecksum);
             await VerifyAssetAsync(snapshotService, solutionObject).ConfigureAwait(false);
@@ -191,14 +221,17 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task CreateSolutionSnapshotId_Duplicate()
         {
-            var solution = CreateFullSolution();
+            using var workspace = new AdhocWorkspace();
+            var solution = CreateFullSolution(workspace);
 
             // this is just data, one can hold the id outside of using statement. but
             // one can't get asset using checksum from the id.
             SolutionStateChecksums solutionId1;
             SolutionStateChecksums solutionId2;
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using (var snapshot1 = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false))
             {
                 solutionId1 = await snapshotService.GetValueAsync<SolutionStateChecksums>(snapshot1.SolutionChecksum).ConfigureAwait(false);
@@ -233,9 +266,12 @@ namespace Microsoft.CodeAnalysis.UnitTests
         [Fact]
         public async Task Workspace_RoundTrip_Test()
         {
-            var solution = CreateFullSolution();
+            using var workspace = new AdhocWorkspace();
+            var solution = CreateFullSolution(workspace);
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot1 = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
 
             // recover solution from given snapshot
@@ -271,11 +307,14 @@ namespace Microsoft.CodeAnalysis.UnitTests
         public async Task Workspace_RoundTrip_Test_Desktop()
         {
             var hostServices = MefHostServices.Create(
-                MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory.TemporaryStorageService).Assembly));
+                MefHostServices.DefaultAssemblies.Add(typeof(TemporaryStorageServiceFactory.TemporaryStorageService).Assembly));
 
-            var solution = CreateFullSolution(hostServices);
+            using var workspace = new AdhocWorkspace(hostServices);
+            var solution = CreateFullSolution(workspace);
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot1 = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
 
             // recover solution from given snapshot
@@ -463,7 +502,8 @@ MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory
             var hostServices = MefHostServices.Create(
                 MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory.TemporaryStorageService).Assembly));
 
-            var project = new AdhocWorkspace(hostServices).CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp);
+            using var workspace = new AdhocWorkspace(hostServices);
+            var project = workspace.CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp);
 
             using var temp = new TempRoot();
             var dir = temp.CreateDirectory();
@@ -477,7 +517,8 @@ MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory
 
             project = project.AddAnalyzerReferences(new[] { analyzer1, analyzer2 });
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(project.Solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(project.Solution, CancellationToken.None).ConfigureAwait(false);
 
             var recovered = await GetSolutionAsync(snapshotService, snapshot).ConfigureAwait(false);
@@ -490,7 +531,8 @@ MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory
             var hostServices = MefHostServices.Create(
                 MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory.TemporaryStorageService).Assembly));
 
-            var project = new AdhocWorkspace(hostServices).CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp);
+            using var workspace = new AdhocWorkspace(hostServices);
+            var project = workspace.CurrentSolution.AddProject("Project", "Project.dll", LanguageNames.CSharp);
 
             var metadata = new MissingMetadataReference();
             var analyzer = new AnalyzerFileReference(Path.Combine(TempRoot.Root, "missing_reference"), new MissingAnalyzerLoader());
@@ -498,7 +540,9 @@ MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory
             project = project.AddMetadataReference(metadata);
             project = project.AddAnalyzerReference(analyzer);
 
-            var snapshotService = (new RemotableDataServiceFactory()).CreateService(project.Solution.Workspace.Services) as IRemotableDataService;
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(project.Solution, CancellationToken.None).ConfigureAwait(false);
             // this shouldn't throw
             var recovered = await GetSolutionAsync(snapshotService, snapshot).ConfigureAwait(false);
@@ -509,9 +553,12 @@ MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory
         {
             var hostServices = MefHostServices.Create(MefHostServices.DefaultAssemblies.Add(typeof(NoCompilationConstants).Assembly));
 
-            var project = new AdhocWorkspace(hostServices).CurrentSolution.AddProject("Project", "Project.dll", NoCompilationConstants.LanguageName);
+            using var workspace = new AdhocWorkspace(hostServices);
+            var project = workspace.CurrentSolution.AddProject("Project", "Project.dll", NoCompilationConstants.LanguageName);
 
-            var snapshotService = (new RemotableDataServiceFactory()).CreateService(project.Solution.Workspace.Services) as IRemotableDataService;
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(project.Solution, CancellationToken.None).ConfigureAwait(false);
             // this shouldn't throw
             var recovered = await GetSolutionAsync(snapshotService, snapshot).ConfigureAwait(false);
@@ -653,12 +700,15 @@ MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory
 </doc>");
 
             // currently portable layer doesn't support xml documment
-            var solution = new AdhocWorkspace(services).CurrentSolution
-                                               .AddProject("Project", "Project.dll", LanguageNames.CSharp)
-                                               .AddMetadataReference(MetadataReference.CreateFromFile(tempCorlib.Path))
-                                               .Solution;
+            using var workspace = new AdhocWorkspace(services);
+            var solution = workspace.CurrentSolution
+                .AddProject("Project", "Project.dll", LanguageNames.CSharp)
+                .AddMetadataReference(MetadataReference.CreateFromFile(tempCorlib.Path))
+                .Solution;
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var scope = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None);
             // recover solution from given snapshot
             var recovered = await GetSolutionAsync(snapshotService, scope);
@@ -679,7 +729,9 @@ MefHostServices.DefaultAssemblies.Add(typeof(Host.TemporaryStorageServiceFactory
             verifyOptionValues(workspace.Options);
             verifyOptionValues(solution.Options);
 
-            var snapshotService = (IRemotableDataService)new RemotableDataServiceFactory().CreateService(solution.Workspace.Services);
+            var storages = new AssetStorages();
+            var snapshotService = new RemotableDataService(storages);
+
             using var snapshot = await snapshotService.CreatePinnedRemotableDataScopeAsync(solution, CancellationToken.None).ConfigureAwait(false);
             var checksum = snapshot.SolutionChecksum;
             var solutionObject = await snapshotService.GetValueAsync<SolutionStateChecksums>(checksum).ConfigureAwait(false);
