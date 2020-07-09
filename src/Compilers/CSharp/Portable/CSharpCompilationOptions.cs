@@ -260,6 +260,37 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
         }
 
+        internal CSharpCompilationOptions(
+            ObjectReader reader,
+            XmlReferenceResolver? xmlReferenceResolver,
+            SourceReferenceResolver? sourceReferenceResolver,
+            MetadataReferenceResolver? metadataReferenceResolver,
+            AssemblyIdentityComparer? assemblyIdentityComparer,
+            StrongNameProvider? strongNameProvider)
+            : base(reader,
+                   specificDiagnosticOptionsKeyComparer: null,
+                   xmlReferenceResolver,
+                   sourceReferenceResolver,
+                   metadataReferenceResolver,
+                   assemblyIdentityComparer,
+                   strongNameProvider)
+        {
+            Usings = ((string[])reader.ReadValue()).ToImmutableArrayOrEmpty();
+            AllowUnsafe = reader.ReadBoolean();
+            TopLevelBinderFlags = (BinderFlags)reader.ReadUInt32();
+            NullableContextOptions = (NullableContextOptions)reader.ReadByte();
+        }
+
+        internal override void WriteTo(ObjectWriter writer)
+        {
+            base.WriteTo(writer);
+
+            writer.WriteValue(Usings);
+            writer.WriteBoolean(AllowUnsafe);
+            writer.WriteUInt32((uint)TopLevelBinderFlags);
+            writer.WriteByte((byte)NullableContextOptions);
+        }
+
         public override string Language => LanguageNames.CSharp;
 
         internal CSharpCompilationOptions WithTopLevelBinderFlags(BinderFlags flags)

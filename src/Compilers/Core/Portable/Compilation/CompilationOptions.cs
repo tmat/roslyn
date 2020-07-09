@@ -17,7 +17,7 @@ namespace Microsoft.CodeAnalysis
     /// <summary>
     /// Represents compilation options common to C# and VB.
     /// </summary>
-    public abstract class CompilationOptions
+    public abstract class CompilationOptions : IObjectWritable
     {
         /// <summary>
         /// The kind of assembly generated when emitted.
@@ -329,6 +329,105 @@ namespace Microsoft.CodeAnalysis
                 ValidateOptions(builder);
                 return builder.ToImmutableAndFree();
             });
+        }
+
+        internal CompilationOptions(
+            ObjectReader reader,
+            StringComparer? specificDiagnosticOptionsKeyComparer,
+            XmlReferenceResolver? xmlReferenceResolver,
+            SourceReferenceResolver? sourceReferenceResolver,
+            MetadataReferenceResolver? metadataReferenceResolver,
+            AssemblyIdentityComparer? assemblyIdentityComparer,
+            StrongNameProvider? strongNameProvider)
+            : this((OutputKind)reader.ReadInt32(),
+                   reader.ReadBoolean(),
+                   reader.ReadString(),
+                   reader.ReadString(),
+                   reader.ReadString(),
+                   reader.ReadString(),
+                   reader.ReadString(),
+                   ((byte[])reader.ReadValue()).ToImmutableArrayOrEmpty(),
+                   reader.ReadBoolean(),
+                   reader.ReadBoolean(),
+                   (OptimizationLevel)reader.ReadInt32(),
+                   reader.ReadBoolean(),
+                   (Platform)reader.ReadInt32(),
+                   (ReportDiagnostic)reader.ReadInt32(),
+                   reader.ReadInt32(),
+                   ReadSpecificDiagnosticOptions(reader, specificDiagnosticOptionsKeyComparer),
+                   reader.ReadBoolean(),
+                   reader.ReadBoolean(),
+                   new DateTime(reader.ReadInt64()),
+                   reader.ReadBoolean(),
+                   xmlReferenceResolver,
+                   sourceReferenceResolver,
+                   metadataReferenceResolver,
+                   assemblyIdentityComparer,
+                   strongNameProvider,
+                   (MetadataImportOptions)reader.ReadByte(),
+                   reader.ReadBoolean())
+        {
+        }
+
+        private static ImmutableDictionary<string, ReportDiagnostic> ReadSpecificDiagnosticOptions(ObjectReader reader, StringComparer? keyComparer)
+        {
+            var count = reader.ReadInt32();
+            if (count == 0)
+            {
+                return ImmutableDictionary<string, ReportDiagnostic>.Empty.WithComparers(keyComparer);
+            }
+
+            var builder = ImmutableDictionary.CreateBuilder<string, ReportDiagnostic>(keyComparer);
+
+            for (var i = 0; i < count; i++)
+            {
+                var key = reader.ReadString();
+                var value = (ReportDiagnostic)reader.ReadInt32();
+                builder.Add(key, value);
+            }
+
+            return builder.ToImmutable();
+        }
+
+        internal virtual void WriteTo(ObjectWriter writer)
+        {
+            writer.WriteInt32((int)OutputKind);
+            writer.WriteBoolean(ReportSuppressedDiagnostics);
+            writer.WriteString(ModuleName);
+            writer.WriteString(MainTypeName);
+            writer.WriteString(ScriptClassName);
+            writer.WriteInt32((int)OptimizationLevel);
+            writer.WriteBoolean(CheckOverflow);
+
+            writer.WriteString(CryptoKeyContainer);
+            writer.WriteString(CryptoKeyFile);
+
+            writer.WriteValue(CryptoPublicKey.AsSpan());
+            writer.WriteBoolean(DelaySign.HasValue);
+            if (DelaySign.HasValue)
+            {
+                writer.WriteBoolean(DelaySign.Value);
+            }
+
+            writer.WriteInt32((int)Platform);
+            writer.WriteInt32((int)GeneralDiagnosticOption);
+
+            writer.WriteInt32(WarningLevel);
+
+            // REVIEW: I don't think there is a guarantee on ordering of elements in the immutable dictionary.
+            //         unfortunately, we need to sort them to make it deterministic
+            writer.WriteInt32(SpecificDiagnosticOptions.Count);
+            foreach (var (key, value) in SpecificDiagnosticOptions.OrderBy(o => o.Key))
+            {
+                writer.WriteString(key);
+                writer.WriteInt32((int)value);
+            }
+
+            writer.WriteBoolean(ConcurrentBuild);
+            writer.WriteBoolean(Deterministic);
+            writer.WriteBoolean(PublicSign);
+
+            writer.WriteByte((byte)MetadataImportOptions);
         }
 
         internal bool CanReuseCompilationReferenceManager(CompilationOptions other)
@@ -686,5 +785,11 @@ namespace Microsoft.CodeAnalysis
         {
             return !object.Equals(left, right);
         }
+
+        void IObjectWritable.WriteTo(ObjectWriter writer)
+            => WriteTo(writer);
+
+        bool IObjectWritable.ShouldReuseInSerialization
+            => true;
     }
 }

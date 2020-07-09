@@ -15,6 +15,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Inherits CompilationOptions
         Implements IEquatable(Of VisualBasicCompilationOptions)
 
+        ' Diagnostic ids must be processed in case-insensitive fashion.
+        Private Shared ReadOnly s_specificDiagnosticOptionsKeyComparer As StringComparer = CaseInsensitiveComparison.Comparer
+
         Private _globalImports As ImmutableArray(Of GlobalImport)
         Private _rootNamespace As String
         Private _optionStrict As OptionStrict
@@ -261,7 +264,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 platform:=platform,
                 generalDiagnosticOption:=generalDiagnosticOption,
                 warningLevel:=1,
-                specificDiagnosticOptions:=specificDiagnosticOptions.ToImmutableDictionaryOrEmpty(CaseInsensitiveComparison.Comparer), ' Diagnostic ids must be processed in case-insensitive fashion.
+                specificDiagnosticOptions:=specificDiagnosticOptions.ToImmutableDictionaryOrEmpty(s_specificDiagnosticOptionsKeyComparer),
                 concurrentBuild:=concurrentBuild,
                 deterministic:=deterministic,
                 currentLocalTime:=currentLocalTime,
@@ -327,6 +330,54 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 referencesSupersedeLowerVersions:=other.ReferencesSupersedeLowerVersions,
                 publicSign:=other.PublicSign,
                 ignoreCorLibraryDuplicatedTypes:=other.IgnoreCorLibraryDuplicatedTypes)
+        End Sub
+
+        Friend Sub New(
+            reader As ObjectReader,
+            xmlReferenceResolver As XmlReferenceResolver,
+            sourceReferenceResolver As SourceReferenceResolver,
+            metadataReferenceResolver As MetadataReferenceResolver,
+            assemblyIdentityComparer As AssemblyIdentityComparer,
+            strongNameProvider As StrongNameProvider)
+
+            MyBase.New(
+                reader,
+                s_specificDiagnosticOptionsKeyComparer,
+                xmlReferenceResolver,
+                sourceReferenceResolver,
+                metadataReferenceResolver,
+                assemblyIdentityComparer,
+                strongNameProvider)
+
+            _globalImports = GlobalImport.Parse(CType(reader.ReadValue(), String())).ToImmutableArray()
+            _rootNamespace = reader.ReadString()
+            _optionStrict = CType(reader.ReadInt32(), OptionStrict)
+            _optionInfer = reader.ReadBoolean()
+            _optionExplicit = reader.ReadBoolean()
+            _optionCompareText = reader.ReadBoolean()
+            _embedVbCoreRuntime = reader.ReadBoolean()
+            _suppressEmbeddedDeclarations = reader.ReadBoolean()
+            _ignoreCorLibraryDuplicatedTypes = reader.ReadBoolean()
+
+            Dim hasParseOptions = reader.ReadBoolean()
+            _parseOptions = If(hasParseOptions, New VisualBasicParseOptions(reader), Nothing)
+        End Sub
+
+        Friend Overrides Sub WriteTo(writer As ObjectWriter)
+            MyBase.WriteTo(writer)
+
+            writer.WriteValue(GlobalImports.Select(Function(g) g.Name).ToArray())
+            writer.WriteString(RootNamespace)
+            writer.WriteInt32(OptionStrict)
+            writer.WriteBoolean(OptionInfer)
+            writer.WriteBoolean(OptionExplicit)
+            writer.WriteBoolean(OptionCompareText)
+            writer.WriteBoolean(EmbedVbCoreRuntime)
+            writer.WriteBoolean(_suppressEmbeddedDeclarations)
+            writer.WriteBoolean(_ignoreCorLibraryDuplicatedTypes)
+
+            writer.WriteBoolean(ParseOptions IsNot Nothing)
+            ParseOptions?.WriteTo(writer)
         End Sub
 
         Public Overrides ReadOnly Property Language As String

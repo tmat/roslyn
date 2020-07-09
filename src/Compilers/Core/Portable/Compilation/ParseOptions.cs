@@ -18,7 +18,7 @@ namespace Microsoft.CodeAnalysis
     /// <summary>
     /// Represents parse options common to C# and VB.
     /// </summary>
-    public abstract class ParseOptions
+    public abstract class ParseOptions : IObjectWritable
     {
         private readonly Lazy<ImmutableArray<Diagnostic>> _lazyErrors;
 
@@ -51,6 +51,18 @@ namespace Microsoft.CodeAnalysis
                 ValidateOptions(builder);
                 return builder.ToImmutableAndFree();
             });
+        }
+
+        internal ParseOptions(ObjectReader reader)
+            : this((SourceCodeKind)reader.ReadInt32(),
+                   (DocumentationMode)reader.ReadByte())
+        {
+        }
+
+        internal virtual void WriteTo(ObjectWriter writer)
+        {
+            writer.WriteInt32((int)SpecifiedKind);
+            writer.WriteInt32((byte)DocumentationMode);
         }
 
         /// <summary>
@@ -136,7 +148,7 @@ namespace Microsoft.CodeAnalysis
 
         protected bool EqualsHelper([NotNullWhen(true)] ParseOptions? other)
         {
-            if (object.ReferenceEquals(other, null))
+            if (other is null)
             {
                 return false;
             }
@@ -180,5 +192,31 @@ namespace Microsoft.CodeAnalysis
         {
             return !object.Equals(left, right);
         }
+
+        internal static ImmutableDictionary<string, string> ReadFeatures(ObjectReader reader)
+        {
+            var count = reader.ReadInt32();
+            if (count == 0)
+            {
+                return ImmutableDictionary<string, string>.Empty;
+            }
+
+            var builder = ImmutableDictionary.CreateBuilder<string, string>();
+
+            for (var i = 0; i < count; i++)
+            {
+                var key = reader.ReadString();
+                var value = reader.ReadString();
+                builder.Add(key, value);
+            }
+
+            return builder.ToImmutable();
+        }
+
+        void IObjectWritable.WriteTo(ObjectWriter writer)
+            => WriteTo(writer);
+
+        bool IObjectWritable.ShouldReuseInSerialization
+            => true;
     }
 }

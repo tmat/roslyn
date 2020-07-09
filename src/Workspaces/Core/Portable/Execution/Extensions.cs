@@ -16,9 +16,6 @@ namespace Microsoft.CodeAnalysis.Execution
 {
     internal static class Extensions
     {
-        public static T[] ReadArray<T>(this ObjectReader reader)
-            => (T[])reader.ReadValue();
-
         public static WellKnownSynchronizationKind GetWellKnownSynchronizationKind(this object value)
             => value switch
             {

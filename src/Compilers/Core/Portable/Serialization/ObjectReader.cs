@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Roslyn.Utilities
 {
@@ -138,6 +139,15 @@ namespace Roslyn.Utilities
             };
 
             return accessor.Guid;
+        }
+
+        public T[] ReadArray<T>()
+            => (T[])ReadValue();
+
+        public ImmutableArray<T> ReadImmutableArray<T>()
+        {
+            var array = ReadArray<T>();
+            return (array != null) ? array.ToImmutableArray() : default;
         }
 
         public object ReadValue()

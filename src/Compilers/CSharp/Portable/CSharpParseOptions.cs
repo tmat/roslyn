@@ -83,6 +83,17 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
         }
 
+        internal CSharpParseOptions(ObjectReader reader)
+            : base(reader)
+        {
+            var languageVersion = (LanguageVersion)reader.ReadInt32();
+            SpecifiedLanguageVersion = languageVersion;
+            LanguageVersion = languageVersion.MapSpecifiedToEffectiveVersion();
+
+            PreprocessorSymbols = reader.ReadArray<string>();
+            _features = ReadFeatures(reader);
+        }
+
         public override string Language => LanguageNames.CSharp;
 
         public new CSharpParseOptions WithKind(SourceCodeKind kind)
