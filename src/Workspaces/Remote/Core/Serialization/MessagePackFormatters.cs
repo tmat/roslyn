@@ -28,7 +28,7 @@ namespace Microsoft.CodeAnalysis.Remote
     /// </summary>
     internal sealed class MessagePackFormatters
     {
-        public static ImmutableArray<IMessagePackFormatter> GetFormatters() => ImmutableArray.Create<IMessagePackFormatter>(
+        public static ImmutableArray<IMessagePackFormatter> Formatters = ImmutableArray.Create<IMessagePackFormatter>(
             SolutionIdFormatter.Instance,
             ProjectIdFormatter.Instance,
             DocumentIdFormatter.Instance,

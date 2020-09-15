@@ -6,7 +6,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Host;
@@ -20,9 +20,9 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.UnitTesting.Api
         internal UnitTestingRemoteHostClientWrapper(RemoteHostClient underlyingObject)
             => UnderlyingObject = underlyingObject;
 
-        internal RemoteHostClient? UnderlyingObject { get; }
+        internal RemoteHostClient UnderlyingObject { get; }
 
-        [MemberNotNullWhen(false, nameof(UnderlyingObject))]
+        [Obsolete]
         public bool IsDefault => UnderlyingObject == null;
 
         public static async Task<UnitTestingRemoteHostClientWrapper?> TryGetClientAsync(HostWorkspaceServices services, CancellationToken cancellationToken = default)
@@ -34,6 +34,39 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.UnitTesting.Api
             return new UnitTestingRemoteHostClientWrapper(client);
         }
 
+        public ValueTask<bool> TryInvokeAsync<TService>(
+            Solution solution,
+            Func<TService, object, CancellationToken, ValueTask> invocation,
+            object? callbackTarget,
+            CancellationToken cancellationToken)
+            where TService : class
+            => UnderlyingObject.TryInvokeAsync(solution, invocation, callbackTarget, cancellationToken);
+
+        public ValueTask<Optional<TResult>> TryInvokeAsync<TService, TResult>(
+            Solution solution,
+            Func<TService, object, CancellationToken, ValueTask<TResult>> invocation,
+            object? callbackTarget,
+            CancellationToken cancellationToken)
+            where TService : class
+            => UnderlyingObject.TryInvokeAsync(solution, invocation, callbackTarget, cancellationToken);
+
+        /// <summary>
+        /// Invokes a remote API that streams results back to the caller.
+        /// </summary>
+        public ValueTask<Optional<TResult>> TryInvokeAsync<TService, TResult>(
+            Solution solution,
+            Func<TService, object, Stream, CancellationToken, ValueTask> invocation,
+            Func<Stream, CancellationToken, ValueTask<TResult>> reader,
+            object? callbackTarget,
+            CancellationToken cancellationToken)
+            where TService : class
+            => UnderlyingObject.TryInvokeAsync(solution, invocation, reader, callbackTarget, cancellationToken);
+
+        public async ValueTask<UnitTestingRemoteServiceConnectionWrapper<TService>> CreateConnectionAsync<TService>(object? callbackTarget, CancellationToken cancellationToken)
+            where TService : class
+            => new UnitTestingRemoteServiceConnectionWrapper<TService>(await UnderlyingObject.CreateConnectionAsync<TService>(callbackTarget, cancellationToken).ConfigureAwait(false));
+
+        [Obsolete]
         public async Task<bool> TryRunRemoteAsync(UnitTestingServiceHubService service, string targetName, Solution? solution, IReadOnlyList<object?> arguments, object? callbackTarget, CancellationToken cancellationToken)
         {
             Contract.ThrowIfTrue(IsDefault);
@@ -41,12 +74,14 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.UnitTesting.Api
             return true;
         }
 
+        [Obsolete]
         public async Task<Optional<T>> TryRunRemoteAsync<T>(UnitTestingServiceHubService service, string targetName, Solution? solution, IReadOnlyList<object?> arguments, object? callbackTarget, CancellationToken cancellationToken)
         {
             Contract.ThrowIfTrue(IsDefault);
             return await UnderlyingObject.RunRemoteAsync<T>((WellKnownServiceHubService)service, targetName, solution, arguments, callbackTarget, cancellationToken).ConfigureAwait(false);
         }
 
+        [Obsolete]
         public async Task<UnitTestingRemoteServiceConnectionWrapper> CreateConnectionAsync(UnitTestingServiceHubService service, object? callbackTarget, CancellationToken cancellationToken)
         {
             Contract.ThrowIfTrue(IsDefault);
