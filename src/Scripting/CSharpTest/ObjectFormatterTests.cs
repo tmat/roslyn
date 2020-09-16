@@ -434,24 +434,19 @@ namespace Microsoft.CodeAnalysis.CSharp.Scripting.Hosting.UnitTests
             Assert.Equal("object[0, 0] { }", str);
         }
 
-        [Fact]
-        public void DebuggerProxy_FrameworkTypes_IEnumerable()
+        private static IEnumerable<int> RangeIterator(int start, int count)
         {
-            string str;
-            object obj;
+            for (int i = 0; i < count; i++)
+                yield return start + i;
+        }
 
-            obj = Enumerable.Range(0, 10);
-            str = s_formatter.FormatObject(obj, SingleLineOptions);
+        [Fact]
+        public void Iterator()
+        {
+            var obj = RangeIterator(0, 10);
+            var str = s_formatter.FormatObject(obj, SingleLineOptions);
 
-            // the implementation differs between .NET Core and .NET FX
-            if (str.StartsWith("Enumerable"))
-            {
-                Assert.Equal("Enumerable.RangeIterator(Count = 10)", str);
-            }
-            else
-            {
-                Assert.Equal("RangeIterator { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }", str);
-            }
+            AssertEx.Equal("RangeIterator { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }", str);
         }
 
         [Fact]
