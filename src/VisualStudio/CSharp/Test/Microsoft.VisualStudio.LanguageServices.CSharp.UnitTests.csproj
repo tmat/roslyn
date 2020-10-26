@@ -40,6 +40,7 @@
     <ProjectReference Include="..\..\..\Workspaces\Remote\ServiceHub\Microsoft.CodeAnalysis.Remote.ServiceHub.csproj" />
     <ProjectReference Include="..\..\..\Workspaces\VisualBasic\Portable\Microsoft.CodeAnalysis.VisualBasic.Workspaces.vbproj" />
     <ProjectReference Include="..\..\TestUtilities2\Microsoft.VisualStudio.LanguageServices.Test.Utilities2.vbproj" />
+    <ProjectReference Include="..\..\TestUtilities\Microsoft.VisualStudio.LanguageServices.Test.Utilities.csproj" />
     <ProjectReference Include="..\..\VisualBasic\Impl\Microsoft.VisualStudio.LanguageServices.VisualBasic.vbproj" />
     <ProjectReference Include="..\Impl\Microsoft.VisualStudio.LanguageServices.CSharp.csproj" />
     <ProjectReference Include="..\..\..\EditorFeatures\TestUtilities\Roslyn.Services.Test.Utilities.csproj" />
