@@ -139,16 +139,6 @@ namespace Microsoft.CodeAnalysis.Interactive
 
                 _lastTask = Task.FromResult(initialState);
 
-                try
-                {
-                    Console.OutputEncoding = Encoding.UTF8;
-                }
-                catch (IOException ex) when (FatalError.ReportAndCatch(ex))
-                {
-                    // Ignore this exception
-                    // https://github.com/dotnet/roslyn/issues/47571
-                }
-
                 // We want to be sure to delete the shadow-copied files when the process goes away. Frankly
                 // there's nothing we can do if the process is forcefully quit or goes down in a completely
                 // uncontrolled manner (like a stack overflow). When the process goes down in a controlled

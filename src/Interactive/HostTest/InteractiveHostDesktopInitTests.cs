@@ -68,6 +68,14 @@ namespace Microsoft.CodeAnalysis.UnitTests.Interactive
         }
 
         [Fact]
+        public async Task OutputEncoding()
+        {
+            await Host.ExecuteAsync(@"Console.OutputEncoding = Encoding.UTF8");
+            Assert.Equal("", await ReadErrorOutputToEnd());
+            Assert.Equal("", await ReadOutputToEnd());
+        }
+
+        [Fact]
         public async Task AddReference_AssemblyAlreadyLoaded()
         {
             var result = await LoadReference("System.Core");

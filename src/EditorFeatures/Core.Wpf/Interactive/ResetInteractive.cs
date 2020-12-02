@@ -115,13 +115,18 @@ namespace Microsoft.VisualStudio.LanguageServices.Interactive
             await evaluator.SetPathsAsync(referenceSearchPaths, sourceSearchPaths, projectDirectory).ConfigureAwait(true);
 
             var editorOptions = _editorOptionsFactoryService.GetOptions(interactiveWindow.CurrentLanguageBuffer);
-            var importReferencesCommand = referencePaths.Select(_createReference);
-            await interactiveWindow.SubmitAsync(importReferencesCommand).ConfigureAwait(true);
+            var newLine = editorOptions.GetNewLineCharacter();
+
+            var importReferencesCommand = referencePaths.Select(_createReference).Join(newLine);
+            if (!string.IsNullOrWhiteSpace(importReferencesCommand))
+            {
+                await interactiveWindow.SubmitAsync(new[] { importReferencesCommand }).ConfigureAwait(true);
+            }
 
             // Project's default namespace might be different from namespace used within project.
             // Filter out namespace imports that do not exist in interactive compilation.
             var namespacesToImport = await GetNamespacesToImportAsync(projectNamespaces, interactiveWindow).ConfigureAwait(true);
-            var importNamespacesCommand = namespacesToImport.Select(_createImport).Join(editorOptions.GetNewLineCharacter());
+            var importNamespacesCommand = namespacesToImport.Select(_createImport).Join(newLine);
 
             if (!string.IsNullOrWhiteSpace(importNamespacesCommand))
             {

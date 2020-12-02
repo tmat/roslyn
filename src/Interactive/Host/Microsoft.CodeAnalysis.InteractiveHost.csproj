@@ -28,6 +28,7 @@
     <InternalsVisibleTo Include="InteractiveHost.UnitTests" />
     <InternalsVisibleTo Include="Microsoft.VisualStudio.LanguageServices" />
     <InternalsVisibleTo Include="Microsoft.VisualStudio.LanguageServices.CSharp.UnitTests" />
+    <InternalsVisibleTo Include="ConsoleApp1" />
   </ItemGroup>
   <ItemGroup>
     <PublicAPI Include="PublicAPI.Unshipped.txt" />
