@@ -473,8 +473,8 @@ End Class
                 Dim result = Await analyzer.AnalyzeDocumentAsync(oldDocument, baseActiveStatements, newDocument, ImmutableArray(Of TextSpan).Empty, CancellationToken.None)
 
                 Assert.True(result.HasChanges)
-                Assert.True(result.SemanticEdits(0).PreserveLocalVariables)
                 Dim syntaxMap = result.SemanticEdits(0).SyntaxMap
+                Assert.NotNull(syntaxMap)
 
                 Dim newStatementSpan = result.ActiveStatements(0).Span
                 Dim newStatementTextSpan = newText.Lines.GetTextSpan(newStatementSpan)
@@ -504,7 +504,7 @@ End Class
 
                 Assert.False(result.HasChanges)
                 Assert.False(result.HasChangesAndErrors)
-                Assert.False(result.HasChangesAndCompilationErrors)
+                Assert.False(result.HasChangesAndSyntaxErrors)
             End Using
         End Function
 
@@ -538,7 +538,7 @@ End Class
 
                 Assert.False(result.HasChanges)
                 Assert.False(result.HasChangesAndErrors)
-                Assert.False(result.HasChangesAndCompilationErrors)
+                Assert.False(result.HasChangesAndSyntaxErrors)
             End Using
         End Function
 
@@ -562,7 +562,7 @@ End Class
 
                 Assert.False(result.HasChanges)
                 Assert.False(result.HasChangesAndErrors)
-                Assert.False(result.HasChangesAndCompilationErrors)
+                Assert.False(result.HasChangesAndSyntaxErrors)
             End Using
         End Function
 
@@ -598,7 +598,7 @@ End Class
 
                 ' no declaration errors (error in method body is only reported when emitting)
                 Assert.False(result.HasChangesAndErrors)
-                Assert.False(result.HasChangesAndCompilationErrors)
+                Assert.False(result.HasChangesAndSyntaxErrors)
             End Using
         End Function
 
@@ -634,7 +634,7 @@ End Class
                 ' No errors reported: EnC analyzer is resilient against semantic errors.
                 ' They will be reported by 1) compiler diagnostic analyzer 2) when emitting delta - if still present.
                 Assert.False(result.HasChangesAndErrors)
-                Assert.False(result.HasChangesAndCompilationErrors)
+                Assert.False(result.HasChangesAndSyntaxErrors)
             End Using
         End Function
 
