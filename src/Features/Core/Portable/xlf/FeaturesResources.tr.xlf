@@ -130,6 +130,11 @@ AM ve PM arasındaki farkın korunmasının gerekli olduğu diller için "tt" be
         <target state="translated">Değişim koşulları yakalamak değil ve adlandırılamaz</target>
         <note>This is an error message shown to the user when they write an invalid Regular Expression. Example: (?(?'x'))</note>
       </trans-unit>
+      <trans-unit id="An_active_statement_has_been_removed_from_its_original_method_You_must_revert_your_changes_to_continue_or_restart_the_debugging_session">
+        <source>An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</source>
+        <target state="new">An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Awaited_task_returns_0">
         <source>Awaited task returns '{0}'</source>
         <target state="translated">Beklenen görev '{0}' döndürüyor</target>
@@ -2346,6 +2351,11 @@ If the "H" format specifier is used without other custom format specifiers, it's
         <target state="translated">"HH" özel biçim belirticisi (ve herhangi bir sayıda ek "H" belirticisi) saati 00 ile 23 arasında bir sayı ile temsil eder; yani saat, gece yarısından bu yana geçen saat sayısını belirten sıfır tabanlı 24 saatlik bir düzen ile temsil edilir. Tek haneli bir saat, başına sıfır eklenerek biçimlendirilir.</target>
         <note />
       </trans-unit>
+      <trans-unit id="code">
+        <source>code</source>
+        <target state="new">code</target>
+        <note />
+      </trans-unit>
       <trans-unit id="date_separator">
         <source>date separator</source>
         <target state="translated">tarih ayırıcısı</target>
@@ -3184,11 +3194,6 @@ If the "g" format specifier is used without other custom format specifiers, it's
         <target state="translated">Bir yöntem gövdesi silme, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
         <note />
       </trans-unit>
-      <trans-unit id="An_active_statement_has_been_removed_from_its_original_method_You_must_revert_your_changes_to_continue_or_restart_the_debugging_session">
-        <source>An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</source>
-        <target state="translated">Etkin bir deyim özgün yönteminden kaldırılmış. Devam etmek için değişikliklerinizi geri almalısınız veya hata ayıklama oturumunu yeniden başlatmalısınız.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Updating_async_or_iterator_modifier_around_an_active_statement_will_prevent_the_debug_session_from_continuing">
         <source>Updating async or iterator modifier around an active statement will prevent the debug session from continuing.</source>
         <target state="translated">Etkin bir deyimin etrafındaki async ya da iterator değiştiricisini güncelleştirmek hata ayıklama oturumunun devam etmesini önler.</target>
@@ -3275,8 +3280,8 @@ If the "g" format specifier is used without other custom format specifiers, it's
         <note />
       </trans-unit>
       <trans-unit id="Removing_0_that_contains_an_active_statement_will_prevent_the_debug_session_from_continuing">
-        <source>Removing '{0}' that contains an active statement will prevent the debug session from continuing.</source>
-        <target state="translated">Etkin bir deyim içeren '{0}' öğesini kaldırma, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
+        <source>Removing {0} that contains an active statement will prevent the debug session from continuing.</source>
+        <target state="needs-review-translation">Etkin bir deyim içeren '{0}' öğesini kaldırma, hata ayıklama oturumunun devam etmesini engelleyecek.</target>
         <note />
       </trans-unit>
       <trans-unit id="Adding_a_new_file_will_prevent_the_debug_session_from_continuing">

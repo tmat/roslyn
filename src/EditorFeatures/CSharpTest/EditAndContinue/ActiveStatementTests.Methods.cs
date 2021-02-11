@@ -557,7 +557,7 @@ class C
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "get"));
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "get", FeaturesResources.code));
         }
 
         [Fact]
@@ -608,7 +608,7 @@ class C
 
             // Can be improved with https://github.com/dotnet/roslyn/issues/22696
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "int P"));
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "int P", FeaturesResources.code));
         }
 
         #endregion
@@ -763,8 +763,8 @@ class SampleCollection<T>
             var edits = GetTopEdits(src1, src2);
             var active = GetActiveStatements(src1, src2);
 
+            // Rude edits of active statements (AS:1) are not reported if the top-level edits are rude.
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.ActiveStatementUpdate, @"stringCollection[1] = ""hello"";"),
                 Diagnostic(RudeEditKind.GenericTypeUpdate, "set", CSharpFeaturesResources.indexer_setter));
         }
 
@@ -865,8 +865,8 @@ class SampleCollection<T>
             var edits = GetTopEdits(src1, src2);
             var active = GetActiveStatements(src1, src2);
 
+            // Rude edits of active statements (AS:1) are not reported if the top-level edits are rude.
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.ActiveStatementUpdate, "Console.WriteLine(stringCollection[1]);"),
                 Diagnostic(RudeEditKind.GenericTypeUpdate, "get", CSharpFeaturesResources.indexer_getter));
         }
 
@@ -966,7 +966,7 @@ class SampleCollection<T>
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "{"));
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "{", FeaturesResources.code));
         }
 
         [Fact]
@@ -1065,7 +1065,7 @@ class SampleCollection<T>
             var active = GetActiveStatements(src1, src2);
 
             edits.VerifyRudeDiagnostics(active,
-                                Diagnostic(RudeEditKind.DeleteActiveStatement, "{"));
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "{", FeaturesResources.code));
         }
 
         #endregion

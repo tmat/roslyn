@@ -40,7 +40,7 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue.UnitTests
             ActiveStatementsDescription description,
             params RudeEditDiagnosticDescription[] expectedDiagnostics)
         {
-            new CSharpEditAndContinueTestHelpers().VerifyRudeDiagnostics(
+            VerifySemanticDiagnostics(
                 editScript,
                 description,
                 expectedDiagnostics);

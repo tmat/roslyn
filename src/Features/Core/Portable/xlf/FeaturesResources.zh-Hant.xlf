@@ -130,6 +130,11 @@ Make sure to use the "tt" specifier for languages for which it's necessary to ma
         <target state="translated">替代條件不會擷取，也無法命名</target>
         <note>This is an error message shown to the user when they write an invalid Regular Expression. Example: (?(?'x'))</note>
       </trans-unit>
+      <trans-unit id="An_active_statement_has_been_removed_from_its_original_method_You_must_revert_your_changes_to_continue_or_restart_the_debugging_session">
+        <source>An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</source>
+        <target state="new">An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Awaited_task_returns_0">
         <source>Awaited task returns '{0}'</source>
         <target state="translated">等待的工作會傳回 '{0}'</target>
@@ -2346,6 +2351,11 @@ If the "H" format specifier is used without other custom format specifiers, it's
         <target state="translated">"HH" 自訂格式規範 (加上任意數目的其他 "H" 規範) 代表小時，以數字 00 到 23 表示; 換句話說，小時即為自午夜起所經過的時數，是以零開始的 24 小時制。單一數字的小時格式，開頭不會出現零。</target>
         <note />
       </trans-unit>
+      <trans-unit id="code">
+        <source>code</source>
+        <target state="new">code</target>
+        <note />
+      </trans-unit>
       <trans-unit id="date_separator">
         <source>date separator</source>
         <target state="translated">日期分隔符號</target>
@@ -3184,11 +3194,6 @@ If the "g" format specifier is used without other custom format specifiers, it's
         <target state="translated">刪除方法主體，會造成偵錯工作階段無法繼續。</target>
         <note />
       </trans-unit>
-      <trans-unit id="An_active_statement_has_been_removed_from_its_original_method_You_must_revert_your_changes_to_continue_or_restart_the_debugging_session">
-        <source>An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</source>
-        <target state="translated">現用陳述式已從其原始方法中移除。您必須還原您的變更才能繼續，或是重新啟動偵錯工作階段。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Updating_async_or_iterator_modifier_around_an_active_statement_will_prevent_the_debug_session_from_continuing">
         <source>Updating async or iterator modifier around an active statement will prevent the debug session from continuing.</source>
         <target state="translated">更新作用中陳述式前後的 async 或 iterator 修飾元，會造成偵錯工作階段無法繼續。</target>
@@ -3275,8 +3280,8 @@ If the "g" format specifier is used without other custom format specifiers, it's
         <note />
       </trans-unit>
       <trans-unit id="Removing_0_that_contains_an_active_statement_will_prevent_the_debug_session_from_continuing">
-        <source>Removing '{0}' that contains an active statement will prevent the debug session from continuing.</source>
-        <target state="translated">移除包含現用陳述式的 '{0}'，會造成偵錯工作階段無法繼續。</target>
+        <source>Removing {0} that contains an active statement will prevent the debug session from continuing.</source>
+        <target state="needs-review-translation">移除包含現用陳述式的 '{0}'，會造成偵錯工作階段無法繼續。</target>
         <note />
       </trans-unit>
       <trans-unit id="Adding_a_new_file_will_prevent_the_debug_session_from_continuing">

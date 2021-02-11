@@ -2781,8 +2781,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
         Friend Overrides Sub ReportInsertedMemberSymbolRudeEdits(diagnostics As ArrayBuilder(Of RudeEditDiagnostic), newSymbol As ISymbol, newNode As SyntaxNode, insertingIntoExistingContainingType As Boolean)
             Dim kind = RudeEditKind.None
 
-
-
             Select Case newSymbol.Kind
                 Case SymbolKind.Method
                     Dim method = DirectCast(newSymbol, IMethodSymbol)
@@ -2841,7 +2839,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue
             End If
         End Sub
 
-        Friend Overrides Sub ReportPartialTypeInsertDeleteRudeEdits(diagnostics As ArrayBuilder(Of RudeEditDiagnostic), oldType As INamedTypeSymbol, newType As INamedTypeSymbol, newDeclaration As SyntaxNode, cancellationToken As CancellationToken)
+        Friend Overrides Sub ReportTypeDeclarationInsertDeleteRudeEdits(diagnostics As ArrayBuilder(Of RudeEditDiagnostic), oldType As INamedTypeSymbol, newType As INamedTypeSymbol, newDeclaration As SyntaxNode, cancellationToken As CancellationToken)
             ' TODO
             Throw New NotImplementedException()
         End Sub

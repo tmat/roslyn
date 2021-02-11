@@ -28,8 +28,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             {
                 RudeEditKind.ActiveStatementUpdate,
                 RudeEditKind.PartiallyExecutedActiveStatementUpdate,
-                RudeEditKind.PartiallyExecutedActiveStatementDelete,
-                RudeEditKind.DeleteActiveStatement,
                 RudeEditKind.UpdateExceptionHandlerOfActiveTry,
                 RudeEditKind.UpdateTryOrCatchWithActiveFinally,
                 RudeEditKind.UpdateCatchHandlerAroundActiveStatement,

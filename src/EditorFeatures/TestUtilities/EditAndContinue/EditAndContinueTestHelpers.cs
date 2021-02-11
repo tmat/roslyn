@@ -74,64 +74,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             }
         }
 
-        internal void VerifyRudeDiagnostics(
-            EditScript<SyntaxNode> editScript,
-            ActiveStatementsDescription description,
-            RudeEditDiagnosticDescription[] expectedDiagnostics)
-        {
-            var oldActiveStatements = description.OldStatements;
-
-            if (description.OldTrackingSpans != null)
-            {
-                Assert.Equal(oldActiveStatements.Length, description.OldTrackingSpans.Length);
-            }
-
-            var newSource = editScript.Match.NewRoot.SyntaxTree.ToString();
-            var oldSource = editScript.Match.OldRoot.SyntaxTree.ToString();
-
-            var oldText = SourceText.From(oldSource);
-            var newText = SourceText.From(newSource);
-            var oldRoot = editScript.Match.OldRoot;
-
-            var diagnostics = new ArrayBuilder<RudeEditDiagnostic>();
-            var updatedActiveMethodMatches = new ArrayBuilder<UpdatedMemberInfo>();
-            var actualNewActiveStatements = ImmutableArray.CreateBuilder<ActiveStatement>(oldActiveStatements.Length);
-            actualNewActiveStatements.Count = actualNewActiveStatements.Capacity;
-            var actualNewExceptionRegions = ImmutableArray.CreateBuilder<ImmutableArray<LinePositionSpan>>(oldActiveStatements.Length);
-            actualNewExceptionRegions.Count = actualNewExceptionRegions.Capacity;
-            var editMap = BuildEditMap(editScript);
-
-            var testAccessor = Analyzer.GetTestAccessor();
-
-            testAccessor.AnalyzeMemberBodiesSyntax(
-                editScript,
-                editMap,
-                oldText,
-                newText,
-                oldActiveStatements.AsImmutable(),
-                description.OldTrackingSpans.ToImmutableArrayOrEmpty(),
-                actualNewActiveStatements,
-                actualNewExceptionRegions,
-                updatedActiveMethodMatches,
-                diagnostics);
-
-            testAccessor.ReportTopLevelSyntacticRudeEdits(diagnostics, editScript, editMap);
-
-            VerifyDiagnostics(expectedDiagnostics, diagnostics, newText);
-
-            if (!diagnostics.IsEmpty())
-            {
-                VerifyActiveStatementsAndExceptionRegions(description, oldActiveStatements, oldText, newText, oldRoot, actualNewActiveStatements, actualNewExceptionRegions);
-            }
-            else
-            {
-                for (var i = 0; i < oldActiveStatements.Length; i++)
-                {
-                    Assert.Equal(0, description.NewRegions[i].Length);
-                }
-            }
-        }
-
         private void VerifyActiveStatementsAndExceptionRegions(
             ActiveStatementsDescription description,
             IReadOnlyList<ActiveStatement> oldActiveStatements,
@@ -290,7 +232,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             // string comparison to simplify understanding why a test failed:
             AssertEx.Equal(
                 expectedSemanticEdits.Select(e => $"{e.Kind}: {e.SymbolProvider(newCompilation)}"),
-                actualSemanticEdits.Select(e => $"{e.Kind}: {e.Symbol.Resolve(newCompilation).Symbol}"));
+                actualSemanticEdits.NullToEmpty().Select(e => $"{e.Kind}: {e.Symbol.Resolve(newCompilation).Symbol}"));
 
             for (var i = 0; i < actualSemanticEdits.Length; i++)
             {

@@ -1044,32 +1044,25 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
             return model.GetDeclaredSymbol(node, cancellationToken);
         }
 
-        protected override bool TryGetDeclarationBodyEdit(Edit<SyntaxNode> edit, IReadOnlyDictionary<SyntaxNode, EditKind> editMap, out SyntaxNode? oldBody, out SyntaxNode? newBody)
+        protected override void GetUpdatedDeclarationBodies(SyntaxNode oldDeclaration, SyntaxNode newDeclaration, out SyntaxNode? oldBody, out SyntaxNode? newBody)
         {
             // Detect a transition between a property/indexer with an expression body and with an explicit getter.
             // int P => old_body;              <->      int P { get { new_body } } 
             // int this[args] => old_body;     <->      int this[args] { get { new_body } }     
 
             // First, return getter or expression body for property/indexer update:
-            if (edit.Kind == EditKind.Update && (edit.OldNode.IsKind(SyntaxKind.PropertyDeclaration) || edit.OldNode.IsKind(SyntaxKind.IndexerDeclaration)))
+            if (oldDeclaration.IsKind(SyntaxKind.PropertyDeclaration) || oldDeclaration.IsKind(SyntaxKind.IndexerDeclaration))
             {
-                oldBody = SyntaxUtilities.TryGetEffectiveGetterBody(edit.OldNode);
-                newBody = SyntaxUtilities.TryGetEffectiveGetterBody(edit.NewNode);
+                oldBody = SyntaxUtilities.TryGetEffectiveGetterBody(oldDeclaration);
+                newBody = SyntaxUtilities.TryGetEffectiveGetterBody(newDeclaration);
 
                 if (oldBody != null && newBody != null)
                 {
-                    return true;
+                    return;
                 }
             }
 
-            // Second, ignore deletion of a getter body:
-            if (IsGetterToExpressionBodyTransformation(edit.Kind, edit.OldNode ?? edit.NewNode, editMap))
-            {
-                oldBody = newBody = null;
-                return false;
-            }
-
-            return base.TryGetDeclarationBodyEdit(edit, editMap, out oldBody, out newBody);
+            base.GetUpdatedDeclarationBodies(oldDeclaration, newDeclaration, out oldBody, out newBody);
         }
 
         private static bool IsGetterToExpressionBodyTransformation(EditKind editKind, SyntaxNode node, IReadOnlyDictionary<SyntaxNode, EditKind> editMap)
@@ -1095,7 +1088,7 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
             => node.IsKind(SyntaxKind.LocalFunctionStatement);
 
         internal override bool IsNestedFunction(SyntaxNode node)
-            => node is LambdaExpressionSyntax || node is LocalFunctionStatementSyntax;
+            => node is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax;
 
         internal override bool TryGetLambdaBodies(SyntaxNode node, [NotNullWhen(true)] out SyntaxNode? body1, out SyntaxNode? body2)
             => LambdaUtilities.TryGetLambdaBodies(node, out body1, out body2);
@@ -2852,30 +2845,34 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
         {
             var rudeEditKind = newSymbol switch
             {
-                // Inserting destructor to an existing type is not allowed.
-                IMethodSymbol { MethodKind: MethodKind.Destructor } when insertingIntoExistingContainingType
-                    => RudeEditKind.Insert,
-
-                // Inserting operator to an existing type is not allowed.
-                IMethodSymbol { MethodKind: MethodKind.Conversion or MethodKind.UserDefinedOperator } when insertingIntoExistingContainingType
-                    => RudeEditKind.InsertOperator,
-
-                // Inserting generic method into an existing type is not allowed.
-                IMethodSymbol { Arity: > 0 } when insertingIntoExistingContainingType
-                    => RudeEditKind.InsertGenericMethod,
-
-                IMethodSymbol { ExplicitInterfaceImplementations: { IsEmpty: false } }
-                    => RudeEditKind.InsertMethodWithExplicitInterfaceSpecifier,
-
                 // Inserting extern member into a new or existing type is not allowed.
                 { IsExtern: true }
                     => RudeEditKind.InsertExtern,
 
-                // Inserting a member into a generic type is not allowed.
+                // All rude edits below only apply when inserting into an existing type (not when the type itself is inserted):
+                _ when !insertingIntoExistingContainingType => RudeEditKind.None,
+
+                // Inserting a member into an existing generic type is not allowed.
                 { ContainingType: { Arity: > 0 } } and not INamedTypeSymbol
                     => RudeEditKind.InsertIntoGenericType,
 
-                // Inserting virtual or interface member is not allowed.
+                // Inserting destructor to an existing type is not allowed.
+                IMethodSymbol { MethodKind: MethodKind.Destructor }
+                    => RudeEditKind.Insert,
+
+                // Inserting operator to an existing type is not allowed.
+                IMethodSymbol { MethodKind: MethodKind.Conversion or MethodKind.UserDefinedOperator }
+                    => RudeEditKind.InsertOperator,
+
+                // Inserting generic method into an existing type is not allowed.
+                IMethodSymbol { Arity: > 0 }
+                    => RudeEditKind.InsertGenericMethod,
+
+                // Inserting a method that explictly implements an interface method into an existing type is not allowed.
+                IMethodSymbol { ExplicitInterfaceImplementations: { IsEmpty: false } }
+                    => RudeEditKind.InsertMethodWithExplicitInterfaceSpecifier,
+
+                // Inserting virtual or interface member into an existing type is not allowed.
                 { IsVirtual: true } or { IsOverride: true } or { IsAbstract: true } and not INamedTypeSymbol
                     => RudeEditKind.InsertVirtual,
 
@@ -2896,7 +2893,7 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
             }
         }
 
-        internal override void ReportPartialTypeInsertDeleteRudeEdits(ArrayBuilder<RudeEditDiagnostic> diagnostics, INamedTypeSymbol oldType, INamedTypeSymbol newType, SyntaxNode newDeclaration, CancellationToken cancellationToken)
+        internal override void ReportTypeDeclarationInsertDeleteRudeEdits(ArrayBuilder<RudeEditDiagnostic> diagnostics, INamedTypeSymbol oldType, INamedTypeSymbol newType, SyntaxNode newDeclaration, CancellationToken cancellationToken)
         {
             using var _1 = ArrayBuilder<SyntaxNode>.GetInstance(out var oldNodes);
             using var _2 = ArrayBuilder<SyntaxNode>.GetInstance(out var newNodes);
@@ -2909,9 +2906,6 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
 
             void Report(Action<ArrayBuilder<SyntaxNode>, TypeDeclarationSyntax> addNodes, RudeEditKind rudeEditKind)
             {
-                oldNodes.Clear();
-                newNodes.Clear();
-
                 foreach (var syntaxRef in oldType.DeclaringSyntaxReferences)
                 {
                     addNodes(oldNodes, (TypeDeclarationSyntax)syntaxRef.GetSyntax(cancellationToken));
@@ -2926,11 +2920,14 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
                     oldNodes.Zip(newNodes, (oldNode, newNode) => SyntaxFactory.AreEquivalent(oldNode, newNode)).Any(isEquivalent => !isEquivalent))
                 {
                     diagnostics.Add(new RudeEditDiagnostic(
-                    rudeEditKind,
-                    GetDiagnosticSpan(newDeclaration, EditKind.Update),
-                    newDeclaration,
-                    arguments: new[] { GetDisplayName(newDeclaration, EditKind.Update) }));
+                        rudeEditKind,
+                        GetDiagnosticSpan(newDeclaration, EditKind.Update),
+                        newDeclaration,
+                        arguments: new[] { GetDisplayName(newDeclaration, EditKind.Update) }));
                 }
+
+                oldNodes.Clear();
+                newNodes.Clear();
             }
         }
 

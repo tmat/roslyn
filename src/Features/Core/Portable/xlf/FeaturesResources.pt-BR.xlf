@@ -130,6 +130,11 @@ Verifique se o especificador "tt" foi usado para idiomas para os quais é necess
         <target state="translated">Condições de alternância não capturam e não podem ser nomeadas</target>
         <note>This is an error message shown to the user when they write an invalid Regular Expression. Example: (?(?'x'))</note>
       </trans-unit>
+      <trans-unit id="An_active_statement_has_been_removed_from_its_original_method_You_must_revert_your_changes_to_continue_or_restart_the_debugging_session">
+        <source>An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</source>
+        <target state="new">An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Awaited_task_returns_0">
         <source>Awaited task returns '{0}'</source>
         <target state="translated">A tarefa esperada retorna '{0}'</target>
@@ -2346,6 +2351,11 @@ Se o especificador de formato "H" for usado sem outros especificadores de format
         <target state="translated">O especificador de formato personalizado "HH" (mais qualquer número de especificadores "H" adicionais) representa a hora como um número de 00 a 23. Ou seja, a hora é representada por um relógio de 24 horas com base em zero que conta as horas desde a meia-noite. Uma hora de dígito único é formatada com um zero à esquerda.</target>
         <note />
       </trans-unit>
+      <trans-unit id="code">
+        <source>code</source>
+        <target state="new">code</target>
+        <note />
+      </trans-unit>
       <trans-unit id="date_separator">
         <source>date separator</source>
         <target state="translated">separador de data</target>
@@ -3184,11 +3194,6 @@ Se o especificador de formato "g" for usado sem outros especificadores de format
         <target state="translated">Excluir um corpo de método impedirá que a sessão de depuração continue.</target>
         <note />
       </trans-unit>
-      <trans-unit id="An_active_statement_has_been_removed_from_its_original_method_You_must_revert_your_changes_to_continue_or_restart_the_debugging_session">
-        <source>An active statement has been removed from its original method. You must revert your changes to continue or restart the debugging session.</source>
-        <target state="translated">Uma instrução ativa foi removida de seu método original. Você deve reverter as alterações para continuar ou reiniciar a sessão de depuração.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Updating_async_or_iterator_modifier_around_an_active_statement_will_prevent_the_debug_session_from_continuing">
         <source>Updating async or iterator modifier around an active statement will prevent the debug session from continuing.</source>
         <target state="translated">A atualização do modificador "async" ou "iterator" em torno de uma instrução ativa impedirá a sessão de depuração de continuar.</target>
@@ -3275,8 +3280,8 @@ Se o especificador de formato "g" for usado sem outros especificadores de format
         <note />
       </trans-unit>
       <trans-unit id="Removing_0_that_contains_an_active_statement_will_prevent_the_debug_session_from_continuing">
-        <source>Removing '{0}' that contains an active statement will prevent the debug session from continuing.</source>
-        <target state="translated">Remover "{0}" que contém uma instrução ativa impedirá que a sessão de depuração continue.</target>
+        <source>Removing {0} that contains an active statement will prevent the debug session from continuing.</source>
+        <target state="needs-review-translation">Remover "{0}" que contém uma instrução ativa impedirá que a sessão de depuração continue.</target>
         <note />
       </trans-unit>
       <trans-unit id="Adding_a_new_file_will_prevent_the_debug_session_from_continuing">

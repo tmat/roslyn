@@ -317,7 +317,7 @@ End Class
             Dim active = GetActiveStatements(src1, src2)
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Shared Sub Main()"))
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Shared Sub Main()", FeaturesResources.code))
         End Sub
 
         <Fact, WorkItem(755959, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755959")>
@@ -422,21 +422,21 @@ End Class
             Dim edits = GetTopEdits(src1, src2)
             Dim active = GetActiveStatements(src1, src2)
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Do"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "If True"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Else"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Case 1, 2"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Case Else"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "While True"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Do Until True"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "If True Then"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Else"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "For i = 0 To 10"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "For Each i In {1, 2}"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Using z = New C()"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "With expr"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Shared Sub Main()"),
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "SyncLock Nothing"))
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Do", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "If True", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Else", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Case 1, 2", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Case Else", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "While True", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Do Until True", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "If True Then", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Else", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "For i = 0 To 10", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "For Each i In {1, 2}", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Using z = New C()", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "With expr", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Shared Sub Main()", FeaturesResources.code),
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "SyncLock Nothing", FeaturesResources.code))
         End Sub
 
         <Fact>
@@ -514,7 +514,7 @@ End Class
             Dim edits = GetTopEdits(src1, src2)
             Dim active = GetActiveStatements(src1, src2)
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "If c1 Then"))
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "If c1 Then", FeaturesResources.code))
         End Sub
 
         <Fact, WorkItem(755959, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755959")>
@@ -649,7 +649,7 @@ End Class
             Dim edits = GetTopEdits(src1, src2)
             Dim active = GetActiveStatements(src1, src2)
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Sub Main()"))
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Sub Main()", FeaturesResources.code))
         End Sub
 
         <Fact, WorkItem(755959, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755959")>
@@ -3498,7 +3498,7 @@ End Class
             Dim active = GetActiveStatements(src1, src2)
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Try"))
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Try", FeaturesResources.code))
         End Sub
 
         <Fact>
@@ -3562,7 +3562,7 @@ End Class
             Dim active = GetActiveStatements(src1, src2)
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Try"))
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Try", FeaturesResources.code))
         End Sub
 
         <Fact>
@@ -5716,7 +5716,7 @@ End Class
             active.OldStatements(0) = active.OldStatements(0).WithFlags(ActiveStatementFlags.PartiallyExecuted Or ActiveStatementFlags.IsLeafFrame)
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.PartiallyExecutedActiveStatementDelete, "Sub F()"))
+                Diagnostic(RudeEditKind.PartiallyExecutedActiveStatementDelete, "Sub F()", FeaturesResources.code))
         End Sub
 
         <Fact>
@@ -5740,7 +5740,7 @@ End Class
             active.OldStatements(0) = active.OldStatements(0).WithFlags(ActiveStatementFlags.IsNonLeafFrame Or ActiveStatementFlags.IsLeafFrame)
 
             edits.VerifyRudeDiagnostics(active,
-                Diagnostic(RudeEditKind.DeleteActiveStatement, "Sub F()"))
+                Diagnostic(RudeEditKind.DeleteActiveStatement, "Sub F()", FeaturesResources.code))
         End Sub
     End Class
 End Namespace

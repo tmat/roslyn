@@ -35,8 +35,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.EditAndContinue.UnitTests
         Friend Sub VerifyRudeDiagnostics(editScript As EditScript(Of SyntaxNode),
                                          description As ActiveStatementsDescription,
                                          ParamArray expectedDiagnostics As RudeEditDiagnosticDescription())
-            Dim validator = New VisualBasicEditAndContinueTestHelpers()
-            validator.VerifyRudeDiagnostics(editScript, description, expectedDiagnostics)
+            VerifySemantics(editScript, description, diagnostics:=expectedDiagnostics)
         End Sub
 
         <Extension>

@@ -575,7 +575,7 @@
     <value>Updating an active statement will prevent the debug session from continuing.</value>
   </data>
   <data name="Removing_0_that_contains_an_active_statement_will_prevent_the_debug_session_from_continuing" xml:space="preserve">
-    <value>Removing '{0}' that contains an active statement will prevent the debug session from continuing.</value>
+    <value>Removing {0} that contains an active statement will prevent the debug session from continuing.</value>
   </data>
   <data name="Adding_a_new_file_will_prevent_the_debug_session_from_continuing" xml:space="preserve">
     <value>Adding a new file will prevent the debug session from continuing.</value>
@@ -2811,11 +2811,14 @@ Zero-width positive lookbehind assertions are typically used at the beginning of
   <data name="_0_dash_1" xml:space="preserve">
     <value>{0} - {1}</value>
   </data>
-  <data name="Convert_to_record" xml:space="preserve">
-    <value>Convert to record</value>
-  </data>
   <data name="member_kind_and_name" xml:space="preserve">
     <value>{0} '{1}'</value>
     <comment>e.g. "method 'M'"</comment>
+  </data>
+  <data name="code" xml:space="preserve">
+    <value>code</value>
+  </data>
+  <data name="Convert_to_record" xml:space="preserve">
+    <value>Convert to record</value>
   </data>
 </root>
