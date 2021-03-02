@@ -7,22 +7,21 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Symbols;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Emit
 {
     internal abstract class SymbolMatcher
     {
         public abstract Cci.ITypeReference? MapReference(Cci.ITypeReference reference);
+        public abstract ISymbolInternal? MapDefinition(ISymbolInternal definition);
         public abstract Cci.IDefinition? MapDefinition(Cci.IDefinition definition);
-        public abstract Cci.INamespace? MapNamespace(Cci.INamespace @namespace);
+        public abstract INamespaceSymbolInternal? MapNamespace(INamespaceSymbolInternal namespaceSymbol);
 
         public ISymbolInternal? MapDefinitionOrNamespace(ISymbolInternal symbol)
         {
-            var adapter = symbol.GetCciAdapter();
-            return (adapter is Cci.IDefinition definition) ?
-                MapDefinition(definition)?.GetInternalSymbol() :
-                MapNamespace((Cci.INamespace)adapter)?.GetInternalSymbol();
+            return (symbol is INamespaceSymbolInternal namespaceSymbol) ?
+                MapNamespace(namespaceSymbol) :
+                MapDefinition(symbol);
         }
 
         public EmitBaseline MapBaselineToCompilation(
@@ -99,12 +98,14 @@ namespace Microsoft.CodeAnalysis.Emit
         {
             var result = new Dictionary<AnonymousTypeKey, AnonymousTypeValue>();
 
-            foreach (var pair in anonymousTypeMap)
+            foreach (var (key, value) in anonymousTypeMap)
             {
-                var key = pair.Key;
-                var value = pair.Value;
-                var type = (Cci.ITypeDefinition?)MapDefinition(value.Type);
-                RoslynDebug.Assert(type != null);
+                var symbol = value.Type.GetInternalSymbol();
+                Debug.Assert(symbol != null);
+
+                var type = (Cci.ITypeDefinition?)MapDefinition(symbol);
+                Debug.Assert(type != null);
+
                 result.Add(key, new AnonymousTypeValue(value.Name, value.UniqueIndex, type));
             }
 

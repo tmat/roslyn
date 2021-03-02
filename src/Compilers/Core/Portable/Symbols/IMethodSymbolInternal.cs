@@ -16,6 +16,12 @@ namespace Microsoft.CodeAnalysis.Symbols
         /// </summary>
         bool IsAsync { get; }
 
+        ISymbolInternal AssociatedSymbol { get; }
+
+        IMethodSymbolInternal PartialImplementationPart { get; }
+
+        IMethodSymbolInternal PartialDefinitionPart { get; }
+
         int CalculateLocalSyntaxOffset(int declaratorPosition, SyntaxTree declaratorTree);
 
         /// <summary>

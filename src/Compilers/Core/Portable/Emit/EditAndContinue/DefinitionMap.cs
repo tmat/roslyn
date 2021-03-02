@@ -81,23 +81,32 @@ namespace Microsoft.CodeAnalysis.Emit
 
         protected abstract ISymbolInternal? GetISymbolInternalOrNull(ISymbol symbol);
 
-        internal Cci.IDefinition? MapDefinition(Cci.IDefinition definition)
+        internal ISymbolInternal? MapDefinition(ISymbolInternal definition)
         {
             return MapToPreviousSymbolMatcher.MapDefinition(definition) ??
                    (MapToMetadataSymbolMatcher != MapToPreviousSymbolMatcher ? MapToMetadataSymbolMatcher.MapDefinition(definition) : null);
         }
 
-        internal Cci.INamespace? MapNamespace(Cci.INamespace @namespace)
+        internal ISymbolInternal? MapDefinition(Cci.IDefinition definition)
         {
-            return MapToPreviousSymbolMatcher.MapNamespace(@namespace) ??
-                   (MapToMetadataSymbolMatcher != MapToPreviousSymbolMatcher ? MapToMetadataSymbolMatcher.MapNamespace(@namespace) : null);
+            return MapToPreviousSymbolMatcher.MapDefinition(definition) ??
+                   (MapToMetadataSymbolMatcher != MapToPreviousSymbolMatcher ? MapToMetadataSymbolMatcher.MapDefinition(definition) : null);
         }
+
+        internal INamespaceSymbolInternal? MapNamespace(INamespaceSymbolInternal namespaceSymbol)
+        {
+            return MapToPreviousSymbolMatcher.MapNamespace(namespaceSymbol) ??
+                   (MapToMetadataSymbolMatcher != MapToPreviousSymbolMatcher ? MapToMetadataSymbolMatcher.MapNamespace(namespaceSymbol) : null);
+        }
+
+        internal bool DefinitionExists(ISymbolInternal definition)
+            => MapDefinition(definition) is object;
+
+        internal bool NamespaceExists(INamespaceSymbolInternal namespaceSymbol)
+            => MapNamespace(namespaceSymbol) is object;
 
         internal bool DefinitionExists(Cci.IDefinition definition)
             => MapDefinition(definition) is object;
-
-        internal bool NamespaceExists(Cci.INamespace @namespace)
-            => MapNamespace(@namespace) is object;
 
         internal abstract bool TryGetTypeHandle(Cci.ITypeDefinition def, out TypeDefinitionHandle handle);
         internal abstract bool TryGetEventHandle(Cci.IEventDefinition def, out EventDefinitionHandle handle);

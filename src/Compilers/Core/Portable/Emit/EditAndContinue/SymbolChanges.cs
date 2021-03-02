@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Cci;
 using Roslyn.Utilities;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -22,7 +21,7 @@ namespace Microsoft.CodeAnalysis.Emit
         /// Contains all symbols explicitly updated/added to the source and 
         /// their containing types and namespaces. 
         /// </summary>
-        private readonly IReadOnlyDictionary<ISymbol, SymbolChange> _changes;
+        private readonly IReadOnlyDictionary<ISymbolInternal, SymbolChange> _changes;
 
         private readonly Func<ISymbol, bool> _isAddedSymbol;
 
@@ -45,35 +44,52 @@ namespace Microsoft.CodeAnalysis.Emit
         /// <summary>
         /// Returns true if the symbol or some child symbol has changed and needs to be compiled.
         /// </summary>
-        public bool RequiresCompilation(ISymbol symbol)
+        public bool RequiresCompilation(ISymbolInternal symbol)
+            => GetChange(symbol) != SymbolChange.None;
+
+        public SymbolChange GetChange(Cci.IDefinition definition)
         {
-            return this.GetChange(symbol) != SymbolChange.None;
+            var symbol = definition.GetInternalSymbol();
+            if (symbol is not null)
+            {
+                return GetChange(symbol);
+            }
+
+            // If the def existed in the previous generation, the def is unchanged
+            // (although it may contain changed defs); otherwise, it was added.
+            if (_definitionMap.DefinitionExists(definition))
+            {
+                return (definition is Cci.ITypeDefinition) ? SymbolChange.ContainsChanges : SymbolChange.None;
+            }
+
+            return SymbolChange.Added;
         }
 
-        public SymbolChange GetChange(IDefinition def)
+        public SymbolChange GetChange(ISymbolInternal symbol)
         {
-            var symbol = def.GetInternalSymbol();
+            if (_changes.TryGetValue(symbol, out var change))
+            {
+                return change;
+            }
+
             if (symbol is ISynthesizedMethodBodyImplementationSymbol synthesizedDef)
             {
-                RoslynDebug.Assert(synthesizedDef.Method != null);
+                Debug.Assert(synthesizedDef.Method != null);
 
-                var generator = synthesizedDef.Method;
-                ISymbolInternal synthesizedSymbol = synthesizedDef;
-
-                var change = GetChange((IDefinition)generator.GetCciAdapter());
-                switch (change)
+                var generatorMethodChange = GetChange(synthesizedDef.Method);
+                switch (generatorMethodChange)
                 {
                     case SymbolChange.Updated:
                         // The generator has been updated. Some synthesized members should be reused, others updated or added.
 
                         // The container of the synthesized symbol doesn't exist, we need to add the symbol.
                         // This may happen e.g. for members of a state machine type when a non-iterator method is changed to an iterator.
-                        if (!_definitionMap.DefinitionExists((IDefinition)synthesizedSymbol.ContainingType.GetCciAdapter()))
+                        if (!_definitionMap.DefinitionExists(synthesizedDef.ContainingType))
                         {
                             return SymbolChange.Added;
                         }
 
-                        if (!_definitionMap.DefinitionExists(def))
+                        if (!_definitionMap.DefinitionExists(synthesizedDef))
                         {
                             // A method was changed to a method containing a lambda, to an iterator, or to an async method.
                             // The state machine or closure class has been added.
@@ -90,12 +106,12 @@ namespace Microsoft.CodeAnalysis.Emit
                         }
 
                         // If the type produced from the method body existed before then its members are updated.
-                        if (synthesizedSymbol.Kind == SymbolKind.NamedType)
+                        if (synthesizedDef.Kind == SymbolKind.NamedType)
                         {
                             return SymbolChange.ContainsChanges;
                         }
 
-                        if (synthesizedSymbol.Kind == SymbolKind.Method)
+                        if (synthesizedDef.Kind == SymbolKind.Method)
                         {
                             // The method body might have been updated.
                             return SymbolChange.Updated;
@@ -105,7 +121,7 @@ namespace Microsoft.CodeAnalysis.Emit
 
                     case SymbolChange.Added:
                         // The method has been added - add the synthesized member as well, unless they already exist.
-                        if (!_definitionMap.DefinitionExists(def))
+                        if (!_definitionMap.DefinitionExists(synthesizedDef))
                         {
                             return SymbolChange.Added;
                         }
@@ -113,7 +129,7 @@ namespace Microsoft.CodeAnalysis.Emit
                         // If the existing member is a type we need to add new members into it.
                         // An example is a shared static display class - an added method with static lambda will contribute
                         // the lambda and cache fields into the shared display class.
-                        if (synthesizedSymbol.Kind == SymbolKind.NamedType)
+                        if (synthesizedDef.Kind == SymbolKind.NamedType)
                         {
                             return SymbolChange.ContainsChanges;
                         }
@@ -121,7 +137,7 @@ namespace Microsoft.CodeAnalysis.Emit
                         // Update method.
                         // An example is a constructor a shared display class - an added method with lambda will contribute
                         // cache field initialization code into the constructor.
-                        if (synthesizedSymbol.Kind == SymbolKind.Method)
+                        if (synthesizedDef.Kind == SymbolKind.Method)
                         {
                             return SymbolChange.Updated;
                         }
@@ -132,30 +148,8 @@ namespace Microsoft.CodeAnalysis.Emit
 
                     default:
                         // The method had to change, otherwise the synthesized symbol wouldn't be generated
-                        throw ExceptionUtilities.UnexpectedValue(change);
+                        throw ExceptionUtilities.UnexpectedValue(generatorMethodChange);
                 }
-            }
-
-            if (symbol is object)
-            {
-                return GetChange(symbol.GetISymbol());
-            }
-
-            // If the def existed in the previous generation, the def is unchanged
-            // (although it may contain changed defs); otherwise, it was added.
-            if (_definitionMap.DefinitionExists(def))
-            {
-                return (def is ITypeDefinition) ? SymbolChange.ContainsChanges : SymbolChange.None;
-            }
-
-            return SymbolChange.Added;
-        }
-
-        private SymbolChange GetChange(ISymbol symbol)
-        {
-            if (_changes.TryGetValue(symbol, out var change))
-            {
-                return change;
             }
 
             // Calculate change based on change to container.
@@ -178,22 +172,15 @@ namespace Microsoft.CodeAnalysis.Emit
 
                 case SymbolChange.Updated:
                 case SymbolChange.ContainsChanges:
-                    var adapter = GetISymbolInternalOrNull(symbol)?.GetCciAdapter();
-
-                    if (adapter is IDefinition definition)
-                    {
-                        // If the definition did not exist in the previous generation, it was added.
-                        return _definitionMap.DefinitionExists(definition) ? SymbolChange.None : SymbolChange.Added;
-                    }
-
-                    if (adapter is INamespace @namespace)
+                    if (symbol is INamespaceSymbolInternal internalNamespaceSymbol)
                     {
                         // If the namespace did not exist in the previous generation, it was added.
                         // Otherwise the namespace may contain changes.
-                        return _definitionMap.NamespaceExists(@namespace) ? SymbolChange.ContainsChanges : SymbolChange.Added;
+                        return _definitionMap.NamespaceExists(internalNamespaceSymbol) ? SymbolChange.ContainsChanges : SymbolChange.Added;
                     }
 
-                    return SymbolChange.None;
+                    // If the definition did not exist in the previous generation, it was added.
+                    return _definitionMap.DefinitionExists(symbol) ? SymbolChange.None : SymbolChange.Added;
 
                 default:
                     throw ExceptionUtilities.UnexpectedValue(containerChange);
@@ -202,11 +189,11 @@ namespace Microsoft.CodeAnalysis.Emit
 
         protected abstract ISymbolInternal? GetISymbolInternalOrNull(ISymbol symbol);
 
-        public IEnumerable<INamespaceTypeDefinition> GetTopLevelSourceTypeDefinitions(EmitContext context)
+        public IEnumerable<Cci.INamespaceTypeDefinition> GetTopLevelSourceTypeDefinitions(EmitContext context)
         {
             foreach (var symbol in _changes.Keys)
             {
-                var namespaceTypeDef = (GetISymbolInternalOrNull(symbol)?.GetCciAdapter() as ITypeDefinition)?.AsNamespaceTypeDefinition(context);
+                var namespaceTypeDef = (symbol.GetCciAdapter() as Cci.ITypeDefinition)?.AsNamespaceTypeDefinition(context);
                 if (namespaceTypeDef != null)
                 {
                     yield return namespaceTypeDef;
@@ -221,9 +208,9 @@ namespace Microsoft.CodeAnalysis.Emit
         /// Note that these changes only include user-defined source symbols, not synthesized symbols since those will be 
         /// generated during lowering of the changed user-defined symbols.
         /// </summary>
-        private static IReadOnlyDictionary<ISymbol, SymbolChange> CalculateChanges(IEnumerable<SemanticEdit> edits)
+        private IReadOnlyDictionary<ISymbolInternal, SymbolChange> CalculateChanges(IEnumerable<SemanticEdit> edits)
         {
-            var changes = new Dictionary<ISymbol, SymbolChange>();
+            var changes = new Dictionary<ISymbolInternal, SymbolChange>();
 
             foreach (var edit in edits)
             {
@@ -247,18 +234,20 @@ namespace Microsoft.CodeAnalysis.Emit
                         throw ExceptionUtilities.UnexpectedValue(edit.Kind);
                 }
 
-                var member = edit.NewSymbol;
-                RoslynDebug.AssertNotNull(member);
+                Debug.Assert(edit.NewSymbol is not null);
+                var member = GetISymbolInternalOrNull(edit.NewSymbol);
+                if (member is null)
+                {
+                    continue;
+                }
 
                 // Partial methods are supplied as implementations but recorded
                 // internally as definitions since definitions are used in emit.
-                if (member.Kind == SymbolKind.Method)
+                if (member is IMethodSymbolInternal method)
                 {
-                    var method = (IMethodSymbol)member;
-
                     // Partial methods should be implementations, not definitions.
                     Debug.Assert(method.PartialImplementationPart == null);
-                    Debug.Assert((edit.OldSymbol == null) || (((IMethodSymbol)edit.OldSymbol).PartialImplementationPart == null));
+                    Debug.Assert(edit.OldSymbol == null || ((IMethodSymbolInternal)GetISymbolInternalOrNull(edit.OldSymbol)!).PartialImplementationPart == null);
 
                     var definitionPart = method.PartialDefinitionPart;
                     if (definitionPart != null)
@@ -274,7 +263,7 @@ namespace Microsoft.CodeAnalysis.Emit
             return changes;
         }
 
-        private static void AddContainingTypesAndNamespaces(Dictionary<ISymbol, SymbolChange> changes, ISymbol symbol)
+        private static void AddContainingTypesAndNamespaces(Dictionary<ISymbolInternal, SymbolChange> changes, ISymbolInternal symbol)
         {
             while (true)
             {
@@ -299,7 +288,7 @@ namespace Microsoft.CodeAnalysis.Emit
         /// field and the accessor methods. By default, the containing
         /// symbol is simply Symbol.ContainingSymbol.
         /// </summary>
-        private static ISymbol? GetContainingSymbol(ISymbol symbol)
+        private static ISymbolInternal? GetContainingSymbol(ISymbolInternal symbol)
         {
             // This approach of walking up the symbol hierarchy towards the
             // root, rather than walking down to the leaf symbols, seems
@@ -310,7 +299,7 @@ namespace Microsoft.CodeAnalysis.Emit
             {
                 case SymbolKind.Field:
                     {
-                        var associated = ((IFieldSymbol)symbol).AssociatedSymbol;
+                        var associated = ((IFieldSymbolInternal)symbol).AssociatedSymbol;
                         if (associated != null)
                         {
                             return associated;
@@ -320,7 +309,7 @@ namespace Microsoft.CodeAnalysis.Emit
 
                 case SymbolKind.Method:
                     {
-                        var associated = ((IMethodSymbol)symbol).AssociatedSymbol;
+                        var associated = ((IMethodSymbolInternal)symbol).AssociatedSymbol;
                         if (associated != null)
                         {
                             return associated;

@@ -41,19 +41,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             _symbols = New MatchSymbols(anonymousTypeMap, sourceAssembly, otherAssembly, otherSynthesizedMembersOpt:=Nothing, deepTranslatorOpt:=Nothing)
         End Sub
 
-        Public Overrides Function MapDefinition(definition As Cci.IDefinition) As Cci.IDefinition
-            Dim symbol As Symbol = TryCast(definition.GetInternalSymbol(), Symbol)
-            If symbol IsNot Nothing Then
-                Return DirectCast(_symbols.Visit(symbol)?.GetCciAdapter(), Cci.IDefinition)
-            End If
-
-            ' TODO: this appears to be dead code, remove (https://github.com/dotnet/roslyn/issues/51595)
-            Return _defs.VisitDef(definition)
+        Public Overrides Function MapDefinition(definition As ISymbolInternal) As ISymbolInternal
+            Return _symbols.Visit(DirectCast(definition, Symbol))
         End Function
 
-        Public Overrides Function MapNamespace([namespace] As Cci.INamespace) As Cci.INamespace
-            Debug.Assert(TypeOf [namespace].GetInternalSymbol() Is NamespaceSymbol)
-            Return DirectCast(_symbols.Visit(DirectCast([namespace]?.GetInternalSymbol(), NamespaceSymbol))?.GetCciAdapter(), Cci.INamespace)
+        Public Overrides Function MapNamespace(namespaceSymbol As INamespaceSymbolInternal) As INamespaceSymbolInternal
+            Return DirectCast(_symbols.Visit(DirectCast(namespaceSymbol, NamespaceSymbol)), NamespaceSymbol)
         End Function
 
         Public Overrides Function MapReference(reference As Cci.ITypeReference) As Cci.ITypeReference

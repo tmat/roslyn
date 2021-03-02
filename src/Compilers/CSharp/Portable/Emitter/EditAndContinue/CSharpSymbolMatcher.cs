@@ -52,26 +52,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
                 deepTranslator: null);
         }
 
+        public override ISymbolInternal? MapDefinition(ISymbolInternal definition)
+            => _symbols.Visit((Symbol)definition);
+
         public override Cci.IDefinition? MapDefinition(Cci.IDefinition definition)
-        {
-            if (definition.GetInternalSymbol() is Symbol symbol)
-            {
-                return (Cci.IDefinition?)_symbols.Visit(symbol)?.GetCciAdapter();
-            }
+            => _defs.VisitDef(definition);
 
-            // TODO: this appears to be dead code, remove (https://github.com/dotnet/roslyn/issues/51595)
-            return _defs.VisitDef(definition);
-        }
-
-        public override Cci.INamespace? MapNamespace(Cci.INamespace @namespace)
-        {
-            if (@namespace.GetInternalSymbol() is NamespaceSymbol symbol)
-            {
-                return (Cci.INamespace?)_symbols.Visit(symbol)?.GetCciAdapter();
-            }
-
-            return null;
-        }
+        public override INamespaceSymbolInternal? MapNamespace(INamespaceSymbolInternal namespaceSymbol)
+            => (NamespaceSymbol?)_symbols.Visit((NamespaceSymbol)namespaceSymbol);
 
         public override Cci.ITypeReference? MapReference(Cci.ITypeReference reference)
         {
