@@ -17,18 +17,23 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         public readonly ImmutableArray<(ProjectId ProjectId, EmitBaseline Baseline)> EmitBaselines;
         public readonly ImmutableArray<(ProjectId ProjectId, ImmutableArray<Diagnostic> Diagnostic)> Diagnostics;
 
+        // TODO: remove support for design-time only source-generated documents (https://github.com/dotnet/roslyn/issues/51678)
+        public readonly Solution? CompileTimeSolution;
+
         public SolutionUpdate(
             ManagedModuleUpdates moduleUpdates,
             ImmutableArray<(Guid ModuleId, ImmutableArray<(ManagedModuleMethodId Method, NonRemappableRegion Region)>)> nonRemappableRegions,
             ImmutableArray<IDisposable> moduleReaders,
             ImmutableArray<(ProjectId ProjectId, EmitBaseline Baseline)> emitBaselines,
-            ImmutableArray<(ProjectId ProjectId, ImmutableArray<Diagnostic> Diagnostics)> diagnostics)
+            ImmutableArray<(ProjectId ProjectId, ImmutableArray<Diagnostic> Diagnostics)> diagnostics,
+            Solution? compileTimeSolution)
         {
             ModuleUpdates = moduleUpdates;
             NonRemappableRegions = nonRemappableRegions;
             EmitBaselines = emitBaselines;
             ModuleReaders = moduleReaders;
             Diagnostics = diagnostics;
+            CompileTimeSolution = compileTimeSolution;
         }
 
         public static SolutionUpdate Blocked()
@@ -39,6 +44,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             ImmutableArray<(Guid, ImmutableArray<(ManagedModuleMethodId, NonRemappableRegion)>)>.Empty,
             ImmutableArray<IDisposable>.Empty,
             ImmutableArray<(ProjectId, EmitBaseline)>.Empty,
-            diagnostics);
+            diagnostics,
+            compileTimeSoluion: null);
     }
 }
