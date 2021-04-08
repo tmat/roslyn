@@ -47,7 +47,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             var mockCompilationOutputsProvider = new Func<Project, CompilationOutputs>(_ => new MockCompilationOutputs(Guid.NewGuid()));
 
             var debuggingSession = new DebuggingSession(
-                solution,
+                new RuntimeSolution(solution),
                 mockDebuggerService,
                 mockCompilationOutputsProvider,
                 SpecializedCollections.EmptyEnumerable<KeyValuePair<DocumentId, CommittedSolution.DocumentState>>(),
@@ -215,7 +215,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
             // Exception Regions
 
-            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(solution, CancellationToken.None).ConfigureAwait(false);
+            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(new RuntimeSolution(solution), CancellationToken.None).ConfigureAwait(false);
 
             AssertEx.Equal(new[]
             {
@@ -341,7 +341,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
             // Exception Regions
 
-            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(solution, CancellationToken.None).ConfigureAwait(false);
+            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(new RuntimeSolution(solution), CancellationToken.None).ConfigureAwait(false);
 
             // Note that the spans correspond to the base snapshot (V2). 
             AssertEx.Equal(new[]
@@ -454,7 +454,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
             // Exception Regions - not available in out-of-sync documents as we need the content of the base document to calculate them
 
-            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(solution, CancellationToken.None).ConfigureAwait(false);
+            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(new RuntimeSolution(solution), CancellationToken.None).ConfigureAwait(false);
 
             AssertEx.Equal(new[]
             {
@@ -464,7 +464,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             // document got synchronized:
             editSession.DebuggingSession.LastCommittedSolution.Test_SetDocumentState(docs[0], CommittedSolution.DocumentState.MatchesBuildOutput);
 
-            baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(solution, CancellationToken.None).ConfigureAwait(false);
+            baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(new RuntimeSolution(solution), CancellationToken.None).ConfigureAwait(false);
 
             AssertEx.Equal(new[]
             {
@@ -604,7 +604,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
             // Exception Regions
 
-            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(solution, CancellationToken.None).ConfigureAwait(false);
+            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(new RuntimeSolution(solution), CancellationToken.None).ConfigureAwait(false);
 
             // Note that the spans correspond to the base snapshot (V2). 
             AssertEx.Equal(new[]
@@ -754,7 +754,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
             // Exception Regions
 
-            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(solution, CancellationToken.None).ConfigureAwait(false);
+            var baseExceptionRegions = await editSession.GetBaseActiveExceptionRegionsAsync(new RuntimeSolution(solution), CancellationToken.None).ConfigureAwait(false);
 
             AssertEx.Equal(new[]
             {

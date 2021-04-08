@@ -79,7 +79,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             }
         }
 
-        public async ValueTask StartDebuggingSessionAsync(Solution solution, IManagedEditAndContinueDebuggerService debuggerService, bool captureMatchingDocuments, CancellationToken cancellationToken)
+        public async ValueTask StartDebuggingSessionAsync(RuntimeSolution solution, IManagedEditAndContinueDebuggerService debuggerService, bool captureMatchingDocuments, CancellationToken cancellationToken)
         {
             var initialDocumentStates =
                 captureMatchingDocuments ? await CommittedSolution.GetMatchingDocumentsAsync(solution, _compilationOutputsProvider, cancellationToken).ConfigureAwait(false) :
@@ -218,7 +218,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         /// but does not provide a definitive answer. Only <see cref="EmitSolutionUpdateAsync"/> can definitively determine whether
         /// the update is valid or not.
         /// </returns>
-        public ValueTask<bool> HasChangesAsync(Solution solution, SolutionActiveStatementSpanProvider solutionActiveStatementSpanProvider, string? sourceFilePath, CancellationToken cancellationToken)
+        public ValueTask<bool> HasChangesAsync(RuntimeSolution solution, SolutionActiveStatementSpanProvider solutionActiveStatementSpanProvider, string? sourceFilePath, CancellationToken cancellationToken)
         {
             // GetStatusAsync is called outside of edit session when the debugger is determining 
             // whether a source file checksum matches the one in PDB.
@@ -233,7 +233,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         }
 
         public async ValueTask<EmitSolutionUpdateResults> EmitSolutionUpdateAsync(
-            Solution solution,
+            RuntimeSolution solution,
             SolutionActiveStatementSpanProvider activeStatementSpanProvider,
             CancellationToken cancellationToken)
         {
@@ -274,7 +274,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             _ = debuggingSession.EditSession.RetrievePendingUpdate();
         }
 
-        public async ValueTask<ImmutableArray<ImmutableArray<(LinePositionSpan, ActiveStatementFlags)>>> GetBaseActiveStatementSpansAsync(Solution solution, ImmutableArray<DocumentId> documentIds, CancellationToken cancellationToken)
+        public async ValueTask<ImmutableArray<ImmutableArray<(LinePositionSpan, ActiveStatementFlags)>>> GetBaseActiveStatementSpansAsync(RuntimeSolution solution, ImmutableArray<DocumentId> documentIds, CancellationToken cancellationToken)
         {
             var debuggingSession = _debuggingSession;
             if (debuggingSession == null || !debuggingSession.EditSession.InBreakState)
@@ -359,7 +359,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             return activeStatements.SelectAsArray(s => (s.Span, s.Flags));
         }
 
-        public async ValueTask<LinePositionSpan?> GetCurrentActiveStatementPositionAsync(Solution solution, SolutionActiveStatementSpanProvider activeStatementSpanProvider, ManagedInstructionId instructionId, CancellationToken cancellationToken)
+        public async ValueTask<LinePositionSpan?> GetCurrentActiveStatementPositionAsync(RuntimeSolution solution, SolutionActiveStatementSpanProvider activeStatementSpanProvider, ManagedInstructionId instructionId, CancellationToken cancellationToken)
         {
             try
             {
@@ -419,7 +419,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         /// True if the instruction is located within an exception region, false if it is not, null if the instruction isn't an active statement 
         /// or the exception regions can't be determined.
         /// </returns>
-        public async ValueTask<bool?> IsActiveStatementInExceptionRegionAsync(Solution solution, ManagedInstructionId instructionId, CancellationToken cancellationToken)
+        public async ValueTask<bool?> IsActiveStatementInExceptionRegionAsync(RuntimeSolution solution, ManagedInstructionId instructionId, CancellationToken cancellationToken)
         {
             try
             {

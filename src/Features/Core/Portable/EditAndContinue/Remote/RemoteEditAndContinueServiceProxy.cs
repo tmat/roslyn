@@ -156,7 +156,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var client = await RemoteHostClient.TryGetClientAsync(Workspace, cancellationToken).ConfigureAwait(false);
             if (client == null)
             {
-                await GetLocalService().StartDebuggingSessionAsync(solution, debuggerService, captureMatchingDocuments, cancellationToken).ConfigureAwait(false);
+                await GetLocalService().StartDebuggingSessionAsync(new RuntimeSolution(solution), debuggerService, captureMatchingDocuments, cancellationToken).ConfigureAwait(false);
                 return LocalConnection.Instance;
             }
 
@@ -261,7 +261,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var client = await RemoteHostClient.TryGetClientAsync(Workspace, cancellationToken).ConfigureAwait(false);
             if (client == null)
             {
-                return await GetLocalService().HasChangesAsync(solution, activeStatementSpanProvider, sourceFilePath, cancellationToken).ConfigureAwait(false);
+                return await GetLocalService().HasChangesAsync(new RuntimeSolution(solution), activeStatementSpanProvider, sourceFilePath, cancellationToken).ConfigureAwait(false);
             }
 
             var result = await client.TryInvokeAsync<IRemoteEditAndContinueService, bool>(
@@ -287,9 +287,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var client = await RemoteHostClient.TryGetClientAsync(Workspace, cancellationToken).ConfigureAwait(false);
             if (client == null)
             {
-                var results = await GetLocalService().EmitSolutionUpdateAsync(solution, activeStatementSpanProvider, cancellationToken).ConfigureAwait(false);
+                var runtimeSolution = new RuntimeSolution(solution);
+                var results = await GetLocalService().EmitSolutionUpdateAsync(runtimeSolution, activeStatementSpanProvider, cancellationToken).ConfigureAwait(false);
                 moduleUpdates = results.ModuleUpdates;
-                diagnosticData = results.GetDiagnosticData(solution);
+                diagnosticData = results.GetDiagnosticData(runtimeSolution);
                 documentsWithRudeEdits = results.DocumentsWithRudeEdits.Select(d => d.DocumentId);
             }
             else
@@ -365,7 +366,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var client = await RemoteHostClient.TryGetClientAsync(Workspace.Services, cancellationToken).ConfigureAwait(false);
             if (client == null)
             {
-                return await GetLocalService().GetCurrentActiveStatementPositionAsync(solution, activeStatementSpanProvider, instructionId, cancellationToken).ConfigureAwait(false);
+                return await GetLocalService().GetCurrentActiveStatementPositionAsync(new RuntimeSolution(solution), activeStatementSpanProvider, instructionId, cancellationToken).ConfigureAwait(false);
             }
 
             var result = await client.TryInvokeAsync<IRemoteEditAndContinueService, LinePositionSpan?>(
@@ -382,7 +383,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var client = await RemoteHostClient.TryGetClientAsync(Workspace.Services, cancellationToken).ConfigureAwait(false);
             if (client == null)
             {
-                return await GetLocalService().IsActiveStatementInExceptionRegionAsync(solution, instructionId, cancellationToken).ConfigureAwait(false);
+                return await GetLocalService().IsActiveStatementInExceptionRegionAsync(new RuntimeSolution(solution), instructionId, cancellationToken).ConfigureAwait(false);
             }
 
             var result = await client.TryInvokeAsync<IRemoteEditAndContinueService, bool?>(
@@ -398,7 +399,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var client = await RemoteHostClient.TryGetClientAsync(Workspace, cancellationToken).ConfigureAwait(false);
             if (client == null)
             {
-                return await GetLocalService().GetBaseActiveStatementSpansAsync(solution, documentIds, cancellationToken).ConfigureAwait(false);
+                return await GetLocalService().GetBaseActiveStatementSpansAsync(new RuntimeSolution(solution), documentIds, cancellationToken).ConfigureAwait(false);
             }
 
             var result = await client.TryInvokeAsync<IRemoteEditAndContinueService, ImmutableArray<ImmutableArray<(LinePositionSpan, ActiveStatementFlags)>>>(

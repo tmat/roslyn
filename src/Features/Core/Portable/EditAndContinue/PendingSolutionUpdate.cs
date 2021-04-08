@@ -11,13 +11,13 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 {
     internal sealed class PendingSolutionUpdate
     {
-        public readonly Solution Solution;
+        public readonly RuntimeSolution Solution;
         public readonly ImmutableArray<(ProjectId ProjectId, EmitBaseline Baseline)> EmitBaselines;
         public readonly ImmutableArray<ManagedModuleUpdate> Deltas;
         public readonly ImmutableArray<(Guid ModuleId, ImmutableArray<(ManagedModuleMethodId Method, NonRemappableRegion Region)> Regions)> NonRemappableRegions;
 
         public PendingSolutionUpdate(
-            Solution solution,
+            RuntimeSolution solution,
             ImmutableArray<(ProjectId ProjectId, EmitBaseline Baseline)> emitBaselines,
             ImmutableArray<ManagedModuleUpdate> deltas,
             ImmutableArray<(Guid ModuleId, ImmutableArray<(ManagedModuleMethodId Method, NonRemappableRegion Region)>)> nonRemappableRegions)

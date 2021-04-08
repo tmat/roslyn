@@ -180,12 +180,14 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.EditAndContinue
                         return;
                     }
 
+                    var runtimeSolution = new RuntimeSolution(solution);
+
                     Debug.Assert(openDocumentIds.Length == baseActiveStatementSpans.Length);
                     using var _ = ArrayBuilder<Document?>.GetInstance(out var documents);
 
                     foreach (var id in openDocumentIds)
                     {
-                        documents.Add(await solution.GetDocumentAsync(id, includeSourceGenerated: true, cancellationToken).ConfigureAwait(false));
+                        documents.Add(await runtimeSolution.GetDocumentAsync(id, includeSourceGenerated: true, cancellationToken).ConfigureAwait(false));
                     }
 
                     lock (_trackingSpans)

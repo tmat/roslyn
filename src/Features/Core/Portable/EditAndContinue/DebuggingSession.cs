@@ -102,7 +102,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         internal EditSession EditSession;
 
         internal DebuggingSession(
-            Solution solution,
+            RuntimeSolution solution,
             IManagedEditAndContinueDebuggerService debuggerService,
             Func<Project, CompilationOutputs> compilationOutputsProvider,
             IEnumerable<KeyValuePair<DocumentId, CommittedSolution.DocumentState>> initialDocumentStates,

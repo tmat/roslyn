@@ -25,7 +25,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
     {
         private readonly DebuggingSession _debuggingSession;
 
-        private Solution _solution;
+        private RuntimeSolution _solution;
 
         internal enum DocumentState
         {
@@ -88,7 +88,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
         private readonly object _guard = new();
 
-        public CommittedSolution(DebuggingSession debuggingSession, Solution solution, IEnumerable<KeyValuePair<DocumentId, DocumentState>> initialDocumentStates)
+        public CommittedSolution(DebuggingSession debuggingSession, RuntimeSolution solution, IEnumerable<KeyValuePair<DocumentId, DocumentState>> initialDocumentStates)
         {
             _solution = solution;
             _debuggingSession = debuggingSession;
@@ -114,7 +114,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             }
         }
 
-        public bool HasNoChanges(Solution solution)
+        public bool HasNoChanges(RuntimeSolution solution)
             => _solution == solution;
 
         public Project? GetProject(ProjectId id)
@@ -125,6 +125,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
         public bool ContainsDocument(DocumentId documentId)
             => _solution.ContainsDocument(documentId);
+
+        public ValueTask<TextDocumentStates<SourceGeneratedDocumentState>> GetSourceGeneratedDocumentStatesAsync(ProjectId projectId, CancellationToken cancellationToken)
+            => _solution.GetSourceGeneratedDocumentStatesAsync(projectId, cancellationToken);
 
         /// <summary>
         /// Captures the content of a file that is about to be overwritten by saving an open document,
@@ -146,7 +149,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         {
             Contract.ThrowIfFalse(currentDocument == null || documentId == currentDocument.Id);
 
-            Solution solution;
+            RuntimeSolution solution;
             var documentState = DocumentState.None;
 
             lock (_guard)
@@ -305,7 +308,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             }
         }
 
-        internal static async Task<IEnumerable<KeyValuePair<DocumentId, CommittedSolution.DocumentState>>> GetMatchingDocumentsAsync(Solution solution, Func<Project, CompilationOutputs> compilationOutputsProvider, CancellationToken cancellationToken)
+        internal static async Task<IEnumerable<KeyValuePair<DocumentId, CommittedSolution.DocumentState>>> GetMatchingDocumentsAsync(RuntimeSolution solution, Func<Project, CompilationOutputs> compilationOutputsProvider, CancellationToken cancellationToken)
         {
             var projectTasks = solution.Projects.Select(async project =>
             {
@@ -378,7 +381,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             }
         }
 
-        public void CommitSolution(Solution solution)
+        public void CommitSolution(RuntimeSolution solution)
         {
             lock (_guard)
             {

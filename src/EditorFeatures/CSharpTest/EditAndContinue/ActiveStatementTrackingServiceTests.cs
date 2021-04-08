@@ -188,7 +188,7 @@ class C
             Assert.Same(snapshot1, document1.GetTextSynchronously(CancellationToken.None).FindCorrespondingEditorTextSnapshot());
             Assert.Same(snapshot2, document2.GetTextSynchronously(CancellationToken.None).FindCorrespondingEditorTextSnapshot());
 
-            var trackingSession = new ActiveStatementTrackingService.TrackingSession(workspace, encService);
+            var trackingSession = new ActiveStatementTrackingService.TrackingSession(workspace, new TestActiveStatementSpanProvider(encService));
 
             if (scheduleInitialTrackingBeforeOpenDoc)
             {

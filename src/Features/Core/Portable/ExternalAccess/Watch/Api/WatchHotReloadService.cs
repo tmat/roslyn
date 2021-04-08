@@ -62,7 +62,7 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Watch.Api
         /// <param name="solution">Solution that represents sources that match the built binaries on disk.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         public async Task StartSessionAsync(Solution solution, CancellationToken cancellationToken)
-            => await _encService.StartDebuggingSessionAsync(solution, DebuggerService.Instance, captureMatchingDocuments: true, cancellationToken).ConfigureAwait(false);
+            => await _encService.StartDebuggingSessionAsync(new RuntimeSolution(solution), DebuggerService.Instance, captureMatchingDocuments: true, cancellationToken).ConfigureAwait(false);
 
         /// <summary>
         /// Emits updates for all projects that differ between the given <paramref name="solution"/> snapshot and the one given to the previous successful call or 
@@ -75,7 +75,7 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Watch.Api
         /// </returns>
         public async Task<(ImmutableArray<Update> updates, ImmutableArray<Diagnostic> diagnostics)> EmitSolutionUpdateAsync(Solution solution, CancellationToken cancellationToken)
         {
-            var results = await _encService.EmitSolutionUpdateAsync(solution, s_solutionActiveStatementSpanProvider, cancellationToken).ConfigureAwait(false);
+            var results = await _encService.EmitSolutionUpdateAsync(new RuntimeSolution(solution), s_solutionActiveStatementSpanProvider, cancellationToken).ConfigureAwait(false);
 
             if (results.ModuleUpdates.Status == ManagedModuleUpdateStatus.Ready)
             {

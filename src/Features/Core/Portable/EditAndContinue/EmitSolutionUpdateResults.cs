@@ -34,7 +34,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             DocumentsWithRudeEdits = documentsWithRudeEdits;
         }
 
-        public ImmutableArray<DiagnosticData> GetDiagnosticData(Solution solution)
+        public ImmutableArray<DiagnosticData> GetDiagnosticData(RuntimeSolution solution)
         {
             using var _ = ArrayBuilder<DiagnosticData>.GetInstance(out var result);
 

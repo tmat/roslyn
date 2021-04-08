@@ -58,6 +58,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         private IEditAndContinueWorkspaceService GetService()
             => GetWorkspace().Services.GetRequiredService<IEditAndContinueWorkspaceService>();
 
+        private new async ValueTask<RuntimeSolution> GetSolutionAsync(PinnedSolutionInfo solutionInfo, CancellationToken cancellationToken)
+            => new(await base.GetSolutionAsync(solutionInfo, cancellationToken).ConfigureAwait(false));
+
         private SolutionActiveStatementSpanProvider CreateSolutionActiveStatementSpanProvider(RemoteServiceCallbackId callbackId)
             => new((documentId, cancellationToken) => _callback.InvokeAsync((callback, cancellationToken) => callback.GetSpansAsync(callbackId, documentId, cancellationToken), cancellationToken));
 

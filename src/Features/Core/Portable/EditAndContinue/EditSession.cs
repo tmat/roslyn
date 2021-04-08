@@ -216,7 +216,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         /// Calculates exception regions for all active statements.
         /// If an active statement is in a document that's out-of-sync returns default(<see cref="ActiveStatementExceptionRegions"/>) for that statement.
         /// </summary>
-        internal async Task<ImmutableArray<ActiveStatementExceptionRegions>> GetBaseActiveExceptionRegionsAsync(Solution solution, CancellationToken cancellationToken)
+        internal async Task<ImmutableArray<ActiveStatementExceptionRegions>> GetBaseActiveExceptionRegionsAsync(RuntimeSolution solution, CancellationToken cancellationToken)
         {
             try
             {
@@ -280,7 +280,8 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             }
         }
 
-        private static async Task PopulateChangedAndAddedDocumentsAsync(CommittedSolution baseSolution, Project newProject, ArrayBuilder<Document> changedOrAddedDocuments, CancellationToken cancellationToken)
+        private static async Task PopulateChangedAndAddedDocumentsAsync(
+            CommittedSolution baseSolution, RuntimeSolution newSolution, Project newProject, ArrayBuilder<Document> changedOrAddedDocuments, CancellationToken cancellationToken)
         {
             changedOrAddedDocuments.Clear();
 
@@ -367,8 +368,8 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 return;
             }
 
-            var oldSourceGeneratedDocumentStates = await oldProject.Solution.State.GetSourceGeneratedDocumentStatesAsync(oldProject.State, cancellationToken).ConfigureAwait(false);
-            var newSourceGeneratedDocumentStates = await newProject.Solution.State.GetSourceGeneratedDocumentStatesAsync(newProject.State, cancellationToken).ConfigureAwait(false);
+            var oldSourceGeneratedDocumentStates = await baseSolution.GetSourceGeneratedDocumentStatesAsync(oldProject.Id, cancellationToken).ConfigureAwait(false);
+            var newSourceGeneratedDocumentStates = await newSolution.GetSourceGeneratedDocumentStatesAsync(newProject.Id, cancellationToken).ConfigureAwait(false);
 
             foreach (var documentId in newSourceGeneratedDocumentStates.GetChangedStateIds(oldSourceGeneratedDocumentStates, ignoreUnchangedContent: true))
             {
@@ -469,7 +470,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         /// Checks only projects containing a given <paramref name="sourceFilePath"/> or all projects of the solution if <paramref name="sourceFilePath"/> is null.
         /// Invoked by the debugger on every step. It is critical for stepping performance that this method returns as fast as possible in absence of changes.
         /// </summary>
-        public async ValueTask<bool> HasChangesAsync(Solution solution, SolutionActiveStatementSpanProvider solutionActiveStatementSpanProvider, string? sourceFilePath, CancellationToken cancellationToken)
+        public async ValueTask<bool> HasChangesAsync(RuntimeSolution solution, SolutionActiveStatementSpanProvider solutionActiveStatementSpanProvider, string? sourceFilePath, CancellationToken cancellationToken)
         {
             try
             {
@@ -488,7 +489,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
                 foreach (var project in projects)
                 {
-                    await PopulateChangedAndAddedDocumentsAsync(baseSolution, project, changedOrAddedDocuments, cancellationToken).ConfigureAwait(false);
+                    await PopulateChangedAndAddedDocumentsAsync(baseSolution, solution, project, changedOrAddedDocuments, cancellationToken).ConfigureAwait(false);
                     if (changedOrAddedDocuments.IsEmpty())
                     {
                         continue;
@@ -738,7 +739,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             addedSymbols = addedSymbolsBuilder.ToImmutableHashSet();
         }
 
-        public async Task<SolutionUpdate> EmitSolutionUpdateAsync(Solution solution, SolutionActiveStatementSpanProvider solutionActiveStatementSpanProvider, CancellationToken cancellationToken)
+        public async Task<SolutionUpdate> EmitSolutionUpdateAsync(RuntimeSolution solution, SolutionActiveStatementSpanProvider solutionActiveStatementSpanProvider, CancellationToken cancellationToken)
         {
             try
             {
@@ -754,7 +755,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 var isBlocked = false;
                 foreach (var newProject in solution.Projects)
                 {
-                    await PopulateChangedAndAddedDocumentsAsync(oldSolution, newProject, changedOrAddedDocuments, cancellationToken).ConfigureAwait(false);
+                    await PopulateChangedAndAddedDocumentsAsync(oldSolution, solution, newProject, changedOrAddedDocuments, cancellationToken).ConfigureAwait(false);
                     if (changedOrAddedDocuments.IsEmpty())
                     {
                         continue;
@@ -1109,7 +1110,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     r.Region.Span.AddLineDelta(r.Region.LineDelta).ToSourceSpan()));
         }
 
-        internal void StorePendingUpdate(Solution solution, SolutionUpdate update)
+        internal void StorePendingUpdate(RuntimeSolution solution, SolutionUpdate update)
         {
             var previousPendingUpdate = Interlocked.Exchange(ref _pendingUpdate, new PendingSolutionUpdate(
                 solution,
