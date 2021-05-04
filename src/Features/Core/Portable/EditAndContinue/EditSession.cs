@@ -728,6 +728,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     Contract.ThrowIfNull(oldCompilation);
                     Contract.ThrowIfNull(newCompilation);
 
+                    // TODO: workaround for XAML injecting .g.i.cs files into the solution
+                    oldCompilation = oldCompilation.RemoveSyntaxTrees(oldCompilation.SyntaxTrees.Where(t => t.FilePath.EndsWith(".g.i.cs", StringComparison.Ordinal)));
+                    newCompilation = newCompilation.RemoveSyntaxTrees(newCompilation.SyntaxTrees.Where(t => t.FilePath.EndsWith(".g.i.cs", StringComparison.Ordinal)));
+
                     var oldActiveStatementsMap = await BaseActiveStatements.GetValueAsync(cancellationToken).ConfigureAwait(false);
                     var projectChanges = await GetProjectChangesAsync(oldActiveStatementsMap, oldCompilation, newCompilation, oldProject, newProject, changedDocumentAnalyses, cancellationToken).ConfigureAwait(false);
 
