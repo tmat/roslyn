@@ -534,6 +534,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         new RudeEditDiagnostic(RudeEditKind.ExperimentalFeaturesEnabled, default)), hasChanges);
                 }
 
+                // We are in break state when there are no active statements.
+                var inBreakState = !oldActiveStatementMap.IsEmpty;
+
                 // We do calculate diffs even if there are semantic errors for the following reasons: 
                 // 1) We need to be able to find active spans in the new document. 
                 //    If we didn't calculate them we would only rely on tracking spans (might be ok).
@@ -607,6 +610,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     newActiveStatements,
                     newExceptionRegions,
                     capabilities,
+                    inBreakState,
                     cancellationToken).ConfigureAwait(false);
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -863,6 +867,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             ImmutableArray<UnmappedActiveStatement> oldActiveStatements,
             ImmutableArray<LinePositionSpan> newActiveStatementSpans,
             EditAndContinueCapabilities capabilities,
+            bool inBreakState,
             [Out] ImmutableArray<ActiveStatement>.Builder newActiveStatements,
             [Out] ImmutableArray<ImmutableArray<SourceFileSpan>>.Builder newExceptionRegions,
             [Out] ArrayBuilder<RudeEditDiagnostic> diagnostics,
@@ -873,6 +878,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             Debug.Assert(newActiveStatementSpans.IsEmpty || oldActiveStatements.Length == newActiveStatementSpans.Length);
             Debug.Assert(oldActiveStatements.IsEmpty || oldActiveStatements.Length == newActiveStatements.Count);
             Debug.Assert(newActiveStatements.Count == newExceptionRegions.Count);
+            Debug.Assert(!inBreakState || newActiveStatementSpans.IsEmpty);
 
             syntaxMap = null;
 
@@ -951,8 +957,8 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     activeNodes.Add(new ActiveNode(activeStatementIndex, oldStatementSyntax, oldEnclosingLambdaBody, statementPart, trackedNode));
                 }
 
-                var bodyMatch = ComputeBodyMatch(oldBody, newBody, activeNodes.Where(n => n.EnclosingLambdaBody == null).ToArray(), diagnostics, out var oldHasStateMachineSuspensionPoint, out var newHasStateMachineSuspensionPoint);
-                var map = ComputeMap(bodyMatch, activeNodes, ref lazyActiveOrMatchedLambdas, diagnostics);
+                var bodyMatch = ComputeBodyMatch(oldBody, newBody, activeNodes.Where(n => n.EnclosingLambdaBody == null).ToArray(), inBreakState, diagnostics, out var oldHasStateMachineSuspensionPoint, out var newHasStateMachineSuspensionPoint);
+                var map = ComputeMap(bodyMatch, activeNodes, inBreakState, ref lazyActiveOrMatchedLambdas, diagnostics);
 
                 if (oldHasStateMachineSuspensionPoint)
                 {
@@ -989,8 +995,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 // We need to provide syntax map to the compiler if 
                 // 1) The new member has a active statement
                 //    The values of local variables declared or synthesized in the method have to be preserved.
-                // 2) The new member generates a state machine 
+                // 2) The new member generates a state machine and we are in break state
                 //    In case the state machine is suspended we need to preserve variables.
+                //    When not in a break state we re-emit the kick-off method and create a new state machine.
+                //    This facilitates the desired Hot Reload behavior of defering the effect of the update until the kick-off method is re-executed.
                 // 3) The new member contains lambdas
                 //    We need to map new lambdas in the method to the matching old ones. 
                 //    If the old method has lambdas but the new one doesn't there is nothing to preserve.
@@ -998,7 +1006,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 //    We create syntax map even if it's not necessary: if any data member initializers are active/contain lambdas.
                 //    Since initializers are usually simple the map should not be large enough to make it worth optimizing it away.
                 if (!activeNodes.IsEmpty() ||
-                    newHasStateMachineSuspensionPoint ||
+                    inBreakState && newHasStateMachineSuspensionPoint ||
                     newBodyHasLambdas ||
                     IsConstructorWithMemberInitializers(newDeclaration) ||
                     IsDeclarationWithInitializer(oldDeclaration) ||
@@ -1235,6 +1243,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         private BidirectionalMap<SyntaxNode> ComputeMap(
             Match<SyntaxNode> bodyMatch,
             ArrayBuilder<ActiveNode> activeNodes,
+            bool inBreakState,
             ref Dictionary<SyntaxNode, LambdaInfo>? lazyActiveOrMatchedLambdas,
             ArrayBuilder<RudeEditDiagnostic> diagnostics)
         {
@@ -1261,7 +1270,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         var newLambdaBody1 = TryGetPartnerLambdaBody(oldLambdaBody1, newNode);
                         if (newLambdaBody1 != null)
                         {
-                            lambdaBodyMatches.Add(ComputeLambdaBodyMatch(oldLambdaBody1, newLambdaBody1, activeNodes, lazyActiveOrMatchedLambdas, diagnostics));
+                            lambdaBodyMatches.Add(ComputeLambdaBodyMatch(oldLambdaBody1, newLambdaBody1, activeNodes, inBreakState, lazyActiveOrMatchedLambdas, diagnostics));
                         }
 
                         if (oldLambdaBody2 != null)
@@ -1269,7 +1278,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                             var newLambdaBody2 = TryGetPartnerLambdaBody(oldLambdaBody2, newNode);
                             if (newLambdaBody2 != null)
                             {
-                                lambdaBodyMatches.Add(ComputeLambdaBodyMatch(oldLambdaBody2, newLambdaBody2, activeNodes, lazyActiveOrMatchedLambdas, diagnostics));
+                                lambdaBodyMatches.Add(ComputeLambdaBodyMatch(oldLambdaBody2, newLambdaBody2, activeNodes, inBreakState, lazyActiveOrMatchedLambdas, diagnostics));
                             }
                         }
                     }
@@ -1317,6 +1326,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             SyntaxNode oldLambdaBody,
             SyntaxNode newLambdaBody,
             IReadOnlyList<ActiveNode> activeNodes,
+            bool inBreakState,
             [Out] Dictionary<SyntaxNode, LambdaInfo> activeOrMatchedLambdas,
             [Out] ArrayBuilder<RudeEditDiagnostic> diagnostics)
         {
@@ -1333,9 +1343,14 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 info = new LambdaInfo();
             }
 
-            var lambdaBodyMatch = ComputeBodyMatch(oldLambdaBody,
-                newLambdaBody, activeNodesInLambda ?? Array.Empty<ActiveNode>(),
-                diagnostics, out _, out _);
+            var lambdaBodyMatch = ComputeBodyMatch(
+                oldLambdaBody,
+                newLambdaBody,
+                activeNodesInLambda ?? Array.Empty<ActiveNode>(),
+                inBreakState,
+                diagnostics,
+                out _,
+                out _);
 
             activeOrMatchedLambdas[oldLambdaBody] = info.WithMatch(lambdaBodyMatch, newLambdaBody);
 
@@ -1346,18 +1361,17 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             SyntaxNode oldBody,
             SyntaxNode newBody,
             ActiveNode[] activeNodes,
+            bool inBreakState,
             ArrayBuilder<RudeEditDiagnostic> diagnostics,
             out bool oldHasStateMachineSuspensionPoint,
             out bool newHasStateMachineSuspensionPoint)
         {
             List<KeyValuePair<SyntaxNode, SyntaxNode>>? lazyKnownMatches = null;
             List<SequenceEdit>? lazyRudeEdits = null;
-            GetStateMachineInfo(oldBody, out var oldStateMachineSuspensionPoints, out var oldStateMachineKinds);
-            GetStateMachineInfo(newBody, out var newStateMachineSuspensionPoints, out var newStateMachineKinds);
 
             AddMatchingActiveNodes(ref lazyKnownMatches, activeNodes);
 
-            // Consider following cases:
+            // Consider following cases when in break state:
             // 1) Both old and new methods contain yields/awaits.
             //    Map the old suspension points to new ones, report errors for added/deleted suspension points.
             // 2) The old method contains yields/awaits but the new doesn't.
@@ -1368,6 +1382,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             // 4) The old method is async/iterator, the new method is not and it contains an active statement.
             //    Report rude edit since we can't remap IP from MoveNext to the kickoff method.
             //    Note that iterators in VB don't need to contain yield, so this case is not covered by change in number of yields.
+
+            GetStateMachineInfo(oldBody, out var oldStateMachineSuspensionPoints, out var oldStateMachineKinds);
+            GetStateMachineInfo(newBody, out var newStateMachineSuspensionPoints, out var newStateMachineKinds);
 
             var creatingStateMachineAroundActiveStatement = oldStateMachineSuspensionPoints.Length == 0 && newStateMachineSuspensionPoints.Length > 0 && activeNodes.Length > 0;
             oldHasStateMachineSuspensionPoint = oldStateMachineSuspensionPoints.Length > 0;
@@ -2357,6 +2374,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             ImmutableArray<ActiveStatement>.Builder newActiveStatements,
             ImmutableArray<ImmutableArray<SourceFileSpan>>.Builder newExceptionRegions,
             EditAndContinueCapabilities capabilities,
+            bool inBreakState,
             CancellationToken cancellationToken)
         {
             if (editScript.Edits.Length == 0 && triviaEdits.Count == 0)
@@ -2549,9 +2567,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                                             oldDeclaration,
                                             new[]
                                             {
-                                            string.Format(FeaturesResources.member_kind_and_name,
-                                                GetDisplayName(oldDeclaration, EditKind.Delete),
-                                                oldSymbol.ToDisplayString(diagnosticSpan.IsEmpty ? s_fullyQualifiedMemberDisplayFormat : s_unqualifiedMemberDisplayFormat))
+                                                string.Format(FeaturesResources.member_kind_and_name,
+                                                    GetDisplayName(oldDeclaration, EditKind.Delete),
+                                                    oldSymbol.ToDisplayString(diagnosticSpan.IsEmpty ? s_fullyQualifiedMemberDisplayFormat : s_unqualifiedMemberDisplayFormat))
                                             }));
 
                                         continue;
@@ -2700,7 +2718,8 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                                                     newText,
                                                     oldActiveStatements: ImmutableArray<UnmappedActiveStatement>.Empty,
                                                     newActiveStatementSpans: ImmutableArray<LinePositionSpan>.Empty,
-                                                    capabilities: capabilities,
+                                                    capabilities,
+                                                    inBreakState,
                                                     newActiveStatements,
                                                     newExceptionRegions,
                                                     diagnostics,
@@ -2878,6 +2897,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                                             oldActiveStatements,
                                             newActiveStatementSpans,
                                             capabilities,
+                                            inBreakState,
                                             newActiveStatements,
                                             newExceptionRegions,
                                             diagnostics,

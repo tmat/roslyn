@@ -5394,6 +5394,66 @@ class C
                 "C.<>c.<<F>b__0_0>d: {<>1__state, <>t__builder, <>4__this, <a>5__1, <>s__2, <>u__1, MoveNext, SetStateMachine}");
         }
 
+        /// <summary>
+        /// Unlike EnC, Hot Reload of an async/iterator method forces the creating on new state machine.
+        /// This has two benefits:
+        /// 1) Allows any changes to be made in the MoveNext method body since the body is recompiled (no rude edits)
+        /// 2) Matches the Hot Reload principle of a change not taking an effect until the containing source method/function/lambda is invoked again.
+        ///    If we updated MoveNext method in-place the change would take effect as soon as the state machine resumes. The async method would seem to be partially updated.
+        /// </summary>
+        [Fact]
+        public void UpdateWithoutSyntaxMap()
+        {
+            var source0 = MarkedSource(@"
+using System.Threading.Tasks;
+
+class C
+{
+    public async Task F()
+    {
+        await Task.FromResult(1);
+        await Task.FromResult(2);
+    }
+}
+");
+            var source1 = MarkedSource(@"
+using System.Threading.Tasks;
+
+class C
+{
+    public async Task F()
+    {
+        await Task.FromResult(1);
+        await Task.FromResult(2);
+        await Task.FromResult(3);
+        await Task.FromResult(4);
+    }
+}
+");
+
+            var compilation0 = CreateEmptyCompilation(new[] { source0.Tree }, new[] { Net451.mscorlib }, options: ComSafeDebugDll.WithMetadataImportOptions(MetadataImportOptions.All));
+            var compilation1 = compilation0.WithSource(source1.Tree);
+
+            var v0 = CompileAndVerify(compilation0, verify: Verification.Passes);
+            var md0 = ModuleMetadata.CreateFromImage(v0.EmittedAssemblyData);
+
+            var f0 = compilation0.GetMember<MethodSymbol>("C.F");
+            var f1 = compilation1.GetMember<MethodSymbol>("C.F");
+
+            var generation0 = EmitBaseline.CreateInitialBaseline(md0, v0.CreateSymReader().GetEncMethodDebugInfo);
+
+            var diff1 = compilation1.EmitDifference(
+                generation0,
+                ImmutableArray.Create(
+                    SemanticEdit.Create(SemanticEditKind.Update, f0, f1, syntaxMap: null, preserveLocalVariables: false)));
+
+            diff1.EmitResult.Diagnostics.Verify();
+
+            diff1.VerifySynthesizedMembers(
+                "C: {<F>d__0#1}",
+                "C.<F>d__0#1: {<>1__state, <>t__builder, <>4__this, <>u__1, MoveNext, SetStateMachine}");
+        }
+
         [Fact]
         public void AsyncMethodWithNullableParameterAddingNullCheck()
         {
