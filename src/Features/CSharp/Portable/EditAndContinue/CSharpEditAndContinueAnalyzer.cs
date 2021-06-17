@@ -3189,8 +3189,8 @@ namespace Microsoft.CodeAnalysis.CSharp.EditAndContinue
                     => RudeEditKind.InsertMethodWithExplicitInterfaceSpecifier,
 
                 // TODO: Inserting non-virtual member to an interface (https://github.com/dotnet/roslyn/issues/37128)
-                { ContainingType: { TypeKind: TypeKind.Interface } } and not INamedTypeSymbol
-                    => RudeEditKind.InsertIntoInterface,
+                //{ ContainingType: { TypeKind: TypeKind.Interface } } and not INamedTypeSymbol
+                //    => RudeEditKind.InsertIntoInterface,
 
                 _ => RudeEditKind.None
             };

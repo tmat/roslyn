@@ -3997,10 +3997,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         // TODO: https://github.com/dotnet/roslyn/issues/37128
                         // Local functions are emitted directly to the type containing the containing method.
                         // Although local functions are non-virtual the Core CLR currently does not support adding any method to an interface.
-                        if (isInInterfaceDeclaration && IsLocalFunction(newLambda))
-                        {
-                            diagnostics.Add(new RudeEditDiagnostic(RudeEditKind.InsertLocalFunctionIntoInterfaceMethod, GetDiagnosticSpan(newLambda, EditKind.Insert), newLambda));
-                        }
+                        //if (isInInterfaceDeclaration && IsLocalFunction(newLambda))
+                        //{
+                        //    diagnostics.Add(new RudeEditDiagnostic(RudeEditKind.InsertLocalFunctionIntoInterfaceMethod, GetDiagnosticSpan(newLambda, EditKind.Insert), newLambda));
+                        //}
 
                         ReportMultiScopeCaptures(newLambdaBody1, newModel, newCaptures, newCaptures, newCapturesToClosureScopes, newCapturesIndex, reverseCapturesMap, diagnostics, isInsert: true, cancellationToken: cancellationToken);
 
