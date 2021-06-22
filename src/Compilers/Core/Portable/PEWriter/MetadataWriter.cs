@@ -2731,7 +2731,7 @@ namespace Microsoft.Cci
                     else
                     {
                         var previousTypeDef = symbolChanges.DefinitionMap.MapDefinition(typeDef);
-                        if (moduleBuilder.PreviousGeneration.GenerationOrdinals.TryGetValue(previousTypeDef, out int lastEmittedOrdinal))
+                        if (previousTypeDef != null && moduleBuilder.PreviousGeneration.GenerationOrdinals.TryGetValue(previousTypeDef, out int lastEmittedOrdinal))
                         {
                             // Type previously emitted with InsertExisting semantics is now updated in-place. Use the ordinal used to emit the last version of the type.
                             generation = lastEmittedOrdinal;

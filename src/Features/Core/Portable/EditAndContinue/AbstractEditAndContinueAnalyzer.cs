@@ -2366,7 +2366,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             bool inBreakState,
             CancellationToken cancellationToken)
         {
-            Debug.Assert(!inBreakState || newActiveStatementSpans.IsEmpty);
+            Debug.Assert(inBreakState || newActiveStatementSpans.IsEmpty);
 
             if (editScript.Edits.Length == 0 && triviaEdits.Count == 0)
             {
