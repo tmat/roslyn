@@ -238,7 +238,7 @@ namespace Microsoft.CodeAnalysis.Host
                         using var reader = CreateTextReaderFromTemporaryStorage((ISupportDirectMemoryAccess)stream, (int)stream.Length);
 
                         // we pass in encoding we got from original source text even if it is null.
-                        return _service._textFactory.CreateText(reader, _encoding, cancellationToken);
+                        return _service._textFactory.CreateText(reader, _encoding, _checksumAlgorithm, cancellationToken);
                     }
                 }
 

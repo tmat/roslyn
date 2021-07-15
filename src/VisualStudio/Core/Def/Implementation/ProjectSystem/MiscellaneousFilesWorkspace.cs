@@ -32,6 +32,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
     [Export(typeof(MiscellaneousFilesWorkspace))]
     internal sealed partial class MiscellaneousFilesWorkspace : Workspace, IRunningDocumentTableEventListener
     {
+        private const SourceHashAlgorithm ChecksumAlgorithm = SourceHashAlgorithm.Sha256;
+
         private readonly IMetadataAsSourceFileService _fileTrackingMetadataAsSourceService;
         private readonly Lazy<IVsTextManager> _lazyTextManager;
 
@@ -308,7 +310,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 documentId,
                 filePath,
                 sourceCodeKind: sourceCodeKind,
-                loader: new FileTextLoader(filePath, defaultEncoding: null),
+                loader: new FileTextLoader(filePath, defaultEncoding: null, ChecksumAlgorithm),
                 filePath: filePath);
 
             // The assembly name must be unique for each collection of loose files. Since the name doesn't matter
@@ -381,7 +383,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 var document = this.CurrentSolution.GetProject(projectIdAndContainer.projectId).Documents.Single();
 
                 // We must close the document prior to deleting the project
-                OnDocumentClosed(document.Id, new FileTextLoader(document.FilePath, defaultEncoding: null));
+                OnDocumentClosed(document.Id, new FileTextLoader(document.FilePath, defaultEncoding: null, ChecksumAlgorithm));
                 OnProjectRemoved(document.Project.Id);
 
                 _monikersToProjectIdAndContainer.Remove(moniker);

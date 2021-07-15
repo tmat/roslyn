@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Serialization;
 using Microsoft.CodeAnalysis.Shared.Extensions;
+using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis
@@ -68,6 +69,11 @@ namespace Microsoft.CodeAnalysis
         /// The path to the compiler output file (module or assembly).
         /// </summary>
         public CompilationOutputInfo CompilationOutputInfo => Attributes.CompilationOutputInfo;
+
+        /// <summary>
+        /// Checksum algorithm used for calculating source file checksums in the PDB.
+        /// </summary>
+        public SourceHashAlgorithm ChecksumAlgorithm => Attributes.ChecksumAlgorithm;
 
         /// <summary>
         /// The default namespace of the project ("" if not defined, which means global namespace),
@@ -197,6 +203,36 @@ namespace Microsoft.CodeAnalysis
                 isSubmission, hostObjectType, outputRefFilePath: null);
         }
 
+        // 4.0.0 BACKCOMPAT OVERLOAD -- DO NOT TOUCH
+        /// <summary>
+        /// Create a new instance of a <see cref="ProjectInfo"/>.
+        /// </summary>
+        public static ProjectInfo Create(
+            ProjectId id,
+            VersionStamp version,
+            string name,
+            string assemblyName,
+            string language,
+            string? filePath,
+            string? outputFilePath,
+            CompilationOptions? compilationOptions,
+            ParseOptions? parseOptions,
+            IEnumerable<DocumentInfo>? documents,
+            IEnumerable<ProjectReference>? projectReferences,
+            IEnumerable<MetadataReference>? metadataReferences,
+            IEnumerable<AnalyzerReference>? analyzerReferences,
+            IEnumerable<DocumentInfo>? additionalDocuments,
+            bool isSubmission,
+            Type? hostObjectType,
+            string? outputRefFilePath)
+        {
+            return Create(
+                id, version, name, assemblyName, language,
+                filePath, outputFilePath, compilationOptions, parseOptions,
+                documents, projectReferences, metadataReferences, analyzerReferences, additionalDocuments,
+                isSubmission, hostObjectType, outputRefFilePath, SourceHashAlgorithm.Sha1);
+        }
+
         /// <summary>
         /// Create a new instance of a <see cref="ProjectInfo"/>.
         /// </summary>
@@ -217,7 +253,8 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<DocumentInfo>? additionalDocuments = null,
             bool isSubmission = false,
             Type? hostObjectType = null,
-            string? outputRefFilePath = null)
+            string? outputRefFilePath = null,
+            SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha256)
         {
             return new ProjectInfo(
                 new ProjectAttributes(
@@ -230,6 +267,7 @@ namespace Microsoft.CodeAnalysis
                     outputFilePath,
                     outputRefFilePath,
                     compilationOutputFilePaths: default,
+                    checksumAlgorithm,
                     defaultNamespace: null,
                     isSubmission,
                     hasAllInformation: true,
@@ -316,6 +354,9 @@ namespace Microsoft.CodeAnalysis
 
         public ProjectInfo WithCompilationOutputInfo(in CompilationOutputInfo info)
             => With(attributes: Attributes.With(compilationOutputInfo: info));
+
+        public ProjectInfo WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => With(attributes: Attributes.With(checksumAlgorithm: checksumAlgorithm));
 
         public ProjectInfo WithDefaultNamespace(string? defaultNamespace)
             => With(attributes: Attributes.With(defaultNamespace: defaultNamespace));
@@ -425,6 +466,11 @@ namespace Microsoft.CodeAnalysis
             public CompilationOutputInfo CompilationOutputInfo { get; }
 
             /// <summary>
+            /// Checksum algorithm used for calculating source file checksums in the PDB.
+            /// </summary>
+            public SourceHashAlgorithm ChecksumAlgorithm { get; }
+
+            /// <summary>
             /// The default namespace of the project.
             /// </summary>
             public string? DefaultNamespace { get; }
@@ -461,6 +507,7 @@ namespace Microsoft.CodeAnalysis
                 string? outputFilePath,
                 string? outputRefFilePath,
                 CompilationOutputInfo compilationOutputFilePaths,
+                SourceHashAlgorithm checksumAlgorithm,
                 string? defaultNamespace,
                 bool isSubmission,
                 bool hasAllInformation,
@@ -477,6 +524,7 @@ namespace Microsoft.CodeAnalysis
                 OutputFilePath = outputFilePath;
                 OutputRefFilePath = outputRefFilePath;
                 CompilationOutputInfo = compilationOutputFilePaths;
+                ChecksumAlgorithm = checksumAlgorithm;
                 DefaultNamespace = defaultNamespace;
                 IsSubmission = isSubmission;
                 HasAllInformation = hasAllInformation;
@@ -497,6 +545,7 @@ namespace Microsoft.CodeAnalysis
                 Optional<string?> outputPath = default,
                 Optional<string?> outputRefPath = default,
                 Optional<CompilationOutputInfo> compilationOutputInfo = default,
+                Optional<SourceHashAlgorithm> checksumAlgorithm = default,
                 Optional<string?> defaultNamespace = default,
                 Optional<bool> isSubmission = default,
                 Optional<bool> hasAllInformation = default,
@@ -511,6 +560,7 @@ namespace Microsoft.CodeAnalysis
                 var newOutputPath = outputPath.HasValue ? outputPath.Value : OutputFilePath;
                 var newOutputRefPath = outputRefPath.HasValue ? outputRefPath.Value : OutputRefFilePath;
                 var newCompilationOutputPaths = compilationOutputInfo.HasValue ? compilationOutputInfo.Value : CompilationOutputInfo;
+                var newChecksumAlgorithm = checksumAlgorithm.HasValue ? checksumAlgorithm.Value : ChecksumAlgorithm;
                 var newDefaultNamespace = defaultNamespace.HasValue ? defaultNamespace.Value : DefaultNamespace;
                 var newIsSubmission = isSubmission.HasValue ? isSubmission.Value : IsSubmission;
                 var newHasAllInformation = hasAllInformation.HasValue ? hasAllInformation.Value : HasAllInformation;
@@ -525,6 +575,7 @@ namespace Microsoft.CodeAnalysis
                     newOutputPath == OutputFilePath &&
                     newOutputRefPath == OutputRefFilePath &&
                     newCompilationOutputPaths == CompilationOutputInfo &&
+                    newChecksumAlgorithm == ChecksumAlgorithm &&
                     newDefaultNamespace == DefaultNamespace &&
                     newIsSubmission == IsSubmission &&
                     newHasAllInformation == HasAllInformation &&
@@ -544,6 +595,7 @@ namespace Microsoft.CodeAnalysis
                     newOutputPath,
                     newOutputRefPath,
                     newCompilationOutputPaths,
+                    newChecksumAlgorithm,
                     newDefaultNamespace,
                     newIsSubmission,
                     newHasAllInformation,
@@ -567,6 +619,7 @@ namespace Microsoft.CodeAnalysis
                 writer.WriteString(OutputFilePath);
                 writer.WriteString(OutputRefFilePath);
                 CompilationOutputInfo.WriteTo(writer);
+                writer.WriteInt32((int)ChecksumAlgorithm);
                 writer.WriteString(DefaultNamespace);
                 writer.WriteBoolean(IsSubmission);
                 writer.WriteBoolean(HasAllInformation);
@@ -589,6 +642,7 @@ namespace Microsoft.CodeAnalysis
                 var outputFilePath = reader.ReadString();
                 var outputRefFilePath = reader.ReadString();
                 var compilationOutputFilePaths = CompilationOutputInfo.ReadFrom(reader);
+                var checksumAlgorithm = (SourceHashAlgorithm)reader.ReadInt32();
                 var defaultNamespace = reader.ReadString();
                 var isSubmission = reader.ReadBoolean();
                 var hasAllInformation = reader.ReadBoolean();
@@ -605,6 +659,7 @@ namespace Microsoft.CodeAnalysis
                     outputFilePath,
                     outputRefFilePath,
                     compilationOutputFilePaths,
+                    checksumAlgorithm,
                     defaultNamespace,
                     isSubmission,
                     hasAllInformation,

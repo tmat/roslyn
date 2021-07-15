@@ -10,6 +10,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Debugging;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Internal.Log;
@@ -63,6 +64,8 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         public Encoding? DefaultEncoding { get; }
 
+        internal SourceHashAlgorithm ChecksumAlgorithm { get; }
+
         /// <summary>
         /// Creates a content loader for specified file.
         /// </summary>
@@ -75,11 +78,38 @@ namespace Microsoft.CodeAnalysis
         /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="path"/> is not an absolute path.</exception>
         public FileTextLoader(string path, Encoding? defaultEncoding)
+            : this(path, defaultEncoding, SourceHashAlgorithm.Sha1)
+        {
+        }
+
+        /// <summary>
+        /// Creates a content loader for specified file.
+        /// </summary>
+        /// <param name="path">An absolute file path.</param>
+        /// <param name="defaultEncoding">
+        /// Specifies an encoding to be used if the actual encoding can't be determined from the stream content (the stream doesn't start with Byte Order Mark).
+        /// If not specified auto-detect heuristics are used to determine the encoding.
+        /// Note that if the stream starts with Byte Order Mark the value of <paramref name="defaultEncoding"/> is ignored.
+        /// </param>
+        /// <param name="checksumAlgorithm">
+        /// Checksum algorithm used for calculating source file checksums in the PDB.
+        /// Must be specified, not <see cref="SourceHashAlgorithm.None"/>.
+        /// </param>
+        /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
+        /// <exception cref="ArgumentException"><paramref name="path"/> is not an absolute path.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="path"/> is not a valid algorithm.</exception>
+        public FileTextLoader(string path, Encoding? defaultEncoding, SourceHashAlgorithm checksumAlgorithm)
         {
             CompilerPathUtilities.RequireAbsolutePath(path, "path");
 
+            if (!SourceHashAlgorithms.IsSupportedAlgorithm(checksumAlgorithm))
+            {
+                throw new ArgumentOutOfRangeException(nameof(checksumAlgorithm));
+            }
+
             Path = path;
             DefaultEncoding = defaultEncoding;
+            ChecksumAlgorithm = checksumAlgorithm;
         }
 
         internal sealed override string FilePath => Path;
@@ -87,7 +117,7 @@ namespace Microsoft.CodeAnalysis
         protected virtual SourceText CreateText(Stream stream, Workspace workspace)
         {
             var factory = workspace.Services.GetRequiredService<ITextFactoryService>();
-            return factory.CreateText(stream, DefaultEncoding);
+            return factory.CreateText(stream, DefaultEncoding, ChecksumAlgorithm);
         }
 
         /// <summary>

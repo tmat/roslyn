@@ -5,6 +5,7 @@
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.Emit
 Imports Microsoft.CodeAnalysis.Test.Utilities
+Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 Imports Microsoft.VisualStudio.LanguageServices.UnitTests.ProjectSystemShim.Framework
@@ -265,6 +266,23 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.ProjectSystemShim
                 project.SetCompilerOptions(compilerOptions)
                 Assert.Equal(Nothing, project.GetOutputFileName())
                 Assert.Equal(Nothing, project.Test_VisualStudioProject.CompilationOutputAssemblyFilePath)
+            End Using
+        End Sub
+
+        <WpfFact()>
+        <Trait(Traits.Feature, Traits.Features.ProjectSystemShims)>
+        Public Sub SetCompilerOptions_ChecksumAlgorithm()
+            Using environment = New TestEnvironment()
+                Dim project = CreateVisualBasicProject(environment, "Test")
+
+                Dim compilerOptionsHost = DirectCast(project, Implementation.ProjectSystem.Interop.ICompilerOptionsHostObject)
+                Dim supported As Boolean
+                compilerOptionsHost.SetCompilerOptions("/checksumalgorithm:SHA256", supported)
+                Assert.True(supported)
+
+                Dim workspaceProject = environment.Workspace.CurrentSolution.Projects.Single()
+                Assert.Equal(SourceHashAlgorithm.Sha256, workspaceProject.ChecksumAlgorithm)
+                project.Disconnect()
             End Using
         End Sub
     End Class

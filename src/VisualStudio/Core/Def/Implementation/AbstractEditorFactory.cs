@@ -324,7 +324,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation
             }
 
             var documentId = DocumentId.CreateNewId(projectIdToAddTo);
-            var forkedSolution = solution.AddDocument(DocumentInfo.Create(documentId, filePath, loader: new FileTextLoader(filePath, defaultEncoding: null), filePath: filePath));
+            var project = solution.GetRequiredProject(projectIdToAddTo);
+            var forkedSolution = solution.AddDocument(DocumentInfo.Create(documentId, filePath, loader: new FileTextLoader(filePath, defaultEncoding: null, project.ChecksumAlgorithm), filePath: filePath));
             var addedDocument = forkedSolution.GetDocument(documentId)!;
 
             var rootToFormat = addedDocument.GetSyntaxRootSynchronously(cancellationToken);

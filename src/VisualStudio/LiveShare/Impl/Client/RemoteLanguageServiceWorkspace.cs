@@ -329,10 +329,12 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client
                 project = CurrentSolution.GetRequiredProject(projectInfo.Id);
             }
 
-            var docInfo = DocumentInfo.Create(DocumentId.CreateNewId(project.Id),
-                                                  name: Path.GetFileName(filePath),
-                                                  loader: new FileTextLoader(filePath, null),
-                                                  filePath: filePath);
+            var docInfo = DocumentInfo.Create(
+                DocumentId.CreateNewId(project.Id),
+                name: Path.GetFileName(filePath),
+                loader: new FileTextLoader(filePath, defaultEncoding: null, project.ChecksumAlgorithm),
+                filePath: filePath);
+
             OnDocumentAdded(docInfo);
             return CurrentSolution.GetDocument(docInfo.Id)!;
         }
@@ -363,9 +365,10 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client
             if (_openedDocs.TryGetValue(moniker, out var id))
             {
                 // check if the doc is part of the current Roslyn workspace before notifying Roslyn.
-                if (CurrentSolution.ContainsProject(id.ProjectId))
+                var project = CurrentSolution.GetProject(id.ProjectId);
+                if (project != null)
                 {
-                    OnDocumentClosed(id, new FileTextLoaderNoException(moniker, null));
+                    OnDocumentClosed(id, new FileTextLoaderNoException(moniker, defaultEncoding: null, project.ChecksumAlgorithm));
                     _openedDocs = _openedDocs.Remove(moniker);
                 }
             }

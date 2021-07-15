@@ -46,7 +46,8 @@ namespace Microsoft.CodeAnalysis.Text
                 _container = container;
             }
 
-            public SnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextImage textImage, Encoding? encoding, TextBufferContainer? container)
+            public SnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextImage textImage, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, TextBufferContainer? container)
+                : base(checksumAlgorithm: checksumAlgorithm)
             {
                 Contract.ThrowIfNull(textImage);
 
@@ -59,13 +60,13 @@ namespace Microsoft.CodeAnalysis.Text
             /// <summary>
             /// A weak map of all Editor ITextSnapshots and their associated SourceText
             /// </summary>
-            private static readonly ConditionalWeakTable<ITextSnapshot, SnapshotSourceText> s_textSnapshotMap = new ConditionalWeakTable<ITextSnapshot, SnapshotSourceText>();
+            private static readonly ConditionalWeakTable<ITextSnapshot, SnapshotSourceText> s_textSnapshotMap = new();
 
             /// <summary>
             /// Reverse map of roslyn text to editor snapshot. unlike forward map, this doesn't strongly hold onto editor snapshot so that 
             /// we don't leak editor snapshot which should go away once editor is closed. roslyn source's lifetime is not usually tied to view.
             /// </summary>
-            private static readonly ConditionalWeakTable<ITextImage, WeakReference<ITextSnapshot>> s_textImageToEditorSnapshotMap = new ConditionalWeakTable<ITextImage, WeakReference<ITextSnapshot>>();
+            private static readonly ConditionalWeakTable<ITextImage, WeakReference<ITextSnapshot>> s_textImageToEditorSnapshotMap = new();
 
             public static SourceText From(ITextBufferCloneService? textBufferCloneService, ITextSnapshot editorSnapshot)
             {
@@ -263,8 +264,8 @@ namespace Microsoft.CodeAnalysis.Text
             /// </summary>
             internal sealed class ClosedSnapshotSourceText : SnapshotSourceText
             {
-                public ClosedSnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextImage textImage, Encoding? encoding)
-                    : base(textBufferCloneService, textImage, encoding, container: null)
+                public ClosedSnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextImage textImage, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm)
+                    : base(textBufferCloneService, textImage, encoding, checksumAlgorithm, container: null)
                 {
                 }
             }
@@ -272,13 +273,13 @@ namespace Microsoft.CodeAnalysis.Text
             /// <summary>
             /// Perf: Optimize calls to GetChangeRanges after WithChanges by using editor snapshots
             /// </summary>
-            private class ChangedSourceText : SnapshotSourceText
+            private sealed class ChangedSourceText : SnapshotSourceText
             {
                 private readonly SnapshotSourceText _baseText;
                 private readonly ITextImage _baseSnapshot;
 
                 public ChangedSourceText(ITextBufferCloneService? textBufferCloneService, SnapshotSourceText baseText, ITextImage baseSnapshot, ITextImage currentSnapshot)
-                    : base(textBufferCloneService, currentSnapshot, baseText.Encoding, container: null)
+                    : base(textBufferCloneService, currentSnapshot, baseText.Encoding, baseText.ChecksumAlgorithm, container: null)
                 {
                     _baseText = baseText;
                     _baseSnapshot = baseSnapshot;

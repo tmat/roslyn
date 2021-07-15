@@ -76,6 +76,11 @@ namespace Microsoft.CodeAnalysis
         public CompilationOutputInfo CompilationOutputInfo => _projectState.CompilationOutputInfo;
 
         /// <summary>
+        /// Checksum algorithm used for calculating source file checksums in the PDB.
+        /// </summary>
+        public SourceHashAlgorithm ChecksumAlgorithm => _projectState.ChecksumAlgorithm;
+
+        /// <summary>
         /// The default namespace of the project ("" if not defined, which means global namespace),
         /// or null if it is unknown or not applicable. 
         /// </summary>

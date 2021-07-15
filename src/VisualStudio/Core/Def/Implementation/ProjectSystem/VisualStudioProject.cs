@@ -69,6 +69,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
         private string? _outputFilePath;
         private string? _outputRefFilePath;
         private string? _defaultNamespace;
+        private SourceHashAlgorithm _checksumAlgorithm = SourceHashAlgorithm.Sha256;
 
         /// <summary>
         /// If this project is the 'primary' project the project system cares about for a group of Roslyn projects that
@@ -316,6 +317,12 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                        ref _compilationOutputAssemblyFilePath,
                        value,
                        s => s.WithProjectCompilationOutputInfo(Id, s.GetRequiredProject(Id).CompilationOutputInfo.WithAssemblyPath(value)));
+        }
+
+        internal SourceHashAlgorithm ChecksumAlgorithm
+        {
+            get => _checksumAlgorithm;
+            set => ChangeProjectProperty(ref _checksumAlgorithm, value, s => s.WithProjectChecksumAlgorithm(Id, value));
         }
 
         public string? OutputFilePath
@@ -1251,7 +1258,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 }
 
                 var documentId = DocumentId.CreateNewId(_project.Id, fullPath);
-                var textLoader = new FileTextLoader(fullPath, defaultEncoding: null);
+                var textLoader = new FileTextLoader(fullPath, defaultEncoding: null, _project.ChecksumAlgorithm);
                 var documentInfo = DocumentInfo.Create(
                     documentId,
                     FileNameUtilities.GetFileName(fullPath),
@@ -1574,7 +1581,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 
                             if (fileInfoProvider == null)
                             {
-                                var textLoader = new FileTextLoader(projectSystemFilePath, defaultEncoding: null);
+                                var textLoader = new FileTextLoader(projectSystemFilePath, defaultEncoding: null, _project.ChecksumAlgorithm);
                                 _documentTextLoaderChangedAction(w, documentId, textLoader);
                             }
                             else

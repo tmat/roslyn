@@ -744,6 +744,22 @@ namespace Microsoft.CodeAnalysis
         }
 
         /// <summary>
+        /// Creates a new solution instance with the project specified updated to have the specified checksum algorithm.
+        /// </summary>
+        public SolutionState WithProjectChecksumAlgorithm(ProjectId projectId, SourceHashAlgorithm checksumAlgorithm)
+        {
+            var oldProject = GetRequiredProjectState(projectId);
+            var newProject = oldProject.WithChecksumAlgorithm(checksumAlgorithm);
+
+            if (oldProject == newProject)
+            {
+                return this;
+            }
+
+            return ForkProject(newProject);
+        }
+
+        /// <summary>
         /// Creates a new solution instance with the project specified updated to have the default namespace.
         /// </summary>
         public SolutionState WithProjectDefaultNamespace(ProjectId projectId, string? defaultNamespace)

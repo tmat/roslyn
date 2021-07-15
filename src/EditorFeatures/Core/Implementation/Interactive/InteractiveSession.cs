@@ -206,7 +206,7 @@ namespace Microsoft.CodeAnalysis.Editor.Interactive
                     solution = initProject.Solution.AddDocument(
                         DocumentId.CreateNewId(initializationScriptProjectId, debugName: initializationScriptPath),
                         Path.GetFileName(initializationScriptPath),
-                        new FileTextLoader(initializationScriptPath, defaultEncoding: null));
+                        new FileTextLoader(initializationScriptPath, defaultEncoding: null, checksumAlgorithm: SourceHashAlgorithm.Sha256));
                 }
 
                 var newSubmissionProject = CreateSubmissionProjectNoLock(solution, _currentSubmissionProjectId, _lastSuccessfulSubmissionProjectId, languageName, imports, references);

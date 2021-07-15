@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Host.Mef;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client.Projects
 {
@@ -63,7 +64,7 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client.Projects
                 var docInfo = DocumentInfo.Create(DocumentId.CreateNewId(projectId),
                     fileName,
                     filePath: file,
-                    loader: new FileTextLoaderNoException(file, null));
+                    loader: new FileTextLoaderNoException(file, defaultEncoding: null, SourceHashAlgorithm.Sha256));
                 docInfos.Add(docInfo);
             }
 

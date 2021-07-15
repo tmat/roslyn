@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.ComponentModelHost;
@@ -313,18 +314,20 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                     {
                         if (w.IsDocumentOpen(documentId) && !_workspace._documentsNotFromFiles.Contains(documentId))
                         {
+                            var project = w.CurrentSolution.GetRequiredProject(documentId.ProjectId);
+
                             if (w.CurrentSolution.ContainsDocument(documentId))
                             {
-                                w.OnDocumentClosed(documentId, new FileTextLoader(moniker, defaultEncoding: null));
+                                w.OnDocumentClosed(documentId, new FileTextLoader(moniker, defaultEncoding: null, project.ChecksumAlgorithm));
                             }
                             else if (w.CurrentSolution.ContainsAdditionalDocument(documentId))
                             {
-                                w.OnAdditionalDocumentClosed(documentId, new FileTextLoader(moniker, defaultEncoding: null));
+                                w.OnAdditionalDocumentClosed(documentId, new FileTextLoader(moniker, defaultEncoding: null, project.ChecksumAlgorithm));
                             }
                             else
                             {
                                 Debug.Assert(w.CurrentSolution.ContainsAnalyzerConfigDocument(documentId));
-                                w.OnAnalyzerConfigDocumentClosed(documentId, new FileTextLoader(moniker, defaultEncoding: null));
+                                w.OnAnalyzerConfigDocumentClosed(documentId, new FileTextLoader(moniker, defaultEncoding: null, project.ChecksumAlgorithm));
                             }
                         }
                     }

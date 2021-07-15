@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Serialization;
+using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis
@@ -404,6 +405,9 @@ namespace Microsoft.CodeAnalysis
         public CompilationOutputInfo CompilationOutputInfo => this.ProjectInfo.CompilationOutputInfo;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        public SourceHashAlgorithm ChecksumAlgorithm => this.ProjectInfo.ChecksumAlgorithm;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         public string? DefaultNamespace => this.ProjectInfo.DefaultNamespace;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
@@ -502,6 +506,9 @@ namespace Microsoft.CodeAnalysis
 
         public ProjectState WithCompilationOutputInfo(in CompilationOutputInfo info)
             => (info == CompilationOutputInfo) ? this : WithAttributes(Attributes.With(compilationOutputInfo: info, version: Version.GetNewerVersion()));
+
+        public ProjectState WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => (checksumAlgorithm == ChecksumAlgorithm) ? this : WithAttributes(Attributes.With(checksumAlgorithm: checksumAlgorithm, version: Version.GetNewerVersion()));
 
         public ProjectState WithDefaultNamespace(string? defaultNamespace)
             => (defaultNamespace == DefaultNamespace) ? this : WithAttributes(Attributes.With(defaultNamespace: defaultNamespace, version: Version.GetNewerVersion()));

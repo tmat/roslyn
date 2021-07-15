@@ -22,23 +22,23 @@ namespace Microsoft.CodeAnalysis.Host
         {
         }
 
-        public SourceText CreateText(Stream stream, Encoding? defaultEncoding, CancellationToken cancellationToken = default)
+        public SourceText CreateText(Stream stream, Encoding? defaultEncoding, SourceHashAlgorithm checksumAlgorithm, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return EncodedStringText.Create(stream, defaultEncoding);
         }
 
-        public SourceText CreateText(TextReader reader, Encoding? encoding, CancellationToken cancellationToken = default)
+        public SourceText CreateText(TextReader reader, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var textReaderWithLength = reader as TextReaderWithLength;
             if (textReaderWithLength != null)
             {
-                return SourceText.From(textReaderWithLength, textReaderWithLength.Length, encoding);
+                return SourceText.From(textReaderWithLength, textReaderWithLength.Length, encoding, checksumAlgorithm);
             }
 
-            return SourceText.From(reader.ReadToEnd(), encoding);
+            return SourceText.From(reader.ReadToEnd(), encoding, checksumAlgorithm);
         }
     }
 }

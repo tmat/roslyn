@@ -1862,7 +1862,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var did = DocumentId.CreateNewId(pid);
 
             sol = sol.AddProject(pid, "goo", "goo.dll", LanguageNames.CSharp)
-                     .AddDocument(did, "x", new FileTextLoader(file.Path, Encoding.UTF8));
+                     .AddDocument(did, "x", new FileTextLoader(file.Path, Encoding.UTF8, SourceHashAlgorithm.Sha256));
 
             var observedText = GetObservedText(sol, did, text1);
 
@@ -1911,7 +1911,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             using var workspace = CreateWorkspace();
             var sol = workspace.CurrentSolution
                                     .AddProject(pid, "goo", "goo.dll", LanguageNames.CSharp)
-                                    .AddDocument(did, "x", new FileTextLoader(file.Path, Encoding.UTF8));
+                                    .AddDocument(did, "x", new FileTextLoader(file.Path, Encoding.UTF8, SourceHashAlgorithm.Sha256));
 
             var doc = sol.GetDocument(did);
 
@@ -1978,7 +1978,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             using var workspace = CreateWorkspace();
             var sol = workspace.CurrentSolution
                                     .AddProject(pid, "goo", "goo.dll", LanguageNames.CSharp)
-                                    .AddDocument(did, "x", new FileTextLoader(file.Path, Encoding.UTF8));
+                                    .AddDocument(did, "x", new FileTextLoader(file.Path, Encoding.UTF8, SourceHashAlgorithm.Sha256));
 
             var doc = sol.GetDocument(did);
             var docTree = doc.GetSyntaxTreeAsync().Result;
@@ -2432,7 +2432,7 @@ End Class";
             var did = DocumentId.CreateNewId(pid);
 
             solution = solution.AddProject(pid, "goo", "goo", LanguageNames.CSharp)
-                               .AddDocument(did, "x", new FileTextLoader(@"C:\doesnotexist.cs", Encoding.UTF8))
+                               .AddDocument(did, "x", new FileTextLoader(@"C:\doesnotexist.cs", Encoding.UTF8, SourceHashAlgorithm.Sha256))
                                .WithDocumentFilePath(did, "document path");
 
             var doc = solution.GetDocument(did);
@@ -2628,7 +2628,7 @@ public class C : A {
             using var root = new TempRoot();
             var file = root.CreateFile(prefix: "massiveFile", extension: ".cs").WriteAllText("hello");
 
-            var loader = new FileTextLoader(file.Path, Encoding.UTF8);
+            var loader = new FileTextLoader(file.Path, Encoding.UTF8, SourceHashAlgorithm.Sha256);
             var textLength = FileUtilities.GetFileLength(file.Path);
 
             var expected = string.Format(WorkspacesResources.File_0_size_of_1_exceeds_maximum_allowed_size_of_2, file.Path, textLength, maxLength);

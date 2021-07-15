@@ -89,6 +89,7 @@ namespace Microsoft.CodeAnalysis.Remote
                 projectInfo.IsSubmission)
                 .WithOutputRefFilePath(projectInfo.OutputRefFilePath)
                 .WithCompilationOutputInfo(projectInfo.CompilationOutputInfo)
+                .WithChecksumAlgorithm(projectInfo.ChecksumAlgorithm)
                 .WithHasAllInformation(projectInfo.HasAllInformation)
                 .WithRunAnalyzers(projectInfo.RunAnalyzers)
                 .WithDefaultNamespace(projectInfo.DefaultNamespace)

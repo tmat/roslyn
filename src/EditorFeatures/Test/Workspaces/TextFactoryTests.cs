@@ -137,7 +137,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         {
             var factory = CreateMockTextFactoryService();
             using var stream = new MemoryStream(bytes);
-            var text = factory.CreateText(stream, defaultEncoding);
+            var text = factory.CreateText(stream, defaultEncoding, SourceHashAlgorithm.Sha256);
             Assert.Equal(expectedEncoding, text.Encoding);
         }
 

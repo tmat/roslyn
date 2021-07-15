@@ -48,6 +48,7 @@ namespace Microsoft.CodeAnalysis.MetadataAsSource
         }
 
         public static Encoding Encoding => Encoding.UTF8;
+        public static SourceHashAlgorithm ChecksumAlgorithm => SourceHashAlgorithm.Sha256;
 
         /// <summary>
         /// Creates a ProjectInfo to represent the fake project created for metadata as source documents.
@@ -72,7 +73,7 @@ namespace Microsoft.CodeAnalysis.MetadataAsSource
                 ? string.Format(@"[assembly: System.Reflection.AssemblyVersion(""{0}"")]", AssemblyIdentity.Version)
                 : string.Format(@"<Assembly: System.Reflection.AssemblyVersion(""{0}"")>", AssemblyIdentity.Version);
 
-            var assemblyInfoSourceTextContainer = SourceText.From(assemblyInfoString, Encoding).Container;
+            var assemblyInfoSourceTextContainer = SourceText.From(assemblyInfoString, Encoding, ChecksumAlgorithm).Container;
 
             var assemblyInfoDocument = DocumentInfo.Create(
                 assemblyInfoDocumentId,
@@ -84,7 +85,7 @@ namespace Microsoft.CodeAnalysis.MetadataAsSource
                 generatedDocumentId,
                 Path.GetFileName(TemporaryFilePath),
                 filePath: TemporaryFilePath,
-                loader: loadFileFromDisk ? new FileTextLoader(TemporaryFilePath, Encoding) : null);
+                loader: loadFileFromDisk ? new FileTextLoader(TemporaryFilePath, Encoding, ChecksumAlgorithm) : null);
 
             var projectInfo = ProjectInfo.Create(
                 projectId,

@@ -17,9 +17,10 @@ namespace Microsoft.VisualStudio.LanguageServices.LiveShare.Client.Projects
     /// This is a FileTextLoader which no-ops if the file is not available on disk. This is the common case for
     /// Cascade and throwing exceptions slows down GetText operations significantly enough to have visible UX impact.
     /// </summary>
-    internal class FileTextLoaderNoException : FileTextLoader
+    internal sealed class FileTextLoaderNoException : FileTextLoader
     {
-        public FileTextLoaderNoException(string path, Encoding defaultEncoding) : base(path, defaultEncoding)
+        public FileTextLoaderNoException(string path, Encoding defaultEncoding, SourceHashAlgorithm checksumAlgorithm)
+            : base(path, defaultEncoding, checksumAlgorithm)
         {
         }
 
