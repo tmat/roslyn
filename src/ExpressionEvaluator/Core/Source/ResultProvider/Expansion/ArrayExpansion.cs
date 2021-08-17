@@ -76,14 +76,14 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             DkmInspectionContext inspectionContext,
             CustomEvaluationFlags customFlags,
-            DkmClrValue value,
+            DkmClrValue arrayValue,
             int index,
             EvalResultDataItem parent)
         {
             var indices = GetIndices(index);
             var fullNameProvider = resultProvider.FullNameProvider;
             var name = fullNameProvider.GetClrArrayIndexExpression(inspectionContext, GetIndicesAsStrings(indices));
-            var element = value.GetArrayElement(indices, inspectionContext);
+            var element = arrayValue.GetArrayElement(indices, inspectionContext).SetFlags(customFlags);
             var fullName = GetFullName(inspectionContext, parent, name, fullNameProvider);
             return resultProvider.CreateDataItem(
                 inspectionContext,

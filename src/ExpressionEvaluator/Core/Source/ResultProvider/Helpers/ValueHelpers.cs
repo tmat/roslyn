@@ -5,6 +5,7 @@
 #nullable disable
 
 using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.VisualStudio.Debugger;
 using Microsoft.VisualStudio.Debugger.Evaluation;
 using Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation;
 using System.Diagnostics;
@@ -76,6 +77,21 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 builder.Append(value);
                 any = true;
             }
+        }
+
+        internal static DkmClrValue WithFlags(this DkmClrValue value, CustomEvaluationFlags flags)
+        {
+            var item = value.GetDataItem<CustomEvaluationFlagsDataItem>();
+            if (item != null)
+            {
+                item.Flags = flags;
+            }
+            else if (flags != CustomEvaluationFlags.None)
+            {
+                value.SetDataItem(DkmDataCreationDisposition.CreateNew, new CustomEvaluationFlagsDataItem(flags));
+            }
+
+            return value;
         }
     }
 }

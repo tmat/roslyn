@@ -95,6 +95,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             var proxyTypeAndInfo = new TypeAndCustomInfo(_proxyValue.Type);
             var isRootExpression = parent == null;
             var fullName = isRootExpression ? name : parent.ChildFullNamePrefix;
+
             var childFullNamePrefix = (fullName == null) ?
                 null :
                 fullNameProvider.GetClrObjectCreationExpression(
@@ -102,6 +103,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     proxyTypeAndInfo.ClrType,
                     proxyTypeAndInfo.Info,
                     new[] { fullName });
+
             var formatSpecifiers = isRootExpression ? Formatter.NoFormatSpecifiers : parent.FormatSpecifiers;
             return new EvalResult(
                 ExpansionKind.DynamicView,
@@ -118,7 +120,6 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.AddFormatSpecifier(formatSpecifiers, DynamicFormatSpecifier),
                 category: DkmEvaluationResultCategory.Method,
                 flags: DkmEvaluationResultFlags.ReadOnly,
-                customFlags,
                 editableValue: null,
                 inspectionContext: inspectionContext);
         }

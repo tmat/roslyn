@@ -190,7 +190,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
             if (InRange(startIndex, count, index))
             {
-                rows.Add(CreateRawViewRow(resultProvider, inspectionContext, customFlags));
+                rows.Add(CreateRawViewRow(resultProvider, inspectionContext));
             }
 
             index++;
@@ -198,8 +198,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         private EvalResult CreateRawViewRow(
             ResultProvider resultProvider,
-            DkmInspectionContext inspectionContext,
-            CustomEvaluationFlags customFlags)
+            DkmInspectionContext inspectionContext)
         {
             return new EvalResult(
                 ExpansionKind.RawView,
@@ -216,7 +215,6 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.AddFormatSpecifier(_formatSpecifiers, "raw"),
                 category: DkmEvaluationResultCategory.Data,
                 flags: _flags | DkmEvaluationResultFlags.ReadOnly,
-                customFlags,
                 editableValue: _editableValue,
                 inspectionContext: inspectionContext);
         }
