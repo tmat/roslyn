@@ -50,6 +50,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -67,7 +68,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             int offset = startIndex2 - index;
             for (int i = 0; i < count2; i++)
             {
-                var row = GetMemberRow(resultProvider, inspectionContext, value, defaultView[i + offset], parent, _cardinality);
+                var row = GetMemberRow(resultProvider, inspectionContext, customFlags, value, defaultView[i + offset], parent, _cardinality);
                 rows.Add(row);
             }
 
@@ -77,7 +78,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             {
                 if (InRange(startIndex, count, index))
                 {
-                    rows.Add(this.CreateRawViewRow(resultProvider, inspectionContext, parent, value));
+                    rows.Add(CreateRawViewRow(inspectionContext, customFlags, parent, value));
                 }
 
                 index++;
@@ -87,6 +88,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         private static EvalResult GetMemberRow(
             ResultProvider resultProvider,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             DkmClrValue value,
             Field field,
             EvalResultDataItem parent,
@@ -154,6 +156,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     formatSpecifiers: Formatter.AddFormatSpecifier(formatSpecifiers, "raw"),
                     category: DkmEvaluationResultCategory.Other,
                     flags: flags,
+                    customFlags,
                     editableValue: null,
                     inspectionContext: inspectionContext,
                     displayName: name,
@@ -174,6 +177,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 category: DkmEvaluationResultCategory.Other,
                 flags: flags,
                 evalFlags: DkmEvaluationFlags.None,
+                customFlags,
                 canFavorite: false,
                 isFavorite: false,
                 supportsFavorites: true);
@@ -359,8 +363,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         }
 
         private EvalResult CreateRawViewRow(
-            ResultProvider resultProvider,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value)
         {
@@ -388,6 +392,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.AddFormatSpecifier(parent.FormatSpecifiers, "raw"),
                 category: DkmEvaluationResultCategory.Data,
                 flags: DkmEvaluationResultFlags.ReadOnly,
+                customFlags,
                 editableValue: null,
                 inspectionContext: inspectionContext,
                 displayName: displayName,

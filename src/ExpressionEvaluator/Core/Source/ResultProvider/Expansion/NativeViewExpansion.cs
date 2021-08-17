@@ -23,6 +23,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -32,7 +33,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             if (InRange(startIndex, count, index))
             {
-                rows.Add(GetRow(inspectionContext, value, parent));
+                rows.Add(GetRow(inspectionContext, customFlags, value));
             }
 
             index++;
@@ -40,8 +41,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         private EvalResult GetRow(
             DkmInspectionContext inspectionContext,
-            DkmClrValue comObject,
-            EvalResultDataItem parent)
+            CustomEvaluationFlags customFlags,
+            DkmClrValue comObject)
         {
             try
             {
@@ -71,6 +72,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.NoFormatSpecifiers,
                 category: DkmEvaluationResultCategory.Data,
                 flags: DkmEvaluationResultFlags.ReadOnly,
+                customFlags,
                 editableValue: null,
                 inspectionContext: inspectionContext);
         }

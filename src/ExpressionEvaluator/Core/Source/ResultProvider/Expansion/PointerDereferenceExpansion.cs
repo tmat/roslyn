@@ -5,6 +5,7 @@
 #nullable disable
 
 using System.Diagnostics;
+using Microsoft.VisualStudio.Debugger;
 using Microsoft.VisualStudio.Debugger.ComponentInterfaces;
 using Microsoft.VisualStudio.Debugger.Evaluation;
 using Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation;
@@ -25,6 +26,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -34,7 +36,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             if (InRange(startIndex, count, index))
             {
-                rows.Add(GetRow(resultProvider, inspectionContext, value, _elementTypeAndInfo, parent: parent));
+                rows.Add(GetRow(resultProvider, inspectionContext, customFlags, value, _elementTypeAndInfo, parent: parent));
             }
 
             index++;
@@ -43,6 +45,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         private static EvalResult GetRow(
             ResultProvider resultProvider,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             DkmClrValue pointer,
             TypeAndCustomInfo elementTypeAndInfo,
             EvalResultDataItem parent)
@@ -74,6 +77,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.NoFormatSpecifiers,
                 category: DkmEvaluationResultCategory.Other,
                 flags: DkmEvaluationResultFlags.None,
+                customFlags,
                 editableValue: editableValue,
                 inspectionContext: inspectionContext);
         }

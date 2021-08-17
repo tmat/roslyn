@@ -30,6 +30,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         internal static EvalResult CreateResultsOnlyRow(
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             string name,
             string fullName,
             ReadOnlyCollection<string> formatSpecifiers,
@@ -57,6 +58,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     {
                         return expansion.CreateResultsViewRow(
                             inspectionContext,
+                            customFlags,
                             name,
                             fullName,
                             formatSpecifiers,
@@ -83,6 +85,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         /// </summary>
         internal static EvalResult CreateResultsOnlyRowIfSynthesizedEnumerable(
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             string name,
             string fullName,
             ReadOnlyCollection<string> formatSpecifiers,
@@ -111,6 +114,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
             return expansion.CreateResultsViewRow(
                 inspectionContext,
+                customFlags,
                 name,
                 fullName,
                 formatSpecifiers,
@@ -206,6 +210,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -215,7 +220,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             if (InRange(startIndex, count, index))
             {
-                rows.Add(CreateResultsViewRow(inspectionContext, parent, resultProvider.FullNameProvider));
+                rows.Add(CreateResultsViewRow(inspectionContext, customFlags, parent, resultProvider.FullNameProvider));
             }
 
             index++;
@@ -223,6 +228,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         private EvalResult CreateResultsViewRow(
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             IDkmClrFullNameProvider fullNameProvider)
         {
@@ -236,6 +242,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     proxyTypeAndInfo.ClrType,
                     proxyTypeAndInfo.Info,
                     new[] { fullName });
+
             return new EvalResult(
                 ExpansionKind.ResultsView,
                 Resources.ResultsView,
@@ -251,12 +258,14 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.AddFormatSpecifier(parent.FormatSpecifiers, ResultsFormatSpecifier),
                 category: DkmEvaluationResultCategory.Method,
                 flags: DkmEvaluationResultFlags.ReadOnly | DkmEvaluationResultFlags.ExpansionHasSideEffects,
+                customFlags,
                 editableValue: null,
                 inspectionContext: inspectionContext);
         }
 
         private EvalResult CreateResultsViewRow(
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             string name,
             string fullName,
             ReadOnlyCollection<string> formatSpecifiers,
@@ -269,11 +278,13 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             {
                 formatSpecifiers = Formatter.AddFormatSpecifier(formatSpecifiers, ResultsFormatSpecifier);
             }
+
             var childFullNamePrefix = fullNameProvider.GetClrObjectCreationExpression(
                 inspectionContext,
                 _proxyValue.Type,
                 customTypeInfo: null,
                 arguments: new[] { fullName });
+
             return new EvalResult(
                 ExpansionKind.Default,
                 name,
@@ -289,6 +300,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: formatSpecifiers,
                 category: DkmEvaluationResultCategory.Method,
                 flags: DkmEvaluationResultFlags.ReadOnly,
+                customFlags,
                 editableValue: null,
                 inspectionContext: inspectionContext);
         }
@@ -308,6 +320,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 ResultProvider resultProvider,
                 ArrayBuilder<EvalResult> rows,
                 DkmInspectionContext inspectionContext,
+                CustomEvaluationFlags customFlags,
                 EvalResultDataItem parent,
                 DkmClrValue value,
                 int startIndex,
@@ -318,7 +331,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 _expansion.GetRows(
                     resultProvider,
                     rows,
-                    inspectionContext.With(ResultProvider.NoResults),
+                    inspectionContext,
+                    customFlags | CustomEvaluationFlags.NoResults,
                     parent,
                     _proxyValue,
                     startIndex: startIndex,

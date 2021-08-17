@@ -4,6 +4,7 @@
 
 #nullable disable
 
+using Microsoft.VisualStudio.Debugger;
 using Microsoft.VisualStudio.Debugger.Evaluation;
 using Microsoft.VisualStudio.Debugger.Evaluation.ClrCompilation;
 using System.Collections.ObjectModel;
@@ -33,6 +34,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             string childFullNamePrefix,
             ReadOnlyCollection<string> formatSpecifiers,
             DkmEvaluationResultFlags flags,
+            CustomEvaluationFlags customFlags,
             string editableValue)
         {
             Debug.Assert((inspectionContext.EvaluationFlags & DkmEvaluationFlags.NoExpansion) == 0);
@@ -76,6 +78,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                             childFullNamePrefix,
                             formatSpecifiers,
                             flags,
+                            customFlags,
                             editableValue,
                             resultProvider);
                     }
@@ -109,6 +112,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             string childFullNamePrefix,
             ReadOnlyCollection<string> formatSpecifiers,
             DkmEvaluationResultFlags flags,
+            CustomEvaluationFlags customFlags,
             string editableValue,
             ResultProvider resultProvider)
         {
@@ -150,6 +154,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     formatSpecifiers: Formatter.NoFormatSpecifiers,
                     category: default(DkmEvaluationResultCategory),
                     flags: default(DkmEvaluationResultFlags),
+                    customFlags,
                     editableValue: null,
                     inspectionContext: inspectionContext);
             }
@@ -170,6 +175,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -179,12 +185,12 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             if (_proxyItem != null)
             {
-                _proxyItem.Expansion.GetRows(resultProvider, rows, inspectionContext, _proxyItem.ToDataItem(), _proxyItem.Value, startIndex, count, visitAll, ref index);
+                _proxyItem.Expansion.GetRows(resultProvider, rows, inspectionContext, customFlags, _proxyItem.ToDataItem(), _proxyItem.Value, startIndex, count, visitAll, ref index);
             }
 
             if (InRange(startIndex, count, index))
             {
-                rows.Add(this.CreateRawViewRow(resultProvider, inspectionContext));
+                rows.Add(CreateRawViewRow(resultProvider, inspectionContext, customFlags));
             }
 
             index++;
@@ -192,7 +198,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         private EvalResult CreateRawViewRow(
             ResultProvider resultProvider,
-            DkmInspectionContext inspectionContext)
+            DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags)
         {
             return new EvalResult(
                 ExpansionKind.RawView,
@@ -209,6 +216,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.AddFormatSpecifier(_formatSpecifiers, "raw"),
                 category: DkmEvaluationResultCategory.Data,
                 flags: _flags | DkmEvaluationResultFlags.ReadOnly,
+                customFlags,
                 editableValue: _editableValue,
                 inspectionContext: inspectionContext);
         }

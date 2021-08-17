@@ -6,6 +6,7 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Microsoft.VisualStudio.Debugger;
 using Microsoft.VisualStudio.Debugger.Clr;
 using Microsoft.VisualStudio.Debugger.ComponentInterfaces;
 using Microsoft.VisualStudio.Debugger.Evaluation;
@@ -50,6 +51,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -64,7 +66,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             int offset = startIndex2 - index;
             for (int i = 0; i < count2; i++)
             {
-                rows.Add(GetRow(resultProvider, inspectionContext, value, i + offset, parent));
+                rows.Add(GetRow(resultProvider, inspectionContext, customFlags, value, i + offset, parent));
             }
 
             index += _count;
@@ -73,6 +75,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         private EvalResult GetRow(
             ResultProvider resultProvider,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             DkmClrValue value,
             int index,
             EvalResultDataItem parent)
@@ -96,6 +99,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 category: DkmEvaluationResultCategory.Other,
                 flags: element.EvalFlags,
                 evalFlags: inspectionContext.EvaluationFlags,
+                customFlags,
                 canFavorite: false,
                 isFavorite: false,
                 supportsFavorites: true);

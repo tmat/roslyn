@@ -50,6 +50,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -59,7 +60,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             foreach (var expansion in _expansions)
             {
-                expansion.GetRows(resultProvider, rows, inspectionContext, parent, value, startIndex, count, visitAll, ref index);
+                expansion.GetRows(resultProvider, rows, inspectionContext, customFlags, parent, value, startIndex, count, visitAll, ref index);
                 if (!visitAll && (index >= startIndex + count))
                 {
                     return;

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Microsoft.VisualStudio.Debugger;
 using Microsoft.VisualStudio.Debugger.Clr;
 using Microsoft.VisualStudio.Debugger.ComponentInterfaces;
 using Microsoft.VisualStudio.Debugger.Evaluation;
@@ -291,6 +292,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -305,7 +307,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             int offset = startIndex2 - index;
             for (int i = 0; i < count2; i++)
             {
-                rows.Add(GetMemberRow(resultProvider, inspectionContext, value, _members[i + offset], parent, _customTypeInfoMap));
+                rows.Add(GetMemberRow(resultProvider, inspectionContext, customFlags, value, _members[i + offset], parent, _customTypeInfoMap));
             }
 
             index += _members.Length;
@@ -314,6 +316,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         private static EvalResult GetMemberRow(
             ResultProvider resultProvider,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             DkmClrValue value,
             MemberAndDeclarationInfo member,
             EvalResultDataItem parent,
@@ -323,6 +326,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             return CreateMemberDataItem(
                 resultProvider,
                 inspectionContext,
+                customFlags,
                 member,
                 memberValue,
                 parent,
@@ -348,6 +352,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 ResultProvider resultProvider,
                 ArrayBuilder<EvalResult> rows,
                 DkmInspectionContext inspectionContext,
+                CustomEvaluationFlags customFlags,
                 EvalResultDataItem parent,
                 DkmClrValue value,
                 int startIndex,
@@ -359,6 +364,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 {
                     rows.Add(GetRow(
                         inspectionContext,
+                        customFlags,
                         value,
                         _members,
                         parent));
@@ -371,6 +377,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
             private static EvalResult GetRow(
                 DkmInspectionContext inspectionContext,
+                CustomEvaluationFlags customFlags,
                 DkmClrValue value,
                 Expansion expansion,
                 EvalResultDataItem parent)
@@ -390,6 +397,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     formatSpecifiers: s_hiddenFormatSpecifiers,
                     category: DkmEvaluationResultCategory.Data,
                     flags: DkmEvaluationResultFlags.ReadOnly,
+                    customFlags,
                     editableValue: null,
                     inspectionContext: inspectionContext);
             }
@@ -413,6 +421,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 ResultProvider resultProvider,
                 ArrayBuilder<EvalResult> rows,
                 DkmInspectionContext inspectionContext,
+                CustomEvaluationFlags customFlags,
                 EvalResultDataItem parent,
                 DkmClrValue value,
                 int startIndex,
@@ -425,6 +434,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     rows.Add(GetRow(
                         resultProvider,
                         inspectionContext,
+                        customFlags,
                         new TypeAndCustomInfo(_type),
                         value,
                         _members));
@@ -436,6 +446,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             private static EvalResult GetRow(
                 ResultProvider resultProvider,
                 DkmInspectionContext inspectionContext,
+                CustomEvaluationFlags customFlags,
                 TypeAndCustomInfo declaredTypeAndInfo,
                 DkmClrValue value,
                 Expansion expansion)
@@ -456,6 +467,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     formatSpecifiers: Formatter.NoFormatSpecifiers,
                     category: DkmEvaluationResultCategory.Class,
                     flags: DkmEvaluationResultFlags.ReadOnly,
+                    customFlags,
                     editableValue: null,
                     inspectionContext: inspectionContext);
             }
@@ -464,6 +476,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         internal static EvalResult CreateMemberDataItem(
             ResultProvider resultProvider,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             MemberAndDeclarationInfo member,
             DkmClrValue memberValue,
             EvalResultDataItem parent,
@@ -499,6 +512,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                        member.IsStatic,
                        parent);
             }
+
             return resultProvider.CreateDataItem(
                 inspectionContext,
                 memberName,
@@ -513,6 +527,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 category: DkmEvaluationResultCategory.Other,
                 flags: memberValue.EvalFlags,
                 evalFlags: DkmEvaluationFlags.None,
+                customFlags,
                 canFavorite: member.CanFavorite,
                 isFavorite: member.IsFavorite,
                 supportsFavorites: supportsFavorites);

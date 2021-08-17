@@ -140,6 +140,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.NoFormatSpecifiers,
                 category: DkmEvaluationResultCategory.Other,
                 flags: DkmEvaluationResultFlags.None,
+                customFlags: CustomEvaluationFlags.None,
                 editableValue: null,
                 inspectionContext: inspectionContext)
         {
@@ -160,6 +161,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ReadOnlyCollection<string> formatSpecifiers,
             DkmEvaluationResultCategory category,
             DkmEvaluationResultFlags flags,
+            CustomEvaluationFlags customFlags,
             string editableValue,
             DkmInspectionContext inspectionContext,
             string displayName = null,
@@ -173,26 +175,39 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
             m_rawFlags = flags;
 
-            this.Kind = kind;
-            this.Name = name;
-            this.TypeDeclaringMemberAndInfo = typeDeclaringMemberAndInfo;
-            this.DeclaredTypeAndInfo = declaredTypeAndInfo;
-            this.UseDebuggerDisplay = useDebuggerDisplay;
-            this.Value = value;
-            this.DisplayValue = displayValue;
-            this.ChildShouldParenthesize = childShouldParenthesize;
-            this.FullNameWithoutFormatSpecifiers = fullName;
-            this.ChildFullNamePrefix = childFullNamePrefixOpt;
-            this.FormatSpecifiers = formatSpecifiers;
-            this.Category = category;
-            this.EditableValue = editableValue;
-            this.Flags = flags | GetFlags(value, inspectionContext, expansion, canFavorite, isFavorite);
-            this.Expansion = expansion;
-            this.InspectionContext = inspectionContext;
-            this.DisplayName = displayName;
-            this.DisplayType = displayType;
-            this.CanFavorite = canFavorite;
-            this.IsFavorite = isFavorite;
+            if (customFlags != CustomEvaluationFlags.None)
+            {
+                var item = value.GetDataItem<CustomEvaluationFlagsDataItem>();
+                if (item != null)
+                {
+                    item.Flags = customFlags;
+                }
+                else
+                {
+                    value.SetDataItem(DkmDataCreationDisposition.CreateNew, new CustomEvaluationFlagsDataItem(customFlags));
+                }
+            }
+
+            Kind = kind;
+            Name = name;
+            TypeDeclaringMemberAndInfo = typeDeclaringMemberAndInfo;
+            DeclaredTypeAndInfo = declaredTypeAndInfo;
+            UseDebuggerDisplay = useDebuggerDisplay;
+            Value = value;
+            DisplayValue = displayValue;
+            ChildShouldParenthesize = childShouldParenthesize;
+            FullNameWithoutFormatSpecifiers = fullName;
+            ChildFullNamePrefix = childFullNamePrefixOpt;
+            FormatSpecifiers = formatSpecifiers;
+            Category = category;
+            EditableValue = editableValue;
+            Flags = flags | GetFlags(value, inspectionContext, expansion, canFavorite, isFavorite);
+            Expansion = expansion;
+            InspectionContext = inspectionContext;
+            DisplayName = displayName;
+            DisplayType = displayType;
+            CanFavorite = canFavorite;
+            IsFavorite = isFavorite;
         }
 
         internal EvalResultDataItem ToDataItem()
@@ -225,6 +240,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: FormatSpecifiers,
                 category: Category,
                 flags: m_rawFlags,
+                customFlags: CustomEvaluationFlags.None, // flags already set on value
                 editableValue: EditableValue,
                 inspectionContext: InspectionContext,
                 displayName: DisplayName,

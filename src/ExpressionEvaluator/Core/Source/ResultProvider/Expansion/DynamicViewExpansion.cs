@@ -47,13 +47,14 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         internal static EvalResult CreateMembersOnlyRow(
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             string name,
             DkmClrValue value,
             ResultProvider resultProvider)
         {
             var expansion = CreateExpansion(inspectionContext, value, resultProvider);
             return (expansion != null) ?
-                expansion.CreateDynamicViewRow(inspectionContext, name, parent: null, fullNameProvider: resultProvider.FullNameProvider) :
+                expansion.CreateDynamicViewRow(inspectionContext, customFlags, name, parent: null, fullNameProvider: resultProvider.FullNameProvider) :
                 new EvalResult(name, Resources.DynamicViewNotDynamic, inspectionContext);
         }
 
@@ -73,6 +74,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -82,13 +84,13 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
         {
             if (InRange(startIndex, count, index))
             {
-                rows.Add(CreateDynamicViewRow(inspectionContext, Resources.DynamicView, parent, resultProvider.FullNameProvider));
+                rows.Add(CreateDynamicViewRow(inspectionContext, customFlags, Resources.DynamicView, parent, resultProvider.FullNameProvider));
             }
 
             index++;
         }
 
-        private EvalResult CreateDynamicViewRow(DkmInspectionContext inspectionContext, string name, EvalResultDataItem parent, IDkmClrFullNameProvider fullNameProvider)
+        private EvalResult CreateDynamicViewRow(DkmInspectionContext inspectionContext, CustomEvaluationFlags customFlags, string name, EvalResultDataItem parent, IDkmClrFullNameProvider fullNameProvider)
         {
             var proxyTypeAndInfo = new TypeAndCustomInfo(_proxyValue.Type);
             var isRootExpression = parent == null;
@@ -116,6 +118,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: Formatter.AddFormatSpecifier(formatSpecifiers, DynamicFormatSpecifier),
                 category: DkmEvaluationResultCategory.Method,
                 flags: DkmEvaluationResultFlags.ReadOnly,
+                customFlags,
                 editableValue: null,
                 inspectionContext: inspectionContext);
         }

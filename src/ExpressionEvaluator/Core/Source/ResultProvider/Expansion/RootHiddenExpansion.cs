@@ -31,6 +31,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -59,6 +60,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 var other = MemberExpansion.CreateMemberDataItem(
                     resultProvider,
                     inspectionContext,
+                    customFlags,
                     _member,
                     memberValue,
                     parent,
@@ -68,7 +70,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 var expansion = other.Expansion;
                 if (expansion != null)
                 {
-                    expansion.GetRows(resultProvider, rows, inspectionContext, other.ToDataItem(), other.Value, startIndex, count, visitAll, ref index);
+                    expansion.GetRows(resultProvider, rows, inspectionContext, customFlags, other.ToDataItem(), other.Value, startIndex, count, visitAll, ref index);
                 }
             }
         }

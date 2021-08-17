@@ -40,6 +40,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             ResultProvider resultProvider,
             ArrayBuilder<EvalResult> rows,
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             EvalResultDataItem parent,
             DkmClrValue value,
             int startIndex,
@@ -54,7 +55,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             int offset = startIndex2 - index;
             for (int i = 0; i < count2; i++)
             {
-                rows.Add(GetRow(inspectionContext, value, i + offset, parent));
+                rows.Add(GetRow(inspectionContext, customFlags, value, i + offset, parent));
             }
 
             index += _typeArguments.Length;
@@ -62,6 +63,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
         private EvalResult GetRow(
             DkmInspectionContext inspectionContext,
+            CustomEvaluationFlags customFlags,
             DkmClrValue value,
             int index,
             EvalResultDataItem parent)
@@ -85,6 +87,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: formatSpecifiers,
                 category: DkmEvaluationResultCategory.Data,
                 flags: DkmEvaluationResultFlags.ReadOnly,
+                customFlags,
                 editableValue: null,
                 inspectionContext: inspectionContext);
         }

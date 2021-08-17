@@ -101,9 +101,6 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             }
         }
 
-        internal const DkmEvaluationFlags NotRoot = (DkmEvaluationFlags)0x20000;
-        internal const DkmEvaluationFlags NoResults = (DkmEvaluationFlags)0x40000;
-
         void IDkmClrResultProvider.GetChildren(DkmEvaluationResult evaluationResult, DkmWorkList workList, int initialRequestSize, DkmInspectionContext inspectionContext, DkmCompletionRoutine<DkmGetChildrenAsyncResult> completionRoutine)
         {
             var dataItem = evaluationResult.GetDataItem<EvalResultDataItem>();
@@ -122,12 +119,9 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 return;
             }
 
-            // Evaluate children with InspectionContext that is not the root.
-            inspectionContext = inspectionContext.With(NotRoot);
-
             var rows = ArrayBuilder<EvalResult>.GetInstance();
             int index = 0;
-            expansion.GetRows(this, rows, inspectionContext, dataItem, dataItem.Value, 0, initialRequestSize, visitAll: true, index: ref index);
+            expansion.GetRows(this, rows, inspectionContext, CustomEvaluationFlags.NotRoot, dataItem, dataItem.Value, 0, initialRequestSize, visitAll: true, index: ref index);
             var numRows = rows.Count;
             Debug.Assert(index >= numRows);
             Debug.Assert(initialRequestSize >= numRows);
@@ -170,7 +164,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
 
             var rows = ArrayBuilder<EvalResult>.GetInstance();
             int index = 0;
-            expansion.GetRows(this, rows, inspectionContext, dataItem, dataItem.Value, startIndex, count, visitAll: false, index: ref index);
+            expansion.GetRows(this, rows, inspectionContext, CustomEvaluationFlags.None, dataItem, dataItem.Value, startIndex, count, visitAll: false, index: ref index);
             var numRows = rows.Count;
             Debug.Assert(count >= numRows);
             var results = new DkmEvaluationResult[numRows];
@@ -537,6 +531,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             DkmEvaluationResultCategory category,
             DkmEvaluationResultFlags flags,
             DkmEvaluationFlags evalFlags,
+            CustomEvaluationFlags customFlags,
             bool canFavorite,
             bool isFavorite,
             bool supportsFavorites)
@@ -602,6 +597,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     flags.Includes(DkmEvaluationResultFlags.ExceptionThrown) ? null : fullName,
                     formatSpecifiers,
                     flags,
+                    customFlags,
                     Formatter2.GetEditableValueString(value, inspectionContext, declaredTypeAndInfo.Info));
                 if (expansion == null)
                 {
@@ -626,6 +622,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 formatSpecifiers: formatSpecifiers,
                 category: category,
                 flags: flags,
+                customFlags,
                 editableValue: Formatter2.GetEditableValueString(value, inspectionContext, declaredTypeAndInfo.Info),
                 inspectionContext: inspectionContext,
                 canFavorite: canFavorite,
@@ -666,6 +663,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                     formatSpecifiers: Formatter.NoFormatSpecifiers,
                     category: DkmEvaluationResultCategory.Data,
                     flags: DkmEvaluationResultFlags.ReadOnly,
+                    customFlags: CustomEvaluationFlags.None,
                     editableValue: null,
                     inspectionContext: inspectionContext);
 
@@ -695,6 +693,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             {
                 var dataItem = ResultsViewExpansion.CreateResultsOnlyRow(
                     inspectionContext,
+                    CustomEvaluationFlags.None,
                     name,
                     fullName,
                     formatSpecifiers,
@@ -713,6 +712,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             {
                 var dataItem = DynamicViewExpansion.CreateMembersOnlyRow(
                     inspectionContext,
+                    CustomEvaluationFlags.None,
                     name,
                     value,
                     this);
@@ -727,6 +727,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
             {
                 var dataItem = ResultsViewExpansion.CreateResultsOnlyRowIfSynthesizedEnumerable(
                     inspectionContext,
+                    CustomEvaluationFlags.None,
                     name,
                     fullName,
                     formatSpecifiers,
@@ -745,10 +746,10 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                 }
                 else
                 {
-                    var useDebuggerDisplay = (inspectionContext.EvaluationFlags & NotRoot) != 0;
-                    var expansionFlags = (inspectionContext.EvaluationFlags & NoResults) != 0 ?
-                        ExpansionFlags.IncludeBaseMembers :
-                        ExpansionFlags.All;
+                    var customEvaluationFlags = value.GetDataItem<CustomEvaluationFlagsDataItem>()?.Flags ?? CustomEvaluationFlags.None;
+                    var useDebuggerDisplay = (customEvaluationFlags & CustomEvaluationFlags.NotRoot) != 0;
+                    var expansionFlags = (customEvaluationFlags & CustomEvaluationFlags.NoResults) != 0 ? ExpansionFlags.IncludeBaseMembers : ExpansionFlags.All;
+
                     var favortiesDataItem = value.GetDataItem<FavoritesDataItem>();
                     dataItem = CreateDataItem(
                         inspectionContext,
@@ -764,6 +765,7 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator
                         category: DkmEvaluationResultCategory.Other,
                         flags: value.EvalFlags,
                         evalFlags: inspectionContext.EvaluationFlags,
+                        customEvaluationFlags,
                         canFavorite: favortiesDataItem?.CanFavorite ?? false,
                         isFavorite: favortiesDataItem?.IsFavorite ?? false,
                         supportsFavorites: true);

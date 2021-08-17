@@ -15,6 +15,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Formatter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Formatter.TypeNames.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Formatter.Values.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\CustomEvaluationFlags.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\FavoritesDataItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\TypeAndCustomInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\TypeWalker.cs" />
@@ -42,6 +43,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\InternalWellKnownMemberNames.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\MemberAndDeclarationInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\RawStringDataItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\CustomEvaluationFlagsDataItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\TypeHelpers.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\ValueHelpers.cs" />
   </ItemGroup>
