@@ -166,6 +166,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             try
             {
                 var capabilities = await DebuggingSession.DebuggerService.GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+                if (capabilities.IsEmpty)
+                {
+                    return EditAndContinueCapabilities.Baseline | EditAndContinueCapabilities.ChangeCustomAttributes | EditAndContinueCapabilities.NewTypeDefinition | EditAndContinueCapabilities.AddStaticFieldToExistingType | EditAndContinueCapabilities.AddInstanceFieldToExistingType; ;    
+                }
                 return EditAndContinueCapabilitiesParser.Parse(capabilities);
             }
             catch (Exception e) when (FatalError.ReportAndCatchUnlessCanceled(e, cancellationToken))
