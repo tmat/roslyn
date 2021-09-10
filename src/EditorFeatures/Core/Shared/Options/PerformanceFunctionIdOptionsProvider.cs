@@ -8,13 +8,12 @@ using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 using Microsoft.CodeAnalysis.PooledObjects;
 
 namespace Microsoft.CodeAnalysis.Editor.Shared.Options
 {
-    [ExportOptionProvider, Shared]
-    internal class PerformanceFunctionIdOptionsProvider : IOptionProvider
+    [ExportGlobalOptionProvider, Shared]
+    internal class PerformanceFunctionIdOptionsProvider : IGlobalOptionProvider
     {
         [ImportingConstructor]
         [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]

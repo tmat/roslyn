@@ -2,32 +2,26 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 
 namespace Microsoft.CodeAnalysis.Editor.Options
 {
-    internal partial class ExtensionManagerOptions
+    [ExportGlobalOptionProvider, Shared]
+    internal sealed class ExtensionManagerOptions : IGlobalOptionProvider
     {
         public static readonly Option<bool> DisableCrashingExtensions = new(nameof(ExtensionManagerOptions), nameof(DisableCrashingExtensions), defaultValue: true);
-    }
-
-    [ExportOptionProvider, Shared]
-    internal class ExtensionManagerOptionsProvider : IOptionProvider
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public ExtensionManagerOptionsProvider()
-        {
-        }
 
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-            ExtensionManagerOptions.DisableCrashingExtensions);
+            DisableCrashingExtensions);
+
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public ExtensionManagerOptions()
+        {
+        }
     }
 }

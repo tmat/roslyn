@@ -7,12 +7,12 @@ using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 using Microsoft.CodeAnalysis.Storage;
 
 namespace Microsoft.CodeAnalysis.Editor.Shared.Options
 {
-    internal static class InternalFeatureOnOffOptions
+    [ExportGlobalOptionProvider, Shared]
+    internal sealed class InternalFeatureOnOffOptions : IGlobalOptionProvider
     {
         internal const string LocalRegistryPath = StorageOptions.LocalRegistryPath;
 
@@ -74,36 +74,32 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Options
 
         public static readonly Option2<bool> ProjectReferenceConversion = new(nameof(InternalFeatureOnOffOptions), nameof(ProjectReferenceConversion), defaultValue: true,
             storageLocation: new LocalUserProfileStorageLocation(LocalRegistryPath + "Project Reference Conversion"));
-    }
-
-    [ExportOptionProvider, Shared]
-    internal class InternalFeatureOnOffOptionsProvider : IOptionProvider
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public InternalFeatureOnOffOptionsProvider()
-        {
-        }
 
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-            InternalFeatureOnOffOptions.BraceMatching,
-            InternalFeatureOnOffOptions.Classification,
-            InternalFeatureOnOffOptions.SemanticColorizer,
-            InternalFeatureOnOffOptions.SyntacticColorizer,
-            InternalFeatureOnOffOptions.AutomaticPairCompletion,
-            InternalFeatureOnOffOptions.AutomaticLineEnder,
-            InternalFeatureOnOffOptions.SmartIndenter,
-            InternalFeatureOnOffOptions.CompletionSet,
-            InternalFeatureOnOffOptions.KeywordHighlight,
-            InternalFeatureOnOffOptions.QuickInfo,
-            InternalFeatureOnOffOptions.Squiggles,
-            InternalFeatureOnOffOptions.FormatOnSave,
-            InternalFeatureOnOffOptions.RenameTracking,
-            InternalFeatureOnOffOptions.EventHookup,
-            InternalFeatureOnOffOptions.Snippets,
-            InternalFeatureOnOffOptions.TodoComments,
-            InternalFeatureOnOffOptions.DesignerAttributes,
-            InternalFeatureOnOffOptions.BackgroundAnalysisMemoryMonitor,
-            InternalFeatureOnOffOptions.ProjectReferenceConversion);
+            BraceMatching,
+            Classification,
+            SemanticColorizer,
+            SyntacticColorizer,
+            AutomaticPairCompletion,
+            AutomaticLineEnder,
+            SmartIndenter,
+            CompletionSet,
+            KeywordHighlight,
+            QuickInfo,
+            Squiggles,
+            FormatOnSave,
+            RenameTracking,
+            EventHookup,
+            Snippets,
+            TodoComments,
+            DesignerAttributes,
+            BackgroundAnalysisMemoryMonitor,
+            ProjectReferenceConversion);
+
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public InternalFeatureOnOffOptions()
+        {
+        }
     }
 }

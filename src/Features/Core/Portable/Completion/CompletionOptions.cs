@@ -2,12 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Composition;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
 
 namespace Microsoft.CodeAnalysis.Completion
 {
-    internal static class CompletionOptions
+    [ExportSolutionOptionProvider, Shared]
+    internal sealed class CompletionOptions
     {
         // feature flags
 
@@ -86,6 +91,27 @@ namespace Microsoft.CodeAnalysis.Completion
         public static readonly PerLanguageOption2<bool> ForceRoslynLSPCompletionExperiment =
             new(nameof(CompletionOptions), nameof(ForceRoslynLSPCompletionExperiment), defaultValue: false,
             storageLocation: new RoamingProfileStorageLocation("TextEditor.%LANGUAGE%.Specific.ForceRoslynLSPCompletionExperiment"));
+
+        public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
+            TypeImportCompletionFeatureFlag,
+            TargetTypedCompletionFilterFeatureFlag,
+            UnnamedSymbolCompletionDisabledFeatureFlag,
+            HideAdvancedMembers,
+            TriggerOnTyping,
+            TriggerOnTypingLetters2,
+            ShowCompletionItemFilters,
+            HighlightMatchingPortionsOfCompletionListItems,
+            EnterKeyBehavior,
+            SnippetsBehavior,
+            ShowItemsFromUnimportedNamespaces,
+            TriggerInArgumentLists,
+            EnableArgumentCompletionSnippets);
+
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public CompletionOptions()
+        {
+        }
 
         public static IEnumerable<PerLanguageOption2<bool>> GetDev15CompletionOptions()
         {

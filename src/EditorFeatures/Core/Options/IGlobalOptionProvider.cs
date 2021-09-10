@@ -7,9 +7,13 @@ using System.Composition;
 
 namespace Microsoft.CodeAnalysis.Options
 {
+    internal interface IGlobalOptionProvider : IOptionProvider
+    {
+    }
+
     [MetadataAttribute]
     [AttributeUsage(AttributeTargets.Class)]
-    internal sealed class ExportSolutionOptionProviderAttribute : ExportAttribute
+    internal sealed class ExportGlobalOptionProviderAttribute : ExportAttribute
     {
         /// <summary>
         /// Optional source language for language specific option providers.  See <see cref="LanguageNames"/>.
@@ -19,20 +23,20 @@ namespace Microsoft.CodeAnalysis.Options
 
         /// <summary>
         /// Constructor for language agnostic option providers.
-        /// Use <see cref="ExportSolutionOptionProviderAttribute(string)"/> overload for language specific option providers.
+        /// Use <see cref="ExportGlobalOptionProviderAttribute(string)"/> overload for language specific option providers.
         /// </summary>
-        public ExportSolutionOptionProviderAttribute()
-            : base(typeof(ISolutionOptionProvider))
+        public ExportGlobalOptionProviderAttribute()
+            : base(typeof(IGlobalOptionProvider))
         {
             Language = string.Empty;
         }
 
         /// <summary>
         /// Constructor for language specific option providers.
-        /// Use <see cref="ExportSolutionOptionProviderAttribute()"/> overload for language agnostic option providers.
+        /// Use <see cref="ExportGlobalOptionProviderAttribute()"/> overload for language agnostic option providers.
         /// </summary>
-        public ExportSolutionOptionProviderAttribute(string language)
-            : base(typeof(ISolutionOptionProvider))
+        public ExportGlobalOptionProviderAttribute(string language)
+            : base(typeof(IGlobalOptionProvider))
         {
             Language = language ?? throw new ArgumentNullException(nameof(language));
         }

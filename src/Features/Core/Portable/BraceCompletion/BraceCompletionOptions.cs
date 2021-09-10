@@ -7,27 +7,23 @@ using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 
 namespace Microsoft.CodeAnalysis.BraceCompletion
 {
-    internal class BraceCompletionOptions
+    [ExportSolutionOptionProvider, Shared]
+    internal sealed class BraceCompletionOptions : ISolutionOptionProvider
     {
         public static readonly PerLanguageOption2<bool> AutoFormattingOnCloseBrace = new(
             nameof(BraceCompletionOptions), nameof(AutoFormattingOnCloseBrace), defaultValue: true,
             storageLocation: new RoamingProfileStorageLocation("TextEditor.%LANGUAGE%.Specific.Auto Formatting On Close Brace"));
 
-        [ExportOptionProvider, Shared]
-        internal class BraceCompletionOptionsProvider : IOptionProvider
-        {
-            [ImportingConstructor]
-            [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-            public BraceCompletionOptionsProvider()
-            {
-            }
+        public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
+            AutoFormattingOnCloseBrace);
 
-            public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-                BraceCompletionOptions.AutoFormattingOnCloseBrace);
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public BraceCompletionOptions()
+        {
         }
     }
 }

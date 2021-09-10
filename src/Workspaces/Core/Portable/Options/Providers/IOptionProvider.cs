@@ -4,10 +4,14 @@
 
 using System.Collections.Immutable;
 
-namespace Microsoft.CodeAnalysis.Options.Providers
+namespace Microsoft.CodeAnalysis.Options
 {
     internal interface IOptionProvider
     {
         ImmutableArray<IOption> Options { get; }
+    }
+
+    internal interface ISolutionOptionProvider : IOptionProvider
+    {
     }
 }

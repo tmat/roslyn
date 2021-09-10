@@ -6,13 +6,12 @@ using System;
 using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
-using Microsoft.CodeAnalysis.InheritanceMargin;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 
 namespace Microsoft.CodeAnalysis.Editor.Shared.Options
 {
-    internal static class FeatureOnOffOptions
+    [ExportGlobalOptionProvider, Shared]
+    internal sealed class FeatureOnOffOptions : IGlobalOptionProvider
     {
         public static readonly PerLanguageOption2<bool> EndConstruct = new(nameof(FeatureOnOffOptions), nameof(EndConstruct), defaultValue: true,
             storageLocation: new RoamingProfileStorageLocation("TextEditor.%LANGUAGE%.Specific.AutoEndInsert"));
@@ -101,38 +100,34 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Options
         public static readonly Option2<bool> SkipAnalyzersForImplicitlyTriggeredBuilds = new(
             nameof(FeatureOnOffOptions), nameof(SkipAnalyzersForImplicitlyTriggeredBuilds), defaultValue: true,
             storageLocation: new RoamingProfileStorageLocation($"TextEditor.{nameof(SkipAnalyzersForImplicitlyTriggeredBuilds)}"));
-    }
-
-    [ExportOptionProvider, Shared]
-    internal class FeatureOnOffOptionsProvider : IOptionProvider
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public FeatureOnOffOptionsProvider()
-        {
-        }
 
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-            FeatureOnOffOptions.EndConstruct,
-            FeatureOnOffOptions.AutomaticInsertionOfAbstractOrInterfaceMembers,
-            FeatureOnOffOptions.LineSeparator,
-            FeatureOnOffOptions.Outlining,
-            FeatureOnOffOptions.KeywordHighlighting,
-            FeatureOnOffOptions.ReferenceHighlighting,
-            FeatureOnOffOptions.AutoInsertBlockCommentStartString,
-            FeatureOnOffOptions.PrettyListing,
-            FeatureOnOffOptions.RenameTrackingPreview,
-            FeatureOnOffOptions.RenameTracking,
-            FeatureOnOffOptions.RefactoringVerification,
-            FeatureOnOffOptions.StreamingGoToImplementation,
-            FeatureOnOffOptions.NavigateToDecompiledSources,
-            FeatureOnOffOptions.UseEnhancedColors,
-            FeatureOnOffOptions.AddImportsOnPaste,
-            FeatureOnOffOptions.OfferRemoveUnusedReferences,
-            FeatureOnOffOptions.OfferRemoveUnusedReferencesFeatureFlag,
-            FeatureOnOffOptions.ShowInheritanceMargin,
-            FeatureOnOffOptions.InheritanceMarginCombinedWithIndicatorMargin,
-            FeatureOnOffOptions.AutomaticallyCompleteStatementOnSemicolon,
-            FeatureOnOffOptions.SkipAnalyzersForImplicitlyTriggeredBuilds);
+            EndConstruct,
+            AutomaticInsertionOfAbstractOrInterfaceMembers,
+            LineSeparator,
+            Outlining,
+            KeywordHighlighting,
+            ReferenceHighlighting,
+            AutoInsertBlockCommentStartString,
+            PrettyListing,
+            RenameTrackingPreview,
+            RenameTracking,
+            RefactoringVerification,
+            StreamingGoToImplementation,
+            NavigateToDecompiledSources,
+            UseEnhancedColors,
+            AddImportsOnPaste,
+            OfferRemoveUnusedReferences,
+            OfferRemoveUnusedReferencesFeatureFlag,
+            ShowInheritanceMargin,
+            InheritanceMarginCombinedWithIndicatorMargin,
+            AutomaticallyCompleteStatementOnSemicolon,
+            SkipAnalyzersForImplicitlyTriggeredBuilds);
+
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public FeatureOnOffOptions()
+        {
+        }
     }
 }

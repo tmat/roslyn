@@ -7,25 +7,21 @@ using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 
 namespace Microsoft.CodeAnalysis.Editor.Options
 {
-    internal static class SignatureHelpOptions
+    [ExportGlobalOptionProvider, Shared]
+    internal sealed class SignatureHelpOptions : IGlobalOptionProvider
     {
         public static readonly PerLanguageOption2<bool> ShowSignatureHelp = new(nameof(SignatureHelpOptions), nameof(ShowSignatureHelp), defaultValue: true);
-    }
-
-    [ExportOptionProvider, Shared]
-    internal class SignatureHelpOptionsProvider : IOptionProvider
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public SignatureHelpOptionsProvider()
-        {
-        }
 
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-            SignatureHelpOptions.ShowSignatureHelp);
+            ShowSignatureHelp);
+
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public SignatureHelpOptions()
+        {
+        }
     }
 }

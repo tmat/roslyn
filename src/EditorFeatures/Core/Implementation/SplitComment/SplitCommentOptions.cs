@@ -7,27 +7,23 @@ using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 
 namespace Microsoft.CodeAnalysis.Editor.Implementation.SplitComment
 {
-    internal class SplitCommentOptions
+    [ExportGlobalOptionProvider, Shared]
+    internal sealed class SplitCommentOptions : IGlobalOptionProvider
     {
-        public static PerLanguageOption2<bool> Enabled =
-           new PerLanguageOption2<bool>(nameof(SplitCommentOptions), nameof(Enabled), defaultValue: true,
-               storageLocation: new RoamingProfileStorageLocation("TextEditor.%LANGUAGE%.Specific.SplitComments"));
-    }
-
-    [ExportOptionProvider, Shared]
-    internal class SplitCommentOptionsProvider : IOptionProvider
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public SplitCommentOptionsProvider()
-        {
-        }
+        public static readonly PerLanguageOption2<bool> Enabled = new(
+            nameof(SplitCommentOptions), nameof(Enabled), defaultValue: true,
+            storageLocation: new RoamingProfileStorageLocation("TextEditor.%LANGUAGE%.Specific.SplitComments"));
 
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-            SplitCommentOptions.Enabled);
+            Enabled);
+
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public SplitCommentOptions()
+        {
+        }
     }
 }

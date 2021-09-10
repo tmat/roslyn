@@ -50,7 +50,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             // indent, none of which are controlled by editorconfig. Instead of calling 
             // document.GetOptionsAsync we can use the Workspace's global options and thus save the
             // work of attempting to read in the editorconfig file.
-            var options = document.Project.Solution.Workspace.Options;
+            var options = document.Project.Solution.Options;
 
             var smartIndentOn = options.GetOption(FormattingOptions.SmartIndent, LanguageNames.CSharp) == FormattingOptions.IndentStyle.Smart;
 

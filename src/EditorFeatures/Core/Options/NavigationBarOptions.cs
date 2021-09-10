@@ -7,25 +7,21 @@ using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 
 namespace Microsoft.CodeAnalysis.Editor.Options
 {
-    internal static class NavigationBarOptions
+    [ExportGlobalOptionProvider, Shared]
+    internal sealed class NavigationBarOptions : IGlobalOptionProvider
     {
         public static readonly PerLanguageOption<bool> ShowNavigationBar = new(nameof(NavigationBarOptions), nameof(ShowNavigationBar), defaultValue: true);
-    }
-
-    [ExportOptionProvider, Shared]
-    internal class NavigationBarOptionsProvider : IOptionProvider
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public NavigationBarOptionsProvider()
-        {
-        }
 
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-            NavigationBarOptions.ShowNavigationBar);
+            ShowNavigationBar);
+
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public NavigationBarOptions()
+        {
+        }
     }
 }

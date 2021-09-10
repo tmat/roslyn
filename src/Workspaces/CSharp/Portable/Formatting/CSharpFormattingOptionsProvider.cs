@@ -7,12 +7,11 @@ using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Options.Providers;
 
 namespace Microsoft.CodeAnalysis.CSharp.Formatting
 {
-    [ExportOptionProvider(LanguageNames.CSharp), Shared]
-    internal sealed class CSharpFormattingOptionsProvider : IOptionProvider
+    [ExportSolutionOptionProvider(LanguageNames.CSharp), Shared]
+    internal sealed class CSharpFormattingOptionsProvider : ISolutionOptionProvider
     {
         [ImportingConstructor]
         [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]

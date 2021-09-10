@@ -14,7 +14,8 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Options
     /// <summary>
     /// options to indicate whether a certain component in Roslyn is enabled or not
     /// </summary>
-    internal static class EditorComponentOnOffOptions
+    [ExportGlobalOptionProvider, Shared]
+    internal sealed class EditorComponentOnOffOptions : IGlobalOptionProvider
     {
         private const string LocalRegistryPath = @"Roslyn\Internal\OnOff\Components\";
 
@@ -30,21 +31,17 @@ namespace Microsoft.CodeAnalysis.Editor.Shared.Options
         public static readonly Option2<bool> ShowCodeRefactoringsWhenQueriedForCodeFixes = new(
             nameof(EditorComponentOnOffOptions), nameof(ShowCodeRefactoringsWhenQueriedForCodeFixes), defaultValue: false,
             storageLocation: new LocalUserProfileStorageLocation(LocalRegistryPath + nameof(ShowCodeRefactoringsWhenQueriedForCodeFixes)));
-    }
-
-    [ExportOptionProvider, Shared]
-    internal class EditorComponentOnOffOptionsProvider : IOptionProvider
-    {
-        [ImportingConstructor]
-        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public EditorComponentOnOffOptionsProvider()
-        {
-        }
 
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-            EditorComponentOnOffOptions.Adornment,
-            EditorComponentOnOffOptions.Tagger,
-            EditorComponentOnOffOptions.CodeRefactorings,
-            EditorComponentOnOffOptions.ShowCodeRefactoringsWhenQueriedForCodeFixes);
+           Adornment,
+           Tagger,
+           CodeRefactorings,
+           ShowCodeRefactoringsWhenQueriedForCodeFixes);
+
+        [ImportingConstructor]
+        [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+        public EditorComponentOnOffOptions()
+        {
+        }
     }
 }
