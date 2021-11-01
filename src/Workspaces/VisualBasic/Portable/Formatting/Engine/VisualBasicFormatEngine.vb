@@ -13,7 +13,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
         Inherits AbstractFormatEngine
 
         Public Sub New(node As SyntaxNode,
-                       options As AnalyzerConfigOptions,
+                       options As VisualBasicFormatterOptions,
                        formattingRules As IEnumerable(Of AbstractFormattingRule),
                        token1 As SyntaxToken,
                        token2 As SyntaxToken)
@@ -27,7 +27,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
         Friend Overrides ReadOnly Property HeaderFacts As IHeaderFacts = VisualBasicHeaderFacts.Instance
 
         Protected Overrides Function CreateTriviaFactory() As AbstractTriviaDataFactory
-            Return New TriviaDataFactory(Me.TreeData, Me.Options)
+            Return New TriviaDataFactory(TreeData, CType(Options, VisualBasicFormatterOptions))
         End Function
 
         Protected Overrides Function CreateFormattingResult(tokenStream As TokenStream) As AbstractFormattingResult

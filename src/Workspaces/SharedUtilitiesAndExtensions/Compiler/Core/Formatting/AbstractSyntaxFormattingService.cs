@@ -29,11 +29,13 @@ namespace Microsoft.CodeAnalysis.Formatting
 
         protected abstract IFormattingResult CreateAggregatedFormattingResult(SyntaxNode node, IList<AbstractFormattingResult> results, SimpleIntervalTree<TextSpan, TextSpanIntervalIntrospector>? formattingSpans = null);
 
-        protected abstract AbstractFormattingResult Format(SyntaxNode node, AnalyzerConfigOptions options, IEnumerable<AbstractFormattingRule> rules, SyntaxToken token1, SyntaxToken token2, CancellationToken cancellationToken);
+        protected abstract AbstractFormattingResult Format(SyntaxNode node, FormatterOptions options, IEnumerable<AbstractFormattingRule> rules, SyntaxToken token1, SyntaxToken token2, CancellationToken cancellationToken);
 
-        public IFormattingResult Format(SyntaxNode node, IEnumerable<TextSpan> spans, bool shouldUseFormattingSpanCollapse, AnalyzerConfigOptions options, IEnumerable<AbstractFormattingRule> rules, CancellationToken cancellationToken)
+        public abstract FormatterOptions GetOptions(AnalyzerConfigOptions config);
+
+        public IFormattingResult Format(SyntaxNode node, IEnumerable<TextSpan> spans, FormatterOptions options, IEnumerable<AbstractFormattingRule> rules, CancellationToken cancellationToken)
         {
-            CheckArguments(node, spans, options, rules);
+            CheckArguments(node, spans, rules);
 
             // quick exit check
             var spansToFormat = new NormalizedTextSpanCollection(spans.Where(s_notEmpty));
@@ -43,7 +45,7 @@ namespace Microsoft.CodeAnalysis.Formatting
             }
 
             // check what kind of formatting strategy to use
-            if (AllowDisjointSpanMerging(spansToFormat, shouldUseFormattingSpanCollapse))
+            if (AllowDisjointSpanMerging(spansToFormat, options.AllowDisjointSpanMerging))
             {
                 return FormatMergedSpan(node, options, rules, spansToFormat, cancellationToken);
             }
@@ -52,7 +54,7 @@ namespace Microsoft.CodeAnalysis.Formatting
         }
 
         private IFormattingResult FormatMergedSpan(
-            SyntaxNode node, AnalyzerConfigOptions options, IEnumerable<AbstractFormattingRule> rules, IList<TextSpan> spansToFormat, CancellationToken cancellationToken)
+            SyntaxNode node, FormatterOptions options, IEnumerable<AbstractFormattingRule> rules, IList<TextSpan> spansToFormat, CancellationToken cancellationToken)
         {
             var spanToFormat = TextSpan.FromBounds(spansToFormat[0].Start, spansToFormat[spansToFormat.Count - 1].End);
             var pair = node.ConvertToTokenPair(spanToFormat);
@@ -68,7 +70,7 @@ namespace Microsoft.CodeAnalysis.Formatting
         }
 
         private IFormattingResult FormatIndividually(
-            SyntaxNode node, AnalyzerConfigOptions options, IEnumerable<AbstractFormattingRule> rules, IList<TextSpan> spansToFormat, CancellationToken cancellationToken)
+            SyntaxNode node, FormatterOptions options, IEnumerable<AbstractFormattingRule> rules, IList<TextSpan> spansToFormat, CancellationToken cancellationToken)
         {
             List<AbstractFormattingResult>? results = null;
             foreach (var pair in node.ConvertToTokenPairs(spansToFormat))
@@ -130,7 +132,7 @@ namespace Microsoft.CodeAnalysis.Formatting
             return (formattingSpan.Length / Math.Max(actualFormattingSize, 1)) < 2;
         }
 
-        private static void CheckArguments(SyntaxNode node, IEnumerable<TextSpan> spans, AnalyzerConfigOptions options, IEnumerable<AbstractFormattingRule> rules)
+        private static void CheckArguments(SyntaxNode node, IEnumerable<TextSpan> spans, IEnumerable<AbstractFormattingRule> rules)
         {
             if (node == null)
             {
@@ -140,11 +142,6 @@ namespace Microsoft.CodeAnalysis.Formatting
             if (spans == null)
             {
                 throw new ArgumentNullException(nameof(spans));
-            }
-
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
             }
 
             if (rules == null)

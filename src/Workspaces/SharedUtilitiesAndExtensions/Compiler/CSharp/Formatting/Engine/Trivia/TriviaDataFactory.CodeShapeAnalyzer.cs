@@ -17,7 +17,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         private struct CodeShapeAnalyzer
         {
             private readonly FormattingContext _context;
-            private readonly AnalyzerConfigOptions _options;
+            private readonly CSharpFormatterOptions _options;
             private readonly TriviaList _triviaList;
 
             private int _indentation;
@@ -90,7 +90,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             private CodeShapeAnalyzer(FormattingContext context, bool firstTriviaInTree, TriviaList triviaList)
             {
                 _context = context;
-                _options = context.Options;
+                _options = (CSharpFormatterOptions)context.Options;
                 _triviaList = triviaList;
 
                 _indentation = 0;
@@ -134,7 +134,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                     return true;
                 }
 
-                _indentation += text.ConvertTabToSpace(_options.GetOption(FormattingOptions2.TabSize), _indentation, text.Length);
+                _indentation += text.ConvertTabToSpace(_options.TabSize, _indentation, text.Length);
 
                 return false;
             }
@@ -190,7 +190,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 
                 // go deep down for single line documentation comment
                 if (trivia.IsSingleLineDocComment() &&
-                    ShouldFormatSingleLineDocumentationComment(_indentation, _options.GetOption(FormattingOptions2.TabSize), trivia))
+                    ShouldFormatSingleLineDocumentationComment(_indentation, _options.TabSize, trivia))
                 {
                     return true;
                 }

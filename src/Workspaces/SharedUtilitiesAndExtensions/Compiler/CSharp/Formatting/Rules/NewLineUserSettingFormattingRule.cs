@@ -6,6 +6,7 @@ using System;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Options;
 using Roslyn.Utilities;
@@ -14,28 +15,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 {
     internal sealed class NewLineUserSettingFormattingRule : BaseFormattingRule
     {
-        private readonly CachedOptions _options;
+        private readonly CSharpFormatterOptions _options;
 
-        public NewLineUserSettingFormattingRule()
-            : this(new CachedOptions(null))
-        {
-        }
-
-        private NewLineUserSettingFormattingRule(CachedOptions options)
+        internal NewLineUserSettingFormattingRule(CSharpFormatterOptions options)
         {
             _options = options;
         }
 
-        public override AbstractFormattingRule WithOptions(AnalyzerConfigOptions options)
+        public override AbstractFormattingRule WithOptions(FormatterOptions options)
         {
-            var cachedOptions = new CachedOptions(options);
-
-            if (cachedOptions == _options)
-            {
-                return this;
-            }
-
-            return new NewLineUserSettingFormattingRule(cachedOptions);
+            return new NewLineUserSettingFormattingRule((CSharpFormatterOptions)options);
         }
 
         private static bool IsControlBlock(SyntaxNode node)

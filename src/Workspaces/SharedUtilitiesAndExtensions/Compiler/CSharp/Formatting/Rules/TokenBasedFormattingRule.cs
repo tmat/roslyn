@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Utilities;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Editing;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Options;
 using Roslyn.Utilities;
@@ -20,28 +21,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
     {
         internal const string Name = "CSharp Token Based Formatting Rule";
 
-        private readonly CachedOptions _options;
+        private readonly CSharpFormatterOptions _options;
 
-        public TokenBasedFormattingRule()
-            : this(new CachedOptions(null))
-        {
-        }
-
-        private TokenBasedFormattingRule(CachedOptions options)
+        internal TokenBasedFormattingRule(CSharpFormatterOptions options)
         {
             _options = options;
         }
 
-        public override AbstractFormattingRule WithOptions(AnalyzerConfigOptions options)
+        public override AbstractFormattingRule WithOptions(FormatterOptions options)
         {
-            var cachedOptions = new CachedOptions(options);
-
-            if (cachedOptions == _options)
-            {
-                return this;
-            }
-
-            return new TokenBasedFormattingRule(cachedOptions);
+            return new TokenBasedFormattingRule((CSharpFormatterOptions)options);
         }
 
         public override AdjustNewLinesOperation? GetAdjustNewLinesOperation(in SyntaxToken previousToken, in SyntaxToken currentToken, in NextGetAdjustNewLinesOperation nextOperation)
@@ -545,45 +534,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             }
 
             return nextOperation.Invoke(in previousToken, in currentToken);
-        }
-
-        private readonly struct CachedOptions : IEquatable<CachedOptions>
-        {
-            public readonly bool SeparateImportDirectiveGroups;
-
-            public CachedOptions(AnalyzerConfigOptions? options)
-            {
-                SeparateImportDirectiveGroups = GetOptionOrDefault(options, GenerationOptions.SeparateImportDirectiveGroups);
-            }
-
-            public static bool operator ==(CachedOptions left, CachedOptions right)
-                => left.Equals(right);
-
-            public static bool operator !=(CachedOptions left, CachedOptions right)
-                => !(left == right);
-
-            private static T GetOptionOrDefault<T>(AnalyzerConfigOptions? options, PerLanguageOption2<T> option)
-            {
-                if (options is null)
-                    return option.DefaultValue;
-
-                return options.GetOption(option);
-            }
-
-            public override bool Equals(object? obj)
-                => obj is CachedOptions options && Equals(options);
-
-            public bool Equals(CachedOptions other)
-            {
-                return SeparateImportDirectiveGroups == other.SeparateImportDirectiveGroups;
-            }
-
-            public override int GetHashCode()
-            {
-                var hashCode = 0;
-                hashCode = (hashCode << 1) + (SeparateImportDirectiveGroups ? 1 : 0);
-                return hashCode;
-            }
         }
     }
 }

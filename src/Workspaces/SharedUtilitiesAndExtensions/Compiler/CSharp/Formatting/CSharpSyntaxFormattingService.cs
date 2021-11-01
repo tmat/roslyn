@@ -36,20 +36,23 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         public CSharpSyntaxFormattingService()
         {
             _rules = ImmutableList.Create<AbstractFormattingRule>(
-                new WrappingFormattingRule(),
-                new SpacingFormattingRule(),
-                new NewLineUserSettingFormattingRule(),
-                new IndentUserSettingsFormattingRule(),
+                new WrappingFormattingRule(CSharpFormatterOptions.Default),
+                new SpacingFormattingRule(CSharpFormatterOptions.Default),
+                new NewLineUserSettingFormattingRule(CSharpFormatterOptions.Default),
+                new IndentUserSettingsFormattingRule(CSharpFormatterOptions.Default),
                 new ElasticTriviaFormattingRule(),
                 new EndOfFileTokenFormattingRule(),
                 new StructuredTriviaFormattingRule(),
-                new IndentBlockFormattingRule(),
+                new IndentBlockFormattingRule(CSharpFormatterOptions.Default),
                 new SuppressFormattingRule(),
                 new AnchorIndentationFormattingRule(),
-                new QueryExpressionFormattingRule(),
-                new TokenBasedFormattingRule(),
+                new QueryExpressionFormattingRule(CSharpFormatterOptions.Default),
+                new TokenBasedFormattingRule(CSharpFormatterOptions.Default),
                 DefaultOperationProvider.Instance);
         }
+
+        public override FormatterOptions GetOptions(AnalyzerConfigOptions config)
+            => CSharpFormatterOptions.From(config);
 
         public override IEnumerable<AbstractFormattingRule> GetDefaultFormattingRules()
             => _rules;
@@ -57,7 +60,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         protected override IFormattingResult CreateAggregatedFormattingResult(SyntaxNode node, IList<AbstractFormattingResult> results, SimpleIntervalTree<TextSpan, TextSpanIntervalIntrospector>? formattingSpans = null)
             => new AggregatedFormattingResult(node, results, formattingSpans);
 
-        protected override AbstractFormattingResult Format(SyntaxNode node, AnalyzerConfigOptions options, IEnumerable<AbstractFormattingRule> formattingRules, SyntaxToken token1, SyntaxToken token2, CancellationToken cancellationToken)
-            => new CSharpFormatEngine(node, options, formattingRules, token1, token2).Format(cancellationToken);
+        protected override AbstractFormattingResult Format(SyntaxNode node, FormatterOptions options, IEnumerable<AbstractFormattingRule> formattingRules, SyntaxToken token1, SyntaxToken token2, CancellationToken cancellationToken)
+            => new CSharpFormatEngine(node, (CSharpFormatterOptions)options, formattingRules, token1, token2).Format(cancellationToken);
     }
 }

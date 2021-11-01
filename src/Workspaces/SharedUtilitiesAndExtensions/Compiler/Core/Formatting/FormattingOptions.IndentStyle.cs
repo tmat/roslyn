@@ -5,10 +5,11 @@
 namespace Microsoft.CodeAnalysis.Formatting
 {
 #if CODE_STYLE
-    internal static class FormattingOptions
+    internal
 #else
-    public static partial class FormattingOptions
+    public
 #endif
+    static partial class FormattingOptions
     {
         public enum IndentStyle
         {

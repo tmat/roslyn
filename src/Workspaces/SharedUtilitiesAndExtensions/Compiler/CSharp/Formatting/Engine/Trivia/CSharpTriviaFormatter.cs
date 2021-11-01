@@ -31,6 +31,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         {
         }
 
+        public new CSharpFormatterOptions Options
+            => (CSharpFormatterOptions)base.Options;
+
         protected override bool Succeeded()
             => _succeeded;
 
@@ -53,8 +56,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         {
             if (_newLine == default)
             {
-                var text = this.Context.Options.GetOption(FormattingOptions2.NewLine);
-                _newLine = SyntaxFactory.EndOfLine(text);
+                _newLine = SyntaxFactory.EndOfLine(Context.Options.NewLine);
             }
 
             return _newLine;
@@ -190,9 +192,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                         false /* forceIndentation */,
                         indentation,
                         indentationDelta,
-                        this.Options.GetOption(FormattingOptions2.UseTabs),
-                        this.Options.GetOption(FormattingOptions2.TabSize),
-                        this.Options.GetOption(FormattingOptions2.NewLine));
+                        Options.UseTabs,
+                        Options.TabSize,
+                        Options.NewLine);
 
                     var multilineCommentTrivia = SyntaxFactory.ParseLeadingTrivia(multiLineComment);
                     Contract.ThrowIfFalse(multilineCommentTrivia.Count == 1);

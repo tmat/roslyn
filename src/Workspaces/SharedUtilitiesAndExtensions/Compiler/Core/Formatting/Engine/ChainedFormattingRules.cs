@@ -14,13 +14,11 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Formatting
 {
-    internal class ChainedFormattingRules
+    internal sealed class ChainedFormattingRules
     {
         private static readonly ConcurrentDictionary<(Type type, string name), Type?> s_typeImplementingMethod = new();
 
         private readonly ImmutableArray<AbstractFormattingRule> _formattingRules;
-        private readonly AnalyzerConfigOptions _options;
-
         private readonly ImmutableArray<AbstractFormattingRule> _addSuppressOperationsRules;
         private readonly ImmutableArray<AbstractFormattingRule> _addAnchorIndentationOperationsRules;
         private readonly ImmutableArray<AbstractFormattingRule> _addIndentBlockOperationsRules;
@@ -28,14 +26,12 @@ namespace Microsoft.CodeAnalysis.Formatting
         private readonly ImmutableArray<AbstractFormattingRule> _getAdjustNewLinesOperationRules;
         private readonly ImmutableArray<AbstractFormattingRule> _getAdjustSpacesOperationRules;
 
-        public ChainedFormattingRules(IEnumerable<AbstractFormattingRule> formattingRules, AnalyzerConfigOptions options)
+        public ChainedFormattingRules(IEnumerable<AbstractFormattingRule> formattingRules, FormatterOptions options)
         {
             Contract.ThrowIfNull(formattingRules);
             Contract.ThrowIfNull(options);
 
             _formattingRules = formattingRules.Select(rule => rule.WithOptions(options)).ToImmutableArray();
-            _options = options;
-
             _addSuppressOperationsRules = FilterToRulesImplementingMethod(_formattingRules, nameof(AbstractFormattingRule.AddSuppressOperations));
             _addAnchorIndentationOperationsRules = FilterToRulesImplementingMethod(_formattingRules, nameof(AbstractFormattingRule.AddAnchorIndentationOperations));
             _addIndentBlockOperationsRules = FilterToRulesImplementingMethod(_formattingRules, nameof(AbstractFormattingRule.AddIndentBlockOperations));

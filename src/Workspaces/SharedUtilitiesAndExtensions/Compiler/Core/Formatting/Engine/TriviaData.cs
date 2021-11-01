@@ -20,14 +20,14 @@ namespace Microsoft.CodeAnalysis.Formatting
 
         private readonly string _language;
 
-        protected TriviaData(AnalyzerConfigOptions options, string language)
+        protected TriviaData(FormatterOptions options, string language)
         {
             Contract.ThrowIfNull(options);
             Options = options;
             _language = language;
         }
 
-        protected AnalyzerConfigOptions Options { get; }
+        protected FormatterOptions Options { get; }
         protected string Language => _language;
 
         public int LineBreaks { get; protected set; }

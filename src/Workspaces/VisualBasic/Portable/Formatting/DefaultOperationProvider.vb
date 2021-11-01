@@ -5,6 +5,7 @@
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.Diagnostics
 Imports Microsoft.CodeAnalysis.Editing
+Imports Microsoft.CodeAnalysis.Formatting
 Imports Microsoft.CodeAnalysis.Formatting.Rules
 Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -20,24 +21,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
 
         Public Shared ReadOnly Instance As New DefaultOperationProvider()
 
-        Private ReadOnly _options As CachedOptions
+        Private ReadOnly _options As VisualBasicFormatterOptions
 
         Private Sub New()
-            MyClass.New(New CachedOptions(Nothing))
+            MyClass.New(Nothing)
         End Sub
 
-        Private Sub New(options As CachedOptions)
+        Private Sub New(options As VisualBasicFormatterOptions)
             _options = options
         End Sub
 
-        Public Overrides Function WithOptions(options As AnalyzerConfigOptions) As AbstractFormattingRule
-            Dim cachedOptions = New CachedOptions(options)
+        Public Overrides Function WithOptions(options As FormatterOptions) As AbstractFormattingRule
 
-            If cachedOptions = _options Then
-                Return Me
-            End If
-
-            Return New DefaultOperationProvider(cachedOptions)
+            Return New DefaultOperationProvider(CType(options, VisualBasicFormatterOptions))
         End Function
 
         Public Overrides Sub AddSuppressOperationsSlow(operations As List(Of SuppressOperation), node As SyntaxNode, ByRef nextAction As NextSuppressOperationAction)
@@ -219,45 +215,5 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             Dim space As Integer = If(currentToken.Kind = SyntaxKind.EndOfFileToken, 0, 1)
             Return FormattingOperations.CreateAdjustSpacesOperation(space, AdjustSpacesOption.DefaultSpacesIfOnSingleLine)
         End Function
-
-        Private Structure CachedOptions
-            Implements IEquatable(Of CachedOptions)
-
-            Public ReadOnly SeparateImportDirectiveGroups As Boolean
-
-            Public Sub New(options As AnalyzerConfigOptions)
-                SeparateImportDirectiveGroups = GetOptionOrDefault(options, GenerationOptions.SeparateImportDirectiveGroups)
-            End Sub
-
-            Public Shared Operator =(left As CachedOptions, right As CachedOptions) As Boolean
-                Return left.Equals(right)
-            End Operator
-
-            Public Shared Operator <>(left As CachedOptions, right As CachedOptions) As Boolean
-                Return Not left = right
-            End Operator
-
-            Private Shared Function GetOptionOrDefault(Of T)(options As AnalyzerConfigOptions, [option] As PerLanguageOption2(Of T)) As T
-                If options Is Nothing Then
-                    Return [option].DefaultValue
-                End If
-
-                Return options.GetOption([option])
-            End Function
-
-            Public Overrides Function Equals(obj As Object) As Boolean
-                Return (TypeOf obj Is CachedOptions) AndAlso Equals(DirectCast(obj, CachedOptions))
-            End Function
-
-            Public Overloads Function Equals(other As CachedOptions) As Boolean Implements IEquatable(Of CachedOptions).Equals
-                Return SeparateImportDirectiveGroups = other.SeparateImportDirectiveGroups
-            End Function
-
-            Public Overrides Function GetHashCode() As Integer
-                Dim hashCode = 0
-                hashCode = (hashCode << 1) + If(SeparateImportDirectiveGroups, 1, 0)
-                Return hashCode
-            End Function
-        End Structure
     End Class
 End Namespace

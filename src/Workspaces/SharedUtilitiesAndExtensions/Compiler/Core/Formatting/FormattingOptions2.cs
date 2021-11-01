@@ -4,7 +4,11 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Options;
+using Microsoft.CodeAnalysis.CodeStyle;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 
 #if CODE_STYLE
 using WorkspacesResources = Microsoft.CodeAnalysis.CodeStyleResources;
@@ -76,13 +80,27 @@ namespace Microsoft.CodeAnalysis.Formatting
             new(FeatureName, FormattingOptionGroups.NewLine, nameof(InsertFinalNewLine), defaultValue: false,
             storageLocation: EditorConfigStorageLocation.ForBoolOption("insert_final_newline"));
 
+        /// <summary>
+        /// Default value of 120 was picked based on the amount of code in a github.com diff at 1080p.
+        /// That resolution is the most common value as per the last DevDiv survey as well as the latest
+        /// Steam hardware survey.  This also seems to a reasonable length default in that shorter
+        /// lengths can often feel too cramped for .NET languages, which are often starting with a
+        /// default indentation of at least 16 (for namespace, class, member, plus the final construct
+        /// indentation).
+        /// 
+        /// TODO: Currently the option has no storage and always has its default value. See https://github.com/dotnet/roslyn/pull/30422#issuecomment-436118696.
+        /// </summary>
+        internal static Option2<int> PreferredWrappingColumn { get; } =
+            new(FeatureName, FormattingOptionGroups.NewLine, nameof(PreferredWrappingColumn), defaultValue: 120);
+
 #if !CODE_STYLE
         internal static readonly ImmutableArray<IOption> Options = ImmutableArray.Create<IOption>(
             UseTabs,
             TabSize,
             IndentationSize,
             NewLine,
-            InsertFinalNewLine);
+            InsertFinalNewLine,
+            PreferredWrappingColumn);
 #endif
     }
 
@@ -90,5 +108,27 @@ namespace Microsoft.CodeAnalysis.Formatting
     {
         public static readonly OptionGroup IndentationAndSpacing = new(WorkspacesResources.Indentation_and_spacing, priority: 1);
         public static readonly OptionGroup NewLine = new(WorkspacesResources.New_line_preferences, priority: 2);
+    }
+
+    // Should be abstract but VB wouldn't be able to inherit if we made it so.
+    internal record FormatterOptions(
+        bool AllowDisjointSpanMerging,
+        bool AutoFormattingOnReturn,
+        FormattingOptions.IndentStyle IndentStyle,
+        string NewLine,
+        int IndentationSize,
+        int TabSize,
+        bool UseTabs,
+        bool SeparateImportDirectiveGroups,
+        OperatorPlacementWhenWrappingPreference OperatorPlacementWhenWrapping,
+        int PreferredWrappingColumn)
+    {
+        public static async ValueTask<FormatterOptions> FromDocumentAsync(Document document, CancellationToken cancellationToken)
+        {
+            var documentOptions = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
+            var formattingService = document.GetRequiredLanguageService<ISyntaxFormattingService>();
+            var optionService = document.Project.Solution.Workspace.Services.GetRequiredService<IOptionService>();
+            return formattingService.GetOptions(documentOptions.AsAnalyzerConfigOptions(optionService, document.Project.Language));
+        }
     }
 }

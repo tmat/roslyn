@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Options;
 
@@ -12,28 +13,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 {
     internal sealed class IndentUserSettingsFormattingRule : BaseFormattingRule
     {
-        private readonly CachedOptions _options;
+        private readonly CSharpFormatterOptions _options;
 
-        public IndentUserSettingsFormattingRule()
-            : this(new CachedOptions(null))
-        {
-        }
-
-        private IndentUserSettingsFormattingRule(CachedOptions options)
+        internal IndentUserSettingsFormattingRule(CSharpFormatterOptions options)
         {
             _options = options;
         }
 
-        public override AbstractFormattingRule WithOptions(AnalyzerConfigOptions options)
+        public override AbstractFormattingRule WithOptions(FormatterOptions options)
         {
-            var cachedOptions = new CachedOptions(options);
-
-            if (cachedOptions == _options)
-            {
-                return this;
-            }
-
-            return new IndentUserSettingsFormattingRule(cachedOptions);
+            return new IndentUserSettingsFormattingRule((CSharpFormatterOptions)options);
         }
 
         public override void AddIndentBlockOperations(List<IndentBlockOperation> list, SyntaxNode node, in NextIndentBlockOperationAction nextOperation)

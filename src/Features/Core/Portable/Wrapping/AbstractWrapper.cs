@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Shared.Extensions;
+using Microsoft.CodeAnalysis.Formatting;
 
 namespace Microsoft.CodeAnalysis.Wrapping
 {
@@ -32,7 +33,7 @@ namespace Microsoft.CodeAnalysis.Wrapping
         protected AbstractSyntaxWrapper(IIndentationService indentationService)
             => IndentationService = indentationService;
 
-        public abstract Task<ICodeActionComputer> TryCreateComputerAsync(Document document, int position, SyntaxNode node, CancellationToken cancellationToken);
+        public abstract Task<ICodeActionComputer> TryCreateComputerAsync(Document document, int position, SyntaxNode node, FormatterOptions options, CancellationToken cancellationToken);
 
         protected static async Task<bool> ContainsUnformattableContentAsync(
             Document document, IEnumerable<SyntaxNodeOrToken> nodesAndTokens, CancellationToken cancellationToken)

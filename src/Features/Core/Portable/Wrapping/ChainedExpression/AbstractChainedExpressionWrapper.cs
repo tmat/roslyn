@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.PooledObjects;
 
@@ -72,7 +73,7 @@ namespace Microsoft.CodeAnalysis.Wrapping.ChainedExpression
         protected abstract SyntaxTriviaList GetNewLineBeforeOperatorTrivia(SyntaxTriviaList newLine);
 
         public sealed override async Task<ICodeActionComputer> TryCreateComputerAsync(
-            Document document, int position, SyntaxNode node, CancellationToken cancellationToken)
+            Document document, int position, SyntaxNode node, FormatterOptions options, CancellationToken cancellationToken)
         {
             // We have to be on a chain part.  If not, there's nothing to do here at all.
             if (!IsDecomposableChainPart(node))
@@ -115,7 +116,6 @@ namespace Microsoft.CodeAnalysis.Wrapping.ChainedExpression
             // Looks good.  Create the action computer which will actually determine
             // the set of wrapping options to provide.
             var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var options = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
             return new CallExpressionCodeActionComputer(
                 this, document, sourceText, options, chunks, cancellationToken);
         }

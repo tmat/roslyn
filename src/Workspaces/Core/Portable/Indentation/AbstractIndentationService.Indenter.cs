@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.LanguageServices;
@@ -22,8 +23,7 @@ namespace Microsoft.CodeAnalysis.Indentation
         {
             private readonly AbstractIndentationService<TSyntaxRoot> _service;
 
-            public readonly OptionSet OptionSet;
-            public readonly IOptionService OptionService;
+            public readonly FormatterOptions Options;
             public readonly TextLine LineToBeIndented;
             public readonly CancellationToken CancellationToken;
 
@@ -33,7 +33,6 @@ namespace Microsoft.CodeAnalysis.Indentation
             public readonly BottomUpBaseIndentationFinder Finder;
 
             private readonly ISyntaxFactsService _syntaxFacts;
-            private readonly int _tabSize;
 
             public readonly SyntaxTree Tree => Document.SyntaxTree;
             public readonly SourceText Text => Document.Text;
@@ -42,7 +41,7 @@ namespace Microsoft.CodeAnalysis.Indentation
                 AbstractIndentationService<TSyntaxRoot> service,
                 SyntacticDocument document,
                 IEnumerable<AbstractFormattingRule> rules,
-                OptionSet optionSet,
+                FormatterOptions options,
                 TextLine lineToBeIndented,
                 CancellationToken cancellationToken)
             {
@@ -50,18 +49,16 @@ namespace Microsoft.CodeAnalysis.Indentation
 
                 _service = service;
                 _syntaxFacts = document.Document.GetRequiredLanguageService<ISyntaxFactsService>();
-                OptionSet = optionSet;
-                OptionService = document.Document.Project.Solution.Workspace.Services.GetRequiredService<IOptionService>();
                 Root = (TSyntaxRoot)document.Root;
                 LineToBeIndented = lineToBeIndented;
-                _tabSize = this.OptionSet.GetOption(FormattingOptions.TabSize, Root.Language);
                 CancellationToken = cancellationToken;
+                Options = options;
 
                 Rules = rules;
                 Finder = new BottomUpBaseIndentationFinder(
-                    new ChainedFormattingRules(this.Rules, OptionSet.AsAnalyzerConfigOptions(OptionService, Root.Language)),
-                    _tabSize,
-                    this.OptionSet.GetOption(FormattingOptions.IndentationSize, Root.Language),
+                    new ChainedFormattingRules(Rules, options),
+                    options.TabSize,
+                    options.IndentationSize,
                     tokenStream: null,
                     document.Document.GetRequiredLanguageService<IHeaderFactsService>());
             }
@@ -170,7 +167,7 @@ namespace Microsoft.CodeAnalysis.Indentation
                     var sourceText = Tree.GetText(CancellationToken);
 
                     var formatter = _service.CreateSmartTokenFormatter(this);
-                    var changes = formatter.FormatTokenAsync(Document.Project.Solution.Workspace, token, CancellationToken)
+                    var changes = formatter.FormatTokenAsync(Document.Project.Solution.Workspace.Services, token, CancellationToken)
                                            .WaitAndGetResult(CancellationToken);
 
                     var updatedSourceText = sourceText.WithChanges(changes);
@@ -192,7 +189,7 @@ namespace Microsoft.CodeAnalysis.Indentation
                             // This can be computed with GetColumnFromLineOffset which again looks
                             // at the contents of the line, but this time evaluates how \t characters 
                             // should translate to column chars.
-                            var offset = updatedLine.GetColumnFromLineOffset(nonWhitespaceOffset.Value, _tabSize);
+                            var offset = updatedLine.GetColumnFromLineOffset(nonWhitespaceOffset.Value, Options.TabSize);
                             indentationResult = new IndentationResult(basePosition: LineToBeIndented.Start, offset: offset);
                             return true;
                         }

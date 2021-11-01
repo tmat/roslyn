@@ -1493,11 +1493,12 @@ class C
             var root = (await document.GetSyntaxRootAsync()) as CompilationUnitSyntax;
 
             var optionService = workspace.Services.GetRequiredService<IOptionService>();
+            var options = (await document.GetOptionsAsync()).AsAnalyzerConfigOptions(optionService, root.Language);
 
             Assert.True(
                 CSharpIndentationService.ShouldUseSmartTokenFormatterInsteadOfIndenter(
-                    Formatter.GetDefaultFormattingRules(workspace, root.Language),
-                    root, line.AsTextLine(), optionService, await document.GetOptionsAsync(), out _));
+                    Formatter.GetDefaultFormattingRules(workspace.Services, root.Language),
+                    root, line.AsTextLine(), options, out _));
 
             var actualIndentation = await GetSmartTokenFormatterIndentationWorkerAsync(workspace, buffer, indentationLine, ch);
             Assert.Equal(expectedIndentation.Value, actualIndentation);
@@ -1536,11 +1537,12 @@ class C
             var root = (await document.GetSyntaxRootAsync()) as CompilationUnitSyntax;
 
             var optionService = workspace.Services.GetRequiredService<IOptionService>();
+            var options = (await document.GetOptionsAsync()).AsAnalyzerConfigOptions(optionService, root.Language);
 
             Assert.False(
                 CSharpIndentationService.ShouldUseSmartTokenFormatterInsteadOfIndenter(
-                    Formatter.GetDefaultFormattingRules(workspace, root.Language),
-                    root, line.AsTextLine(), optionService, await document.GetOptionsAsync(), out _));
+                    Formatter.GetDefaultFormattingRules(workspace.Services, root.Language),
+                    root, line.AsTextLine(), options, out _));
 
             TestIndentation(workspace, indentationLine, expectedIndentation);
         }

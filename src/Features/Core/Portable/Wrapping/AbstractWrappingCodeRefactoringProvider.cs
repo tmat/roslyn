@@ -8,6 +8,9 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeRefactorings;
+using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Options;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 
 namespace Microsoft.CodeAnalysis.Wrapping
 {
@@ -41,6 +44,7 @@ namespace Microsoft.CodeAnalysis.Wrapping
             var position = span.Start;
             var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var token = root.FindToken(position);
+            var formatterOptions = await FormatterOptions.FromDocumentAsync(document, context.CancellationToken).ConfigureAwait(false);
 
             foreach (var node in token.Parent.AncestorsAndSelf())
             {
@@ -58,7 +62,7 @@ namespace Microsoft.CodeAnalysis.Wrapping
                     cancellationToken.ThrowIfCancellationRequested();
 
                     var computer = await wrapper.TryCreateComputerAsync(
-                        document, position, node, cancellationToken).ConfigureAwait(false);
+                        document, position, node, formatterOptions, cancellationToken).ConfigureAwait(false);
 
                     if (computer == null)
                     {

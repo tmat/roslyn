@@ -36,12 +36,12 @@ namespace Microsoft.CodeAnalysis.Formatting
 
         protected readonly TextSpan SpanToFormat;
 
-        internal readonly AnalyzerConfigOptions Options;
+        internal readonly FormatterOptions Options;
         internal readonly TreeData TreeData;
 
         public AbstractFormatEngine(
             TreeData treeData,
-            AnalyzerConfigOptions options,
+            FormatterOptions options,
             IEnumerable<AbstractFormattingRule> formattingRules,
             SyntaxToken token1,
             SyntaxToken token2)
@@ -56,7 +56,7 @@ namespace Microsoft.CodeAnalysis.Formatting
 
         internal AbstractFormatEngine(
             TreeData treeData,
-            AnalyzerConfigOptions options,
+            FormatterOptions options,
             ChainedFormattingRules formattingRules,
             SyntaxToken token1,
             SyntaxToken token2)
@@ -91,7 +91,7 @@ namespace Microsoft.CodeAnalysis.Formatting
                 // setup environment
                 var nodeOperations = CreateNodeOperations(cancellationToken);
 
-                var tokenStream = new TokenStream(this.TreeData, this.Options, this.SpanToFormat, CreateTriviaFactory());
+                var tokenStream = new TokenStream(TreeData, Options, SpanToFormat, CreateTriviaFactory());
                 var tokenOperation = CreateTokenOperation(tokenStream, cancellationToken);
 
                 // initialize context

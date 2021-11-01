@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -16,29 +17,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 {
     internal sealed class WrappingFormattingRule : BaseFormattingRule
     {
-        private readonly CachedOptions _options;
+        private readonly CSharpFormatterOptions _options;
 
-        public WrappingFormattingRule()
-            : this(new CachedOptions(null))
-        {
-        }
-
-        private WrappingFormattingRule(CachedOptions options)
+        internal WrappingFormattingRule(CSharpFormatterOptions options)
         {
             _options = options;
         }
 
-        public override AbstractFormattingRule WithOptions(AnalyzerConfigOptions options)
-        {
-            var cachedOptions = new CachedOptions(options);
-
-            if (cachedOptions == _options)
-            {
-                return this;
-            }
-
-            return new WrappingFormattingRule(cachedOptions);
-        }
+        public override AbstractFormattingRule WithOptions(FormatterOptions options)
+            => new WrappingFormattingRule((CSharpFormatterOptions)options);
 
         public override void AddSuppressOperations(List<SuppressOperation> list, SyntaxNode node, in NextSuppressOperationAction nextOperation)
         {
@@ -192,49 +179,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                     return operation;
                 },
                 span);
-        }
-
-        private readonly struct CachedOptions : IEquatable<CachedOptions>
-        {
-            public readonly bool WrappingPreserveSingleLine;
-            public readonly bool WrappingKeepStatementsOnSingleLine;
-
-            public CachedOptions(AnalyzerConfigOptions? options)
-            {
-                WrappingPreserveSingleLine = GetOptionOrDefault(options, CSharpFormattingOptions2.WrappingPreserveSingleLine);
-                WrappingKeepStatementsOnSingleLine = GetOptionOrDefault(options, CSharpFormattingOptions2.WrappingKeepStatementsOnSingleLine);
-            }
-
-            public static bool operator ==(CachedOptions left, CachedOptions right)
-                => left.Equals(right);
-
-            public static bool operator !=(CachedOptions left, CachedOptions right)
-                => !(left == right);
-
-            private static T GetOptionOrDefault<T>(AnalyzerConfigOptions? options, Option2<T> option)
-            {
-                if (options is null)
-                    return option.DefaultValue;
-
-                return options.GetOption(option);
-            }
-
-            public override bool Equals(object? obj)
-                => obj is CachedOptions options && Equals(options);
-
-            public bool Equals(CachedOptions other)
-            {
-                return WrappingPreserveSingleLine == other.WrappingPreserveSingleLine
-                    && WrappingKeepStatementsOnSingleLine == other.WrappingKeepStatementsOnSingleLine;
-            }
-
-            public override int GetHashCode()
-            {
-                var hashCode = 0;
-                hashCode = (hashCode << 1) + (WrappingPreserveSingleLine ? 1 : 0);
-                hashCode = (hashCode << 1) + (WrappingKeepStatementsOnSingleLine ? 1 : 0);
-                return hashCode;
-            }
         }
     }
 }

@@ -191,7 +191,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             Document document,
             char typedChar,
             int caretPosition,
-            DocumentOptionSet? documentOptions,
+            FormatterOptions options,
             CancellationToken cancellationToken)
         {
             // first, find the token user just typed.
@@ -302,20 +302,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             return token;
         }
 
-        private static async Task<IList<TextChange>> FormatTokenAsync(Document document, OptionSet options, SyntaxToken token, IEnumerable<AbstractFormattingRule> formattingRules, CancellationToken cancellationToken)
+        private static async Task<IList<TextChange>> FormatTokenAsync(Document document, FormatterOptions options, SyntaxToken token, IEnumerable<AbstractFormattingRule> formattingRules, CancellationToken cancellationToken)
         {
             var root = await document.GetRequiredSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var formatter = CreateSmartTokenFormatter(options, formattingRules, root);
+            var formatter = new CSharpSmartTokenFormatter((CompilationUnitSyntax)root, formattingRules, options);
             var changes = await formatter.FormatTokenAsync(document.Project.Solution.Workspace, token, cancellationToken).ConfigureAwait(false);
             return changes;
         }
 
-        private static ISmartTokenFormatter CreateSmartTokenFormatter(OptionSet optionSet, IEnumerable<AbstractFormattingRule> formattingRules, SyntaxNode root)
-            => new CSharpSmartTokenFormatter(optionSet, formattingRules, (CompilationUnitSyntax)root);
-
         private static async Task<ImmutableArray<TextChange>> FormatRangeAsync(
             Document document,
-            OptionSet options,
+            FormatterOptions options,
             SyntaxToken endToken,
             IEnumerable<AbstractFormattingRule> formattingRules,
             CancellationToken cancellationToken)
@@ -338,9 +335,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 
             var root = await document.GetRequiredSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
-            var formatter = new CSharpSmartTokenFormatter(options, formattingRules, (CompilationUnitSyntax)root);
+            var formatter = new CSharpSmartTokenFormatter((CompilationUnitSyntax)root, formattingRules, options);
 
-            var changes = formatter.FormatRange(document.Project.Solution.Workspace, tokenRange.Value.Item1, tokenRange.Value.Item2, cancellationToken);
+            var changes = formatter.FormatRange(document.Project.Solution.Workspace.Services, tokenRange.Value.Item1, tokenRange.Value.Item2, cancellationToken);
             return changes.ToImmutableArray();
         }
 

@@ -16,11 +16,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
         Private Class LineContinuationTrivia
             Inherits AbstractLineBreakTrivia
 
-            Public Sub New(options As AnalyzerConfigOptions,
+            Public Sub New(options As VisualBasicFormatterOptions,
                            originalString As String,
                            indentation As Integer)
                 MyBase.New(options, originalString, 1, indentation, False)
             End Sub
+
+            Public Overloads ReadOnly Property Options As VisualBasicFormatterOptions
+                Get
+                    Return CType(MyBase.Options, VisualBasicFormatterOptions)
+                End Get
+            End Property
 
             Protected Overrides Function CreateStringFromState() As String
                 Contract.ThrowIfFalse(Me.SecondTokenIsFirstTokenOnLine)
@@ -29,7 +35,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
                 builder.Append(" "c)
                 builder.Append(SyntaxFacts.GetText(SyntaxKind.LineContinuationTrivia))
 
-                builder.AppendIndentationString(Me.Spaces, Me.Options.GetOption(FormattingOptions2.UseTabs), Me.Options.GetOption(FormattingOptions2.TabSize))
+                builder.AppendIndentationString(Me.Spaces, Me.Options.UseTabs, Me.Options.TabSize)
                 Return StringBuilderPool.ReturnAndFree(builder)
             End Function
 

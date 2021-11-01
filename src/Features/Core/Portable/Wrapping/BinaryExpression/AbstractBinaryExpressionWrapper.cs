@@ -7,6 +7,7 @@
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.PooledObjects;
 
@@ -42,7 +43,7 @@ namespace Microsoft.CodeAnalysis.Wrapping.BinaryExpression
         protected abstract SyntaxTriviaList GetNewLineBeforeOperatorTrivia(SyntaxTriviaList newLine);
 
         public sealed override async Task<ICodeActionComputer> TryCreateComputerAsync(
-            Document document, int position, SyntaxNode node, CancellationToken cancellationToken)
+            Document document, int position, SyntaxNode node, FormatterOptions options, CancellationToken cancellationToken)
         {
             if (node is not TBinaryExpressionSyntax binaryExpr)
             {
@@ -92,7 +93,6 @@ namespace Microsoft.CodeAnalysis.Wrapping.BinaryExpression
             }
 
             var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var options = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
             return new BinaryExpressionCodeActionComputer(
                 this, document, sourceText, options, binaryExpr,
                 exprsAndOperators, cancellationToken);

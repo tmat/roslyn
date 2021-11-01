@@ -4,12 +4,12 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Indentation;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 
 namespace Microsoft.CodeAnalysis.Wrapping.SeparatedSyntaxList
 {
-    using Microsoft.CodeAnalysis.Indentation;
-    using Microsoft.CodeAnalysis.Shared.Extensions;
-
     /// <summary>
     /// Base type for all wrappers that involve wrapping a comma-separated list of items.
     /// </summary>
@@ -46,7 +46,7 @@ namespace Microsoft.CodeAnalysis.Wrapping.SeparatedSyntaxList
             SyntaxNode root, int position, SyntaxNode declaration, TListSyntax listSyntax);
 
         public override async Task<ICodeActionComputer?> TryCreateComputerAsync(
-            Document document, int position, SyntaxNode declaration, CancellationToken cancellationToken)
+            Document document, int position, SyntaxNode declaration, FormatterOptions options, CancellationToken cancellationToken)
         {
             var listSyntax = TryGetApplicableList(declaration);
             if (listSyntax == null)
@@ -77,7 +77,6 @@ namespace Microsoft.CodeAnalysis.Wrapping.SeparatedSyntaxList
                 return null;
             }
 
-            var options = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
             var sourceText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
             return new SeparatedSyntaxListCodeActionComputer(
                 this, document, sourceText, options, listSyntax, listItems, cancellationToken);

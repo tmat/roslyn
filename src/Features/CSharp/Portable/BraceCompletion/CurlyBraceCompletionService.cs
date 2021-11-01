@@ -140,7 +140,7 @@ namespace Microsoft.CodeAnalysis.CSharp.BraceCompletion
             // Set the caret position to the properly indented column in the desired line.
             var newDocument = document.WithText(formattedText);
             var newDocumentText = await newDocument.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var caretPosition = GetIndentedLinePosition(newDocument, newDocumentText, desiredCaretLine.LineNumber, cancellationToken);
+            var caretPosition = GetIndentedLinePosition(newDocument, newDocumentText, desiredCaretLine.LineNumber, options, cancellationToken);
 
             // The new line edit is calculated against the original text, d0, to get text d1.
             // The formatting edits are calculated against d1 to get text d2.
@@ -154,10 +154,10 @@ namespace Microsoft.CodeAnalysis.CSharp.BraceCompletion
                 return text.Lines[closingBraceLineNumber - 1];
             }
 
-            static LinePosition GetIndentedLinePosition(Document document, SourceText sourceText, int lineNumber, CancellationToken cancellationToken)
+            static LinePosition GetIndentedLinePosition(Document document, SourceText sourceText, int lineNumber, FormatterOptions options, CancellationToken cancellationToken)
             {
                 var indentationService = document.GetRequiredLanguageService<IIndentationService>();
-                var indentation = indentationService.GetIndentation(document, lineNumber, cancellationToken);
+                var indentation = indentationService.GetIndentation(document, lineNumber, options, cancellationToken);
 
                 var baseLinePosition = sourceText.Lines.GetLinePosition(indentation.BasePosition);
                 var offsetOfBacePosition = baseLinePosition.Character;
@@ -337,14 +337,14 @@ namespace Microsoft.CodeAnalysis.CSharp.BraceCompletion
                 new BraceCompletionFormattingRule(FormattingOptions.IndentStyle.Smart));
 
             private readonly FormattingOptions.IndentStyle _indentStyle;
-            private readonly CachedOptions _options;
+            private readonly CSharpFormatterOptions? _options;
 
             public BraceCompletionFormattingRule(FormattingOptions.IndentStyle indentStyle)
-                : this(indentStyle, new CachedOptions(null))
+                : this(indentStyle, null)
             {
             }
 
-            private BraceCompletionFormattingRule(FormattingOptions.IndentStyle indentStyle, CachedOptions options)
+            private BraceCompletionFormattingRule(FormattingOptions.IndentStyle indentStyle, CSharpFormatterOptions? options)
             {
                 _indentStyle = indentStyle;
                 _options = options;
@@ -356,16 +356,9 @@ namespace Microsoft.CodeAnalysis.CSharp.BraceCompletion
                 return s_instances[(int)indentStyle];
             }
 
-            public override AbstractFormattingRule WithOptions(AnalyzerConfigOptions options)
+            public override AbstractFormattingRule WithOptions(FormatterOptions options)
             {
-                var cachedOptions = new CachedOptions(options);
-
-                if (cachedOptions == _options)
-                {
-                    return this;
-                }
-
-                return new BraceCompletionFormattingRule(_indentStyle, cachedOptions);
+                return new BraceCompletionFormattingRule(_indentStyle, (CSharpFormatterOptions)options);
             }
 
             public override AdjustNewLinesOperation? GetAdjustNewLinesOperation(in SyntaxToken previousToken, in SyntaxToken currentToken, in NextGetAdjustNewLinesOperation nextOperation)
@@ -424,45 +417,6 @@ namespace Microsoft.CodeAnalysis.CSharp.BraceCompletion
                 {
                     // remove any suppression operation
                     list.RemoveAll(s_predicate);
-                }
-            }
-
-            private readonly struct CachedOptions : IEquatable<CachedOptions>
-            {
-                public readonly bool NewLinesForBracesInObjectCollectionArrayInitializers;
-
-                public CachedOptions(AnalyzerConfigOptions? options)
-                {
-                    NewLinesForBracesInObjectCollectionArrayInitializers = GetOptionOrDefault(options, CSharpFormattingOptions2.NewLinesForBracesInObjectCollectionArrayInitializers);
-                }
-
-                public static bool operator ==(CachedOptions left, CachedOptions right)
-                    => left.Equals(right);
-
-                public static bool operator !=(CachedOptions left, CachedOptions right)
-                    => !(left == right);
-
-                private static T GetOptionOrDefault<T>(AnalyzerConfigOptions? options, Option2<T> option)
-                {
-                    if (options is null)
-                        return option.DefaultValue;
-
-                    return options.GetOption(option);
-                }
-
-                public override bool Equals(object? obj)
-                    => obj is CachedOptions options && Equals(options);
-
-                public bool Equals(CachedOptions other)
-                {
-                    return NewLinesForBracesInObjectCollectionArrayInitializers == other.NewLinesForBracesInObjectCollectionArrayInitializers;
-                }
-
-                public override int GetHashCode()
-                {
-                    var hashCode = 0;
-                    hashCode = (hashCode << 1) + (NewLinesForBracesInObjectCollectionArrayInitializers ? 1 : 0);
-                    return hashCode;
                 }
             }
         }

@@ -46,6 +46,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
                 DefaultOperationProvider.Instance)
         End Sub
 
+        Public Overrides Function GetOptions(config As AnalyzerConfigOptions) As FormatterOptions
+            Return VisualBasicFormatterOptions.From(config)
+        End Function
+
         Public Overrides Function GetDefaultFormattingRules() As IEnumerable(Of AbstractFormattingRule)
             Return _rules
         End Function
@@ -54,8 +58,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             Return New AggregatedFormattingResult(node, results, formattingSpans)
         End Function
 
-        Protected Overrides Function Format(root As SyntaxNode, options As AnalyzerConfigOptions, formattingRules As IEnumerable(Of AbstractFormattingRule), token1 As SyntaxToken, token2 As SyntaxToken, cancellationToken As CancellationToken) As AbstractFormattingResult
-            Return New VisualBasicFormatEngine(root, options, formattingRules, token1, token2).Format(cancellationToken)
+        Protected Overrides Function Format(root As SyntaxNode, options As FormatterOptions, formattingRules As IEnumerable(Of AbstractFormattingRule), token1 As SyntaxToken, token2 As SyntaxToken, cancellationToken As CancellationToken) As AbstractFormattingResult
+            Return New VisualBasicFormatEngine(root, CType(options, VisualBasicFormatterOptions), formattingRules, token1, token2).Format(cancellationToken)
         End Function
     End Class
 End Namespace

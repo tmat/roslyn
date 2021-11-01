@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         public static IFormattingResult Format(
             SyntaxTrivia trivia,
             int initialColumn,
-            AnalyzerConfigOptions options,
+            CSharpFormatterOptions options,
             ChainedFormattingRules formattingRules,
             CancellationToken cancellationToken)
         {
@@ -28,7 +28,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         private CSharpStructuredTriviaFormatEngine(
             SyntaxTrivia trivia,
             int initialColumn,
-            AnalyzerConfigOptions options,
+            CSharpFormatterOptions options,
             ChainedFormattingRules formattingRules,
             SyntaxToken token1,
             SyntaxToken token2)
@@ -43,7 +43,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         internal override IHeaderFacts HeaderFacts => CSharpHeaderFacts.Instance;
 
         protected override AbstractTriviaDataFactory CreateTriviaFactory()
-            => new TriviaDataFactory(this.TreeData, this.Options);
+            => new TriviaDataFactory(TreeData, (CSharpFormatterOptions)Options);
 
         protected override FormattingContext CreateFormattingContext(TokenStream tokenStream, CancellationToken cancellationToken)
             => new(this, tokenStream);

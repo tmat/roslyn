@@ -4,12 +4,14 @@
 
 Imports System.Composition
 Imports System.Diagnostics.CodeAnalysis
+Imports Microsoft.CodeAnalysis.Diagnostics
 Imports Microsoft.CodeAnalysis.Formatting
 Imports Microsoft.CodeAnalysis.Formatting.Rules
 Imports Microsoft.CodeAnalysis.Host.Mef
 Imports Microsoft.CodeAnalysis.Indentation
 Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.Text
+Imports Microsoft.CodeAnalysis.VisualBasic.Formatting
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Indentation
@@ -40,8 +42,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Indentation
                 formattingRules As IEnumerable(Of AbstractFormattingRule),
                 root As CompilationUnitSyntax,
                 line As TextLine,
-                optionService As IOptionService,
-                optionSet As OptionSet,
+                options As VisualBasicFormatterOptions,
                 ByRef token As SyntaxToken,
                 Optional neverUseWhenHavingMissingToken As Boolean = True) As Boolean
 
@@ -86,8 +87,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Indentation
                 ' check whether current token is first token of a statement
                 Return statement.GetFirstToken() = token
             End If
-
-            Dim options = optionSet.AsAnalyzerConfigOptions(optionService, root.Language)
 
             ' now, regular case. ask formatting rule to see whether we should use token formatter or not
             Dim lineOperation = FormattingOperations.GetAdjustNewLinesOperation(formattingRules, previousToken, token, options)

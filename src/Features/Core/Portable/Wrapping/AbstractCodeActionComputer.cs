@@ -50,10 +50,11 @@ namespace Microsoft.CodeAnalysis.Wrapping
             protected readonly SourceText OriginalSourceText;
             protected readonly CancellationToken CancellationToken;
 
-            protected readonly bool UseTabs;
-            protected readonly int TabSize;
-            protected readonly string NewLine;
-            protected readonly int WrappingColumn;
+            //protected readonly bool UseTabs;
+            //protected readonly int TabSize;
+            //protected readonly string NewLine;
+            //protected readonly int WrappingColumn;
+            protected readonly FormatterOptions Options;
 
             protected readonly SyntaxTriviaList NewLineTrivia;
             protected readonly SyntaxTriviaList SingleWhitespaceTrivia;
@@ -69,22 +70,18 @@ namespace Microsoft.CodeAnalysis.Wrapping
                 TWrapper service,
                 Document document,
                 SourceText originalSourceText,
-                DocumentOptionSet options,
+                FormatterOptions options,
                 CancellationToken cancellationToken)
             {
                 Wrapper = service;
                 OriginalDocument = document;
                 OriginalSourceText = originalSourceText;
                 CancellationToken = cancellationToken;
-
-                UseTabs = options.GetOption(FormattingOptions.UseTabs);
-                TabSize = options.GetOption(FormattingOptions.TabSize);
-                NewLine = options.GetOption(FormattingOptions.NewLine);
-                WrappingColumn = options.GetOption(FormattingBehaviorOptions.PreferredWrappingColumn);
+                Options = options;
 
                 var generator = SyntaxGenerator.GetGenerator(document);
                 var generatorInternal = document.GetRequiredLanguageService<SyntaxGeneratorInternal>();
-                NewLineTrivia = new SyntaxTriviaList(generatorInternal.EndOfLine(NewLine));
+                NewLineTrivia = new SyntaxTriviaList(generatorInternal.EndOfLine(options.NewLine));
                 SingleWhitespaceTrivia = new SyntaxTriviaList(generator.Whitespace(" "));
             }
 
@@ -92,16 +89,17 @@ namespace Microsoft.CodeAnalysis.Wrapping
 
             protected string GetSmartIndentationAfter(SyntaxNodeOrToken nodeOrToken)
             {
-                var newSourceText = OriginalSourceText.WithChanges(new TextChange(new TextSpan(nodeOrToken.Span.End, 0), NewLine));
+                var newSourceText = OriginalSourceText.WithChanges(new TextChange(new TextSpan(nodeOrToken.Span.End, 0), Options.NewLine));
                 newSourceText = newSourceText.WithChanges(
-                    new TextChange(TextSpan.FromBounds(nodeOrToken.Span.End + NewLine.Length, newSourceText.Length), ""));
-                var newDocument = OriginalDocument.WithText(newSourceText);
+                    new TextChange(TextSpan.FromBounds(nodeOrToken.Span.End + Options.NewLine.Length, newSourceText.Length), ""));
 
+                var newDocument = OriginalDocument.WithText(newSourceText);
                 var indentationService = Wrapper.IndentationService;
                 var originalLineNumber = newSourceText.Lines.GetLineFromPosition(nodeOrToken.Span.End).LineNumber;
                 var desiredIndentation = indentationService.GetIndentation(
-                    newDocument, originalLineNumber + 1,
-                    FormattingOptions.IndentStyle.Smart,
+                    newDocument,
+                    originalLineNumber + 1,
+                    Options with { IndentStyle = FormattingOptions.IndentStyle.Smart },
                     CancellationToken);
 
                 var baseLine = newSourceText.Lines.GetLineFromPosition(desiredIndentation.BasePosition);
@@ -109,7 +107,7 @@ namespace Microsoft.CodeAnalysis.Wrapping
 
                 var indent = baseOffsetInLine + desiredIndentation.Offset;
 
-                var indentString = indent.CreateIndentationString(UseTabs, TabSize);
+                var indentString = indent.CreateIndentationString(Options.UseTabs, Options.TabSize);
                 return indentString;
             }
 

@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Options;
 using Roslyn.Utilities;
@@ -16,29 +17,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 {
     internal sealed class SpacingFormattingRule : BaseFormattingRule
     {
-        private readonly CachedOptions _options;
+        private readonly CSharpFormatterOptions _options;
 
-        public SpacingFormattingRule()
-            : this(new CachedOptions(null))
-        {
-        }
-
-        private SpacingFormattingRule(CachedOptions options)
+        internal SpacingFormattingRule(CSharpFormatterOptions options)
         {
             _options = options;
         }
 
-        public override AbstractFormattingRule WithOptions(AnalyzerConfigOptions options)
-        {
-            var cachedOptions = new CachedOptions(options);
-
-            if (cachedOptions == _options)
-            {
-                return this;
-            }
-
-            return new SpacingFormattingRule(cachedOptions);
-        }
+        public override AbstractFormattingRule WithOptions(FormatterOptions options)
+            => new SpacingFormattingRule((CSharpFormatterOptions)options);
 
         public override AdjustSpacesOperation? GetAdjustSpacesOperation(in SyntaxToken previousToken, in SyntaxToken currentToken, in NextGetAdjustSpacesOperation nextOperation)
         {

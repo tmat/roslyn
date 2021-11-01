@@ -14,7 +14,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
 
         Public Shared Function FormatTrivia(trivia As SyntaxTrivia,
                                       initialColumn As Integer,
-                                      options As AnalyzerConfigOptions,
+                                      options As FormatterOptions,
                                       formattingRules As ChainedFormattingRules,
                                       cancellationToken As CancellationToken) As IFormattingResult
             Dim root = trivia.GetStructure()
@@ -24,13 +24,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
 
         Private Sub New(trivia As SyntaxTrivia,
                        initialColumn As Integer,
-                       options As AnalyzerConfigOptions,
+                       options As FormatterOptions,
                        formattingRules As ChainedFormattingRules,
                        token1 As SyntaxToken,
                        token2 As SyntaxToken)
             MyBase.New(TreeData.Create(trivia, initialColumn),
                        options, formattingRules, token1, token2)
         End Sub
+
+        Public Shadows ReadOnly Property Options As VisualBasicFormatterOptions
+            Get
+                Return CType(MyBase.Options, VisualBasicFormatterOptions)
+            End Get
+        End Property
 
         Friend Overrides ReadOnly Property HeaderFacts As IHeaderFacts = VisualBasicHeaderFacts.Instance
 

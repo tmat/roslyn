@@ -20,6 +20,7 @@ namespace Microsoft.CodeAnalysis.Formatting
 #endif
     {
         IEnumerable<AbstractFormattingRule> GetDefaultFormattingRules();
-        IFormattingResult Format(SyntaxNode node, IEnumerable<TextSpan> spans, bool shouldUseFormattingSpanCollapse, AnalyzerConfigOptions options, IEnumerable<AbstractFormattingRule> rules, CancellationToken cancellationToken);
+        IFormattingResult Format(SyntaxNode node, IEnumerable<TextSpan> spans, FormatterOptions options, IEnumerable<AbstractFormattingRule> rules, CancellationToken cancellationToken);
+        FormatterOptions GetOptions(AnalyzerConfigOptions config);
     }
 }

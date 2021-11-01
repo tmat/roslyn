@@ -7,7 +7,9 @@ using System.Composition;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
+using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Host.Mef;
@@ -39,23 +41,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Indentation
             IEnumerable<AbstractFormattingRule> formattingRules,
             CompilationUnitSyntax root,
             TextLine line,
-            IOptionService optionService,
-            OptionSet optionSet,
+            CSharpFormatterOptions options,
             out SyntaxToken token)
         {
             Contract.ThrowIfNull(formattingRules);
             Contract.ThrowIfNull(root);
 
             token = default;
-            if (!optionSet.GetOption(FormattingBehaviorOptions.AutoFormattingOnReturn, LanguageNames.CSharp))
-            {
-                return false;
-            }
-
-            if (optionSet.GetOption(FormattingOptions.SmartIndent, LanguageNames.CSharp) != FormattingOptions.IndentStyle.Smart)
-            {
-                return false;
-            }
 
             var firstNonWhitespacePosition = line.GetFirstNonWhitespacePosition();
             if (!firstNonWhitespacePosition.HasValue)
@@ -84,7 +76,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Indentation
                 return false;
             }
 
-            var lineOperation = FormattingOperations.GetAdjustNewLinesOperation(formattingRules, previousToken, token, optionSet.AsAnalyzerConfigOptions(optionService, LanguageNames.CSharp));
+            var lineOperation = FormattingOperations.GetAdjustNewLinesOperation(formattingRules, previousToken, token, options);
             if (lineOperation == null || lineOperation.Option == AdjustNewLinesOption.ForceLinesIfOnSingleLine)
             {
                 // no indentation operation, nothing to do for smart token formatter

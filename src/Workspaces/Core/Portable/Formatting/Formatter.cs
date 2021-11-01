@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Formatting.Rules;
+using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.OrganizeImports;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -50,28 +52,9 @@ namespace Microsoft.CodeAnalysis.Formatting
         /// <summary>
         /// Gets the formatting rules that would be applied if left unspecified.
         /// </summary>
-        internal static IEnumerable<AbstractFormattingRule> GetDefaultFormattingRules(Workspace workspace, string language)
-        {
-            if (workspace == null)
-            {
-                throw new ArgumentNullException(nameof(workspace));
-            }
-
-            if (language == null)
-            {
-                throw new ArgumentNullException(nameof(language));
-            }
-
-            var service = workspace.Services.GetLanguageServices(language).GetService<ISyntaxFormattingService>();
-            if (service != null)
-            {
-                return service.GetDefaultFormattingRules();
-            }
-            else
-            {
-                return SpecializedCollections.EmptyEnumerable<AbstractFormattingRule>();
-            }
-        }
+        internal static IEnumerable<AbstractFormattingRule> GetDefaultFormattingRules(HostWorkspaceServices workspaceServices, string language)
+            => workspaceServices.GetLanguageServices(language).GetService<ISyntaxFormattingService>()?.GetDefaultFormattingRules() ??
+                SpecializedCollections.EmptyEnumerable<AbstractFormattingRule>();
 
         /// <summary>
         /// Formats the whitespace in a document.
@@ -120,6 +103,17 @@ namespace Microsoft.CodeAnalysis.Formatting
             var root = await document.GetRequiredSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var documentOptions = options ?? await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
             return document.WithSyntaxRoot(Format(root, spans, document.Project.Solution.Workspace, documentOptions, rules, cancellationToken));
+        }
+
+        internal static async Task<Document> FormatAsync(this ISyntaxFormattingService service, Document document, IEnumerable<TextSpan> spans, FormatterOptions options, IEnumerable<AbstractFormattingRule> rules, CancellationToken cancellationToken)
+        {
+            var root = await document.GetRequiredSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            var results = service.Format(root, spans, options, rules, cancellationToken);
+
+            // if old text already exist, use fast path for formatting
+            return document.TryGetText(out var oldText) ?
+                document.WithText(oldText.WithChanges(results.GetTextChanges(cancellationToken))) :
+                document.WithSyntaxRoot(results.GetFormattedRoot(cancellationToken));
         }
 
         /// <summary>
@@ -186,6 +180,33 @@ namespace Microsoft.CodeAnalysis.Formatting
             return Format(node, spans, workspace, options, rules, cancellationToken);
         }
 
+        internal static SyntaxNode Format(this ISyntaxFormattingService service, SyntaxNode node, SyntaxAnnotation annotation, FormatterOptions options, IEnumerable<AbstractFormattingRule> rules, CancellationToken cancellationToken)
+        {
+            var spans = (annotation == SyntaxAnnotation.ElasticAnnotation)
+                ? GetElasticSpans(node)
+                : GetAnnotatedSpans(node, annotation);
+
+            return FormatNode(service, node, spans, options, rules, cancellationToken);
+        }
+
+        internal static SyntaxNode FormatNode(this ISyntaxFormattingService service, SyntaxNode node, IEnumerable<TextSpan> spans, FormatterOptions options, IEnumerable<AbstractFormattingRule> rules, CancellationToken cancellationToken)
+        {
+            var results = service.Format(node, spans, options, rules, cancellationToken);
+
+            // if old text already exist, use fast path for formatting
+            if (node.Parent == null && node.SyntaxTree != null && node.SyntaxTree.TryGetText(out var oldText))
+            {
+                var changes = results.GetTextChanges(cancellationToken);
+
+                if (changes.IsEmpty())
+                    return node;
+
+                return node.SyntaxTree.WithChangedText(oldText.WithChanges(changes)).GetRoot(cancellationToken);
+            }
+
+            return results.GetFormattedRoot(cancellationToken);
+        }
+
         /// <summary>
         /// Formats the whitespace of a syntax tree.
         /// </summary>
@@ -248,10 +269,9 @@ namespace Microsoft.CodeAnalysis.Formatting
             var optionService = workspace.Services.GetRequiredService<IOptionService>();
 
             options ??= workspace.Options;
-            rules ??= GetDefaultFormattingRules(workspace, node.Language);
+            rules ??= GetDefaultFormattingRules(workspace.Services, node.Language);
             spans ??= SpecializedCollections.SingletonEnumerable(node.FullSpan);
-            var shouldUseFormattingSpanCollapse = options.GetOption(FormattingBehaviorOptions.AllowDisjointSpanMerging);
-            return languageFormatter.Format(node, spans, shouldUseFormattingSpanCollapse, options.AsAnalyzerConfigOptions(optionService, node.Language), rules, cancellationToken);
+            return languageFormatter.Format(node, spans, languageFormatter.GetOptions(options.AsAnalyzerConfigOptions(optionService, node.Language)), rules, cancellationToken);
         }
 
         /// <summary>

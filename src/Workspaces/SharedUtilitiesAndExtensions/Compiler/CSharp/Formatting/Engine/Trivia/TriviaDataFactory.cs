@@ -18,10 +18,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
     /// </summary>
     internal partial class TriviaDataFactory : AbstractTriviaDataFactory
     {
-        public TriviaDataFactory(TreeData treeInfo, AnalyzerConfigOptions options)
+        public TriviaDataFactory(TreeData treeInfo, CSharpFormatterOptions options)
             : base(treeInfo, options)
         {
         }
+
+        public new CSharpFormatterOptions Options
+            => (CSharpFormatterOptions)base.Options;
 
         private static bool IsCSharpWhitespace(char c)
             => SyntaxFacts.IsWhitespace(c) || SyntaxFacts.IsNewLine(c);
@@ -129,10 +132,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
 
         private int CalculateSpaces(SyntaxToken token1, SyntaxToken token2)
         {
-            var initialColumn = (token1.RawKind == 0) ? 0 : this.TreeInfo.GetOriginalColumn(TabSize, token1) + token1.Span.Length;
+            var initialColumn = (token1.RawKind == 0) ? 0 : this.TreeInfo.GetOriginalColumn(Options.TabSize, token1) + token1.Span.Length;
             var textSnippet = this.TreeInfo.GetTextBetween(token1, token2);
 
-            return textSnippet.ConvertTabToSpace(TabSize, initialColumn, textSnippet.Length);
+            return textSnippet.ConvertTabToSpace(Options.TabSize, initialColumn, textSnippet.Length);
         }
 
         private (bool canUseTriviaAsItIs, int lineBreaks, int indentation) GetLineBreaksAndIndentation(Analyzer.AnalysisResult result)
@@ -140,7 +143,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             Debug.Assert(result.Tab >= 0);
             Debug.Assert(result.LineBreaks >= 0);
 
-            var indentation = result.Tab * TabSize + result.Space;
+            var indentation = result.Tab * Options.TabSize + result.Space;
             if (result.HasTrailingSpace || result.HasUnknownWhitespace)
             {
                 if (result.HasUnknownWhitespace && result.LineBreaks == 0 && indentation == 0)
@@ -152,7 +155,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 return (canUseTriviaAsItIs: false, result.LineBreaks, indentation);
             }
 
-            if (!UseTabs)
+            if (!Options.UseTabs)
             {
                 if (result.Tab > 0)
                 {
@@ -162,7 +165,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 return (canUseTriviaAsItIs: true, result.LineBreaks, indentation);
             }
 
-            Debug.Assert(UseTabs);
+            Debug.Assert(Options.UseTabs);
 
             // tab can only appear before space to be a valid tab for indentation
             if (result.HasTabAfterSpace)
@@ -170,13 +173,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 return (canUseTriviaAsItIs: false, result.LineBreaks, indentation);
             }
 
-            if (result.Space >= TabSize)
+            if (result.Space >= Options.TabSize)
             {
                 return (canUseTriviaAsItIs: false, result.LineBreaks, indentation);
             }
 
-            Debug.Assert((indentation / TabSize) == result.Tab);
-            Debug.Assert((indentation % TabSize) == result.Space);
+            Debug.Assert((indentation / Options.TabSize) == result.Tab);
+            Debug.Assert((indentation % Options.TabSize) == result.Space);
 
             return (canUseTriviaAsItIs: true, result.LineBreaks, indentation);
         }

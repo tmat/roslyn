@@ -202,10 +202,10 @@ End Class
                 Dim ignoreMissingToken = previousToken.IsMissing AndAlso line.Start.Position = position
 
                 Dim optionService = workspace.Services.GetRequiredService(Of IOptionService)()
+                Dim configOptions = options.AsAnalyzerConfigOptions(optionService, root.Language)
 
                 Assert.True(VisualBasicIndentationService.ShouldUseSmartTokenFormatterInsteadOfIndenter(
-                            formattingRules, root, line.AsTextLine, optionService, workspace.Options,
-                            Nothing, ignoreMissingToken))
+                            formattingRules, root, line.AsTextLine, configOptions, Nothing, ignoreMissingToken))
 
                 Dim smartFormatter = New VisualBasicSmartTokenFormatter(Await document.GetOptionsAsync(CancellationToken.None), formattingRules, root)
                 Dim changes = Await smartFormatter.FormatTokenAsync(workspace, token, Nothing)

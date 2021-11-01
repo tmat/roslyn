@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Formatting.Rules;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -16,28 +17,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
     {
         internal const string Name = "CSharp Query Expressions Formatting Rule";
 
-        private readonly CachedOptions _options;
+        private readonly CSharpFormatterOptions _options;
 
-        public QueryExpressionFormattingRule()
-            : this(new CachedOptions(null))
-        {
-        }
-
-        private QueryExpressionFormattingRule(CachedOptions options)
+        internal QueryExpressionFormattingRule(CSharpFormatterOptions options)
         {
             _options = options;
         }
 
-        public override AbstractFormattingRule WithOptions(AnalyzerConfigOptions options)
+        public override AbstractFormattingRule WithOptions(FormatterOptions options)
         {
-            var cachedOptions = new CachedOptions(options);
-
-            if (cachedOptions == _options)
-            {
-                return this;
-            }
-
-            return new QueryExpressionFormattingRule(cachedOptions);
+            return new QueryExpressionFormattingRule((CSharpFormatterOptions)options);
         }
 
         public override void AddSuppressOperations(List<SuppressOperation> list, SyntaxNode node, in NextSuppressOperationAction nextOperation)

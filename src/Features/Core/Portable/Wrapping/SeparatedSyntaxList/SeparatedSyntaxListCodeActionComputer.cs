@@ -52,7 +52,7 @@ namespace Microsoft.CodeAnalysis.Wrapping.SeparatedSyntaxList
 
             public SeparatedSyntaxListCodeActionComputer(
                 AbstractSeparatedSyntaxListWrapper<TListSyntax, TListItemSyntax> service,
-                Document document, SourceText sourceText, DocumentOptionSet options,
+                Document document, SourceText sourceText, FormatterOptions options,
                 TListSyntax listSyntax, SeparatedSyntaxList<TListItemSyntax> listItems,
                 CancellationToken cancellationToken)
                 : base(service, document, sourceText, options, cancellationToken)
@@ -79,7 +79,7 @@ namespace Microsoft.CodeAnalysis.Wrapping.SeparatedSyntaxList
                 var openToken = _listSyntax.GetFirstToken();
                 var afterOpenTokenOffset = OriginalSourceText.GetOffset(openToken.Span.End);
 
-                var indentString = afterOpenTokenOffset.CreateIndentationString(UseTabs, TabSize);
+                var indentString = afterOpenTokenOffset.CreateIndentationString(Options.UseTabs, Options.TabSize);
                 return indentString;
             }
 
@@ -235,7 +235,7 @@ namespace Microsoft.CodeAnalysis.Wrapping.SeparatedSyntaxList
 
                     if (i > 0)
                     {
-                        if (currentOffset < WrappingColumn)
+                        if (currentOffset < Options.PreferredWrappingColumn)
                         {
                             // this item would not make us go pass our preferred wrapping column. So
                             // keep it on this line, making sure there's a space between the previous

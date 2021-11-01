@@ -9,7 +9,7 @@ namespace Microsoft.CodeAnalysis.Formatting
 {
     internal abstract class TriviaDataWithList : TriviaData
     {
-        public TriviaDataWithList(AnalyzerConfigOptions options, string language)
+        public TriviaDataWithList(FormatterOptions options, string language)
             : base(options, language)
         {
         }

@@ -15,7 +15,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
     {
         public CSharpFormatEngine(
             SyntaxNode node,
-            AnalyzerConfigOptions options,
+            CSharpFormatterOptions options,
             IEnumerable<AbstractFormattingRule> formattingRules,
             SyntaxToken token1,
             SyntaxToken token2)
@@ -30,7 +30,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         internal override IHeaderFacts HeaderFacts => CSharpHeaderFacts.Instance;
 
         protected override AbstractTriviaDataFactory CreateTriviaFactory()
-            => new TriviaDataFactory(this.TreeData, this.Options);
+            => new TriviaDataFactory(TreeData, (CSharpFormatterOptions)Options);
 
         protected override AbstractFormattingResult CreateFormattingResult(TokenStream tokenStream)
             => new FormattingResult(this.TreeData, tokenStream, this.SpanToFormat);
