@@ -69,15 +69,17 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.LineCommit
                     Return
                 End If
 
-                Dim optionService = document.Project.Solution.Workspace.Services.GetRequiredService(Of IOptionService)()
-                Dim formatterOptions = VisualBasicFormatterOptions.From(documentOptions.AsAnalyzerConfigOptions(optionService, LanguageNames.VisualBasic))
-
                 ' create commit formatting cleanup provider that has line commit specific behavior
-                Dim inferredIndentationService = document.Project.Solution.Workspace.Services.GetRequiredService(Of IInferredIndentationService)()
-                Dim documentOptions = inferredIndentationService.GetDocumentOptionsWithInferredIndentationAsync(document, isExplicitFormat, cancellationToken).WaitAndGetResult(cancellationToken)
+                Dim services = document.Project.Solution.Workspace.Services
+                Dim inferredIndentationService = services.GetRequiredService(Of IInferredIndentationService)()
+
+                Dim inferredOptions = inferredIndentationService.TryInferIndentationAsync(document, isExplicitFormat, cancellationToken).WaitAndGetResult(cancellationToken)
+                Dim documentOptions = document.GetOptionsAsync(cancellationToken).WaitAndGetResult(cancellationToken)
+                Dim formatOptions = FormatterOptions.From(documentOptions, services)
+
                 Dim commitFormattingCleanup = GetCommitFormattingCleanupProvider(
                                                 document,
-                                                formatterOptions,
+                                                formatOptions,
                                                 spanToFormat,
                                                 baseSnapshot,
                                                 baseTree,

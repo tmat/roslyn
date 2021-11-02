@@ -34,7 +34,7 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.Options
             FormatOnPasteCheckBox.Content = CSharpVSResources.Automatically_format_on_paste;
 
             BindToOption(FormatWhenTypingCheckBox, FormattingBehaviorOptions.AutoFormattingOnTyping, LanguageNames.CSharp);
-            BindToOption(FormatOnCloseBraceCheckBox, BraceCompletionOptions.AutoFormattingOnCloseBrace, LanguageNames.CSharp);
+            BindToOption(FormatOnCloseBraceCheckBox, FormattingBehaviorOptions.AutoFormattingOnCloseBrace, LanguageNames.CSharp);
             BindToOption(FormatOnSemicolonCheckBox, FormattingBehaviorOptions.AutoFormattingOnSemicolon, LanguageNames.CSharp);
             BindToOption(FormatOnReturnCheckBox, FormattingBehaviorOptions.AutoFormattingOnReturn, LanguageNames.CSharp);
             BindToOption(FormatOnPasteCheckBox, FormattingBehaviorOptions.FormatOnPaste, LanguageNames.CSharp);

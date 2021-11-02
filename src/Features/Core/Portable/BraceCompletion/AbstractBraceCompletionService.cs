@@ -5,8 +5,8 @@
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.LanguageServices;
-using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
@@ -66,7 +66,7 @@ namespace Microsoft.CodeAnalysis.BraceCompletion
         public virtual Task<BraceCompletionResult?> GetTextChangesAfterCompletionAsync(BraceCompletionContext braceCompletionContext, CancellationToken cancellationToken)
             => SpecializedTasks.Default<BraceCompletionResult?>();
 
-        public virtual Task<BraceCompletionResult?> GetTextChangeAfterReturnAsync(BraceCompletionContext braceCompletionContext, DocumentOptionSet documentOptions, CancellationToken cancellationToken)
+        public virtual Task<BraceCompletionResult?> GetTextChangeAfterReturnAsync(BraceCompletionContext braceCompletionContext, CancellationToken cancellationToken)
             => SpecializedTasks.Default<BraceCompletionResult?>();
 
         public virtual async Task<bool> CanProvideBraceCompletionAsync(char brace, int openingPosition, Document document, CancellationToken cancellationToken)
@@ -83,7 +83,7 @@ namespace Microsoft.CodeAnalysis.BraceCompletion
             return !syntaxFactsService.IsInNonUserCode(tree, openingPosition, cancellationToken);
         }
 
-        public async Task<BraceCompletionContext?> GetCompletedBraceContextAsync(Document document, int caretLocation, CancellationToken cancellationToken)
+        public async Task<BraceCompletionContext?> GetCompletedBraceContextAsync(Document document, int caretLocation, FormatterOptions options, CancellationToken cancellationToken)
         {
             var root = await document.GetRequiredSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             var leftToken = root.FindTokenOnLeftOfPosition(caretLocation);
@@ -91,7 +91,7 @@ namespace Microsoft.CodeAnalysis.BraceCompletion
 
             if (IsValidOpeningBraceToken(leftToken) && IsValidClosingBraceToken(rightToken))
             {
-                return new BraceCompletionContext(document, leftToken.GetLocation().SourceSpan.Start, rightToken.GetLocation().SourceSpan.End, caretLocation);
+                return new BraceCompletionContext(document, leftToken.GetLocation().SourceSpan.Start, rightToken.GetLocation().SourceSpan.End, caretLocation, options);
             }
 
             return null;

@@ -7,7 +7,6 @@ using System.Composition;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Host.Mef;
-using Microsoft.CodeAnalysis.Options;
 
 namespace Microsoft.CodeAnalysis.Indentation
 {
@@ -21,11 +20,11 @@ namespace Microsoft.CodeAnalysis.Indentation
         {
         }
 
-        public Task<DocumentOptionSet> GetDocumentOptionsWithInferredIndentationAsync(Document document, bool explicitFormat, CancellationToken cancellationToken)
+        public Task<InferredIndentationOptions?> TryInferIndentationAsync(Document document, bool explicitFormat, CancellationToken cancellationToken)
         {
             // The workspaces layer doesn't have any smarts to infer spaces/tabs settings without an editorconfig, so just return
             // the document's options.
-            return document.GetOptionsAsync(cancellationToken);
+            return default;
         }
     }
 }

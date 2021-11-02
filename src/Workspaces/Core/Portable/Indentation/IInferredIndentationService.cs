@@ -4,8 +4,8 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Host;
-using Microsoft.CodeAnalysis.Options;
 
 namespace Microsoft.CodeAnalysis.Indentation
 {
@@ -15,6 +15,12 @@ namespace Microsoft.CodeAnalysis.Indentation
     /// </summary>
     internal interface IInferredIndentationService : IWorkspaceService
     {
-        Task<DocumentOptionSet> GetDocumentOptionsWithInferredIndentationAsync(Document document, bool explicitFormat, CancellationToken cancellationToken);
+        Task<InferredIndentationOptions?> TryInferIndentationAsync(Document document, bool explicitFormat, CancellationToken cancellationToken);
+    }
+
+    internal readonly record struct InferredIndentationOptions(int IndentationSize, int TabSize, bool UseTabs)
+    {
+        public FormatterOptions ApplyTo(FormatterOptions options)
+            => options with { IndentationSize = IndentationSize, TabSize = TabSize, UseTabs = UseTabs };
     }
 }

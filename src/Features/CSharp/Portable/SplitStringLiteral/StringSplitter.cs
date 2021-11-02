@@ -25,35 +25,26 @@ namespace Microsoft.CodeAnalysis.CSharp.SplitStringLiteral
 
         protected readonly Document Document;
         protected readonly int CursorPosition;
+        protected readonly FormatterOptions Options;
         protected readonly SourceText SourceText;
         protected readonly SyntaxNode Root;
-        protected readonly int TabSize;
-        protected readonly bool UseTabs;
         protected readonly CancellationToken CancellationToken;
-
-        private readonly FormattingOptions.IndentStyle _indentStyle;
 
         public StringSplitter(
             Document document, int position,
             SyntaxNode root, SourceText sourceText,
-            bool useTabs, int tabSize,
-            FormattingOptions.IndentStyle indentStyle,
+            FormatterOptions options,
             CancellationToken cancellationToken)
         {
             Document = document;
             CursorPosition = position;
             Root = root;
             SourceText = sourceText;
-            UseTabs = useTabs;
-            TabSize = tabSize;
-            _indentStyle = indentStyle;
+            Options = options;
             CancellationToken = cancellationToken;
         }
 
-        public static StringSplitter TryCreate(
-            Document document, int position,
-            bool useTabs, int tabSize, FormattingOptions.IndentStyle indentStyle,
-            CancellationToken cancellationToken)
+        public static StringSplitter TryCreate(Document document, int position, FormatterOptions options, CancellationToken cancellationToken)
         {
             var root = document.GetSyntaxRootSynchronously(cancellationToken);
             var sourceText = root.SyntaxTree.GetText(cancellationToken);
@@ -62,19 +53,13 @@ namespace Microsoft.CodeAnalysis.CSharp.SplitStringLiteral
 
             if (token.IsKind(SyntaxKind.StringLiteralToken))
             {
-                return new SimpleStringSplitter(
-                    document, position, root,
-                    sourceText, token, useTabs, tabSize,
-                    indentStyle, cancellationToken);
+                return new SimpleStringSplitter(document, position, root, sourceText, token, options, cancellationToken);
             }
 
             var interpolatedStringExpression = TryGetInterpolatedStringExpression(token, position);
             if (interpolatedStringExpression != null)
             {
-                return new InterpolatedStringSplitter(
-                    document, position, root,
-                    sourceText, interpolatedStringExpression,
-                    useTabs, tabSize, indentStyle, cancellationToken);
+                return new InterpolatedStringSplitter(document, position, root, sourceText, interpolatedStringExpression, options, cancellationToken);
             }
 
             return null;
@@ -154,16 +139,16 @@ namespace Microsoft.CodeAnalysis.CSharp.SplitStringLiteral
             var originalLineNumber = SourceText.Lines.GetLineFromPosition(CursorPosition).LineNumber;
 
             var desiredIndentation = indentationService.GetIndentation(
-                newDocument, originalLineNumber + 1, _indentStyle, CancellationToken);
+                newDocument, originalLineNumber + 1, Options, CancellationToken);
 
             var newSourceText = newDocument.GetSyntaxRootSynchronously(CancellationToken).SyntaxTree.GetText(CancellationToken);
             var baseLine = newSourceText.Lines.GetLineFromPosition(desiredIndentation.BasePosition);
 
             var baseOffsetInLineInPositions = desiredIndentation.BasePosition - baseLine.Start;
-            var baseOffsetInLineInColumns = baseLine.GetColumnFromLineOffset(baseOffsetInLineInPositions, TabSize);
+            var baseOffsetInLineInColumns = baseLine.GetColumnFromLineOffset(baseOffsetInLineInPositions, Options.TabSize);
 
             var indent = baseOffsetInLineInColumns + desiredIndentation.Offset;
-            var indentString = indent.CreateIndentationString(UseTabs, TabSize);
+            var indentString = indent.CreateIndentationString(Options.UseTabs, Options.TabSize);
             return indentString;
         }
     }

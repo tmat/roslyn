@@ -36,12 +36,13 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Razor
         public static Task<ImmutableArray<TextChange>> GetFormattingChangesAsync(
             Document document,
             TextSpan? textSpan,
-            DocumentOptionSet? documentOptions,
+            DocumentOptionSet documentOptions,
             CancellationToken cancellationToken)
         {
             Contract.ThrowIfFalse(document.Project.Language is LanguageNames.CSharp);
             var formattingService = document.GetRequiredLanguageService<IFormattingInteractionService>();
-            return formattingService.GetFormattingChangesAsync(document, textSpan, documentOptions, cancellationToken);
+            var options = FormatterOptions.From(documentOptions, document.Project.Solution.Workspace.Services);
+            return formattingService.GetFormattingChangesAsync(document, textSpan, options, cancellationToken);
         }
 
         /// <summary>
@@ -53,12 +54,13 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Razor
             Document document,
             char typedChar,
             int position,
-            DocumentOptionSet? documentOptions,
+            DocumentOptionSet documentOptions,
             CancellationToken cancellationToken)
         {
             Contract.ThrowIfFalse(document.Project.Language is LanguageNames.CSharp);
             var formattingService = document.GetRequiredLanguageService<IFormattingInteractionService>();
-            return formattingService.GetFormattingChangesAsync(document, typedChar, position, documentOptions, cancellationToken);
+            var options = FormatterOptions.From(documentOptions, document.Project.Solution.Workspace.Services);
+            return formattingService.GetFormattingChangesAsync(document, typedChar, position, options, cancellationToken);
         }
 
         /// <summary>
@@ -67,12 +69,13 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Razor
         public static Task<ImmutableArray<TextChange>> GetFormattingChangesOnPasteAsync(
             Document document,
             TextSpan textSpan,
-            DocumentOptionSet? documentOptions,
+            DocumentOptionSet documentOptions,
             CancellationToken cancellationToken)
         {
             Contract.ThrowIfFalse(document.Project.Language is LanguageNames.CSharp);
             var formattingService = document.GetRequiredLanguageService<IFormattingInteractionService>();
-            return formattingService.GetFormattingChangesOnPasteAsync(document, textSpan, documentOptions, cancellationToken);
+            var options = FormatterOptions.From(documentOptions, document.Project.Solution.Workspace.Services);
+            return formattingService.GetFormattingChangesOnPasteAsync(document, textSpan, options, cancellationToken);
         }
 
         /// <summary>
@@ -82,12 +85,13 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.Razor
         public static Task<ImmutableArray<TextChange>> GetFormattingChangesOnReturnAsync(
             Document document,
             int position,
-            DocumentOptionSet? documentOptions,
+            DocumentOptionSet documentOptions,
             CancellationToken cancellationToken)
         {
             Contract.ThrowIfFalse(document.Project.Language is LanguageNames.CSharp);
             var formattingService = document.GetRequiredLanguageService<IFormattingInteractionService>();
-            return formattingService.GetFormattingChangesOnReturnAsync(document, position, documentOptions, cancellationToken);
+            var options = FormatterOptions.From(documentOptions, document.Project.Solution.Workspace.Services);
+            return formattingService.GetFormattingChangesOnReturnAsync(document, position, options, cancellationToken);
         }
     }
 }

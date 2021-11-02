@@ -125,7 +125,10 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.SplitStringLiteral
             using var transaction = CaretPreservingEditTransaction.TryCreate(
                 CSharpEditorResources.Split_string, textView, _undoHistoryRegistry, _editorOperationsFactoryService);
 
-            var splitter = StringSplitter.TryCreate(document, position, useTabs, tabSize, indentStyle, cancellationToken);
+            var documentOptions = document.GetOptionsAsync(cancellationToken).WaitAndGetResult(cancellationToken);
+            var formatterOptions = FormatterOptions.From(documentOptions, document.Project.Solution.Workspace.Services);
+
+            var splitter = StringSplitter.TryCreate(document, position, formatterOptions, cancellationToken);
             if (splitter?.TrySplit(out var newDocument, out var newPosition) != true)
             {
                 return false;

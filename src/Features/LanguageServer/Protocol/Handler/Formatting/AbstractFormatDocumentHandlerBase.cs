@@ -41,10 +41,10 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
             }
 
             // We should use the options passed in by LSP instead of the document's options.
-            var documentOptions = await ProtocolConversions.FormattingOptionsToDocumentOptionsAsync(
+            var formatterOptions = await ProtocolConversions.FormattingOptionsToDocumentOptionsAsync(
                 options, document, cancellationToken).ConfigureAwait(false);
 
-            var textChanges = await GetFormattingChangesAsync(formattingService, document, textSpan, documentOptions, cancellationToken).ConfigureAwait(false);
+            var textChanges = await GetFormattingChangesAsync(formattingService, document, textSpan, formatterOptions, cancellationToken).ConfigureAwait(false);
             edits.AddRange(textChanges.Select(change => ProtocolConversions.TextChangeToTextEdit(change, text)));
 
             return edits.ToArrayAndFree();
@@ -54,8 +54,8 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
             IFormattingInteractionService formattingService,
             Document document,
             TextSpan? textSpan,
-            DocumentOptionSet documentOptions,
+            FormatterOptions options,
             CancellationToken cancellationToken)
-            => formattingService.GetFormattingChangesAsync(document, textSpan, documentOptions, cancellationToken);
+            => formattingService.GetFormattingChangesAsync(document, textSpan, options, cancellationToken);
     }
 }

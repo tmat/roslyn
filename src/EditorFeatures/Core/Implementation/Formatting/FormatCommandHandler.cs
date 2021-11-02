@@ -63,7 +63,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting
             using (var transaction = CreateEditTransaction(textView, EditorFeaturesResources.Formatting))
             {
                 var changes = formattingService.GetFormattingChangesAsync(
-                    document, selectionOpt, documentOptions: null, cancellationToken).WaitAndGetResult(cancellationToken);
+                    document, selectionOpt, options: null, cancellationToken).WaitAndGetResult(cancellationToken);
                 if (changes.IsEmpty)
                 {
                     return;
@@ -158,7 +158,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting
                 }
 
                 textChanges = service.GetFormattingChangesOnReturnAsync(
-                    document, caretPosition.Value, documentOptions: null, cancellationToken).WaitAndGetResult(cancellationToken);
+                    document, caretPosition.Value, options: null, cancellationToken).WaitAndGetResult(cancellationToken);
             }
             else if (args is TypeCharCommandArgs typeCharArgs)
             {
@@ -168,7 +168,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting
                 }
 
                 textChanges = service.GetFormattingChangesAsync(
-                    document, typeCharArgs.TypedChar, caretPosition.Value, documentOptions: null, cancellationToken).WaitAndGetResult(cancellationToken);
+                    document, typeCharArgs.TypedChar, caretPosition.Value, options: null, cancellationToken).WaitAndGetResult(cancellationToken);
             }
             else
             {

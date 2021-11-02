@@ -14,6 +14,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
         Public Sub New(
             AllowDisjointSpanMerging As Boolean,
             AutoFormattingOnReturn As Boolean,
+            AutoFormattingOnTyping As Boolean,
+            AutoFormattingOnCloseBrace As Boolean,
             IndentStyle As FormattingOptions.IndentStyle,
             NewLine As String,
             IndentationSize As Integer,
@@ -25,6 +27,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
             MyBase.New(
                 AllowDisjointSpanMerging,
                 AutoFormattingOnReturn,
+                AutoFormattingOnTyping,
+                AutoFormattingOnCloseBrace,
                 IndentStyle,
                 NewLine,
                 IndentationSize,
@@ -35,20 +39,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Formatting
                 PreferredWrappingColumn)
         End Sub
 
-        Public Shared Function From(options As AnalyzerConfigOptions) As VisualBasicFormatterOptions
+        Public Overloads Shared Function From(options As AnalyzerConfigOptions) As VisualBasicFormatterOptions
 #If CODE_STYLE Then
             ' Unused in code-style layer
             Dim allowDisjointSpanMerging = False
             Dim autoFormattingOnReturn = False
+            Dim autoFormattingOnTyping = False
+            Dim autoFormattingOnCloseBrace = False
             Dim indentStyle = FormattingOptions.IndentStyle.None
 #Else
             Dim allowDisjointSpanMerging = options.GetOption(FormattingBehaviorOptions.AllowDisjointSpanMerging)
             Dim autoFormattingOnReturn = options.GetOption(FormattingBehaviorOptions.AutoFormattingOnReturn)
+            Dim autoFormattingOnTyping = options.GetOption(FormattingBehaviorOptions.AutoFormattingOnTyping)
+            Dim autoFormattingOnCloseBrace = options.GetOption(FormattingBehaviorOptions.AutoFormattingOnCloseBrace)
             Dim indentStyle = options.GetOption(FormattingBehaviorOptions.SmartIndent)
 #End If
             Return New VisualBasicFormatterOptions(
                 AllowDisjointSpanMerging:=allowDisjointSpanMerging,
                 AutoFormattingOnReturn:=autoFormattingOnReturn,
+                AutoFormattingOnTyping:=autoFormattingOnTyping,
+                AutoFormattingOnCloseBrace:=autoFormattingOnCloseBrace,
                 IndentStyle:=indentStyle,
                 NewLine:=options.GetOption(FormattingOptions2.NewLine),
                 IndentationSize:=options.GetOption(FormattingOptions2.IndentationSize),

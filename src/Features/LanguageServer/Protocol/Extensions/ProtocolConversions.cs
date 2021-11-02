@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.DocumentHighlighting;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.LanguageServer.Handler;
@@ -658,19 +659,19 @@ namespace Microsoft.CodeAnalysis.LanguageServer
                 debugName: projectContext.Id.Substring(delimiter + 1));
         }
 
-        public static async Task<DocumentOptionSet> FormattingOptionsToDocumentOptionsAsync(
+        public static async Task<FormatterOptions> FormattingOptionsToDocumentOptionsAsync(
             LSP.FormattingOptions options,
             Document document,
             CancellationToken cancellationToken)
         {
-            var documentOptions = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
             // LSP doesn't currently support indent size as an option. However, except in special
             // circumstances, indent size is usually equivalent to tab size, so we'll just set it.
-            var updatedOptions = documentOptions
-                .WithChangedOption(Formatting.FormattingOptions.UseTabs, !options.InsertSpaces)
-                .WithChangedOption(Formatting.FormattingOptions.TabSize, options.TabSize)
-                .WithChangedOption(Formatting.FormattingOptions.IndentationSize, options.TabSize);
-            return updatedOptions;
+            return await FormatterOptions.FromDocumentAsync(document, cancellationToken).ConfigureAwait(false) with
+            {
+                UseTabs = !options.InsertSpaces,
+                TabSize = options.TabSize,
+                IndentationSize = options.TabSize
+            };
         }
 
         public static LSP.MarkupContent GetDocumentationMarkupContent(ImmutableArray<TaggedText> tags, Document document, bool featureSupportsMarkdown)

@@ -21,8 +21,8 @@ namespace Microsoft.CodeAnalysis.CSharp.SplitStringLiteral
             public SimpleStringSplitter(
                 Document document, int position,
                 SyntaxNode root, SourceText sourceText, SyntaxToken token,
-                bool useTabs, int tabSize, FormattingOptions.IndentStyle indentStyle, CancellationToken cancellationToken)
-                : base(document, position, root, sourceText, useTabs, tabSize, indentStyle, cancellationToken)
+                FormatterOptions options, CancellationToken cancellationToken)
+                : base(document, position, root, sourceText, options, cancellationToken)
             {
                 _token = token;
             }

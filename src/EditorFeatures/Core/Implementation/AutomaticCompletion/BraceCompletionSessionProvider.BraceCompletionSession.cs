@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.BraceCompletion;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.ErrorReporting;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Text.Shared.Extensions;
 using Microsoft.VisualStudio.Text;
@@ -283,8 +284,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion
                             return;
                         }
 
-                        var documentOptions = context.Value.Document.GetOptionsAsync().WaitAndGetResult(CancellationToken.None);
-                        var changesAfterReturn = _service.GetTextChangeAfterReturnAsync(context.Value, documentOptions, CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+                        var changesAfterReturn = _service.GetTextChangeAfterReturnAsync(context.Value, CancellationToken.None).WaitAndGetResult(CancellationToken.None);
                         if (changesAfterReturn != null)
                         {
                             using var caretPreservingTransaction = new CaretPreservingEditTransaction(EditorFeaturesResources.Brace_Completion, _undoHistory, _editorOperations);
@@ -399,11 +399,14 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion
                     return null;
                 }
 
+                var documentOptions = document.GetOptionsAsync().WaitAndGetResult(CancellationToken.None);
+                var formatterOptions = FormatterOptions.From(documentOptions, document.Project.Solution.Workspace.Services);
+
                 var closingSnapshotPoint = ClosingPoint.GetPosition(snapshot);
                 var openingSnapshotPoint = OpeningPoint.GetPosition(snapshot);
                 // The user is actively typing so the caret position should not be null.
                 var caretPosition = this.GetCaretPosition().Value.Position;
-                return new BraceCompletionContext(document, openingSnapshotPoint, closingSnapshotPoint, caretPosition);
+                return new BraceCompletionContext(document, openingSnapshotPoint, closingSnapshotPoint, caretPosition, formatterOptions);
             }
 
             private void ApplyBraceCompletionResult(BraceCompletionResult result)

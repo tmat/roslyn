@@ -86,7 +86,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Formatting
             var trackingSpan = caretPosition.Value.Snapshot.CreateTrackingSpan(caretPosition.Value.Position, 0, SpanTrackingMode.EdgeInclusive);
             var span = trackingSpan.GetSpan(args.SubjectBuffer.CurrentSnapshot).Span.ToTextSpan();
             var changes = formattingService.GetFormattingChangesOnPasteAsync(
-                document, span, documentOptions: null, cancellationToken).WaitAndGetResult(cancellationToken);
+                document, span, options: null, cancellationToken).WaitAndGetResult(cancellationToken);
             if (changes.IsEmpty)
             {
                 return;

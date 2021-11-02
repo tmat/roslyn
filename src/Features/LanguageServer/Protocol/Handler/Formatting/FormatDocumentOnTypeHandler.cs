@@ -56,19 +56,19 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
             }
 
             // We should use the options passed in by LSP instead of the document's options.
-            var documentOptions = await ProtocolConversions.FormattingOptionsToDocumentOptionsAsync(
+            var formatterOptions = await ProtocolConversions.FormattingOptionsToDocumentOptionsAsync(
                 request.Options, document, cancellationToken).ConfigureAwait(false);
 
             IList<TextChange>? textChanges;
             if (SyntaxFacts.IsNewLine(request.Character[0]))
             {
                 textChanges = await GetFormattingChangesOnReturnAsync(
-                    formattingService, document, position, documentOptions, cancellationToken).ConfigureAwait(false);
+                    formattingService, document, position, formatterOptions, cancellationToken).ConfigureAwait(false);
             }
             else
             {
                 textChanges = await GetFormattingChangesAsync(
-                    formattingService, document, request.Character[0], position, documentOptions, cancellationToken).ConfigureAwait(false);
+                    formattingService, document, request.Character[0], position, formatterOptions, cancellationToken).ConfigureAwait(false);
             }
 
             var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
@@ -84,17 +84,17 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
             IFormattingInteractionService formattingService,
             Document document,
             int position,
-            DocumentOptionSet documentOptions,
+            FormatterOptions options,
             CancellationToken cancellationToken)
-            => await formattingService.GetFormattingChangesOnReturnAsync(document, position, documentOptions, cancellationToken).ConfigureAwait(false);
+            => await formattingService.GetFormattingChangesOnReturnAsync(document, position, options, cancellationToken).ConfigureAwait(false);
 
         protected virtual async Task<IList<TextChange>?> GetFormattingChangesAsync(
             IFormattingInteractionService formattingService,
             Document document,
             char typedChar,
             int position,
-            DocumentOptionSet documentOptions,
+            FormatterOptions options,
             CancellationToken cancellationToken)
-            => await formattingService.GetFormattingChangesAsync(document, typedChar, position, documentOptions, cancellationToken).ConfigureAwait(false);
+            => await formattingService.GetFormattingChangesAsync(document, typedChar, position, options, cancellationToken).ConfigureAwait(false);
     }
 }

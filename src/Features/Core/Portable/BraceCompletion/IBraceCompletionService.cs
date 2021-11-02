@@ -5,6 +5,7 @@
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Text;
@@ -50,13 +51,13 @@ namespace Microsoft.CodeAnalysis.BraceCompletion
         /// <summary>
         /// Get any text changes that should be applied after the enter key is typed inside a brace completion context.
         /// </summary>
-        Task<BraceCompletionResult?> GetTextChangeAfterReturnAsync(BraceCompletionContext braceCompletionContext, DocumentOptionSet documentOptions, CancellationToken cancellationToken);
+        Task<BraceCompletionResult?> GetTextChangeAfterReturnAsync(BraceCompletionContext braceCompletionContext, CancellationToken cancellationToken);
 
         /// <summary>
         /// Returns the brace completion context if the caret is located between an already completed
         /// set of braces with only whitespace in between.
         /// </summary>
-        Task<BraceCompletionContext?> GetCompletedBraceContextAsync(Document document, int caretLocation, CancellationToken cancellationToken);
+        Task<BraceCompletionContext?> GetCompletedBraceContextAsync(Document document, int caretLocation, FormatterOptions options, CancellationToken cancellationToken);
 
         /// <summary>
         /// Returns true if over typing should be allowed given the caret location and completed pair of braces.
@@ -100,12 +101,15 @@ namespace Microsoft.CodeAnalysis.BraceCompletion
 
         public int CaretLocation { get; }
 
-        public BraceCompletionContext(Document document, int openingPoint, int closingPoint, int caretLocation)
+        public FormatterOptions Options { get; }
+
+        public BraceCompletionContext(Document document, int openingPoint, int closingPoint, int caretLocation, FormatterOptions options)
         {
             Document = document;
             OpeningPoint = openingPoint;
             ClosingPoint = closingPoint;
             CaretLocation = caretLocation;
+            Options = options;
         }
     }
 }

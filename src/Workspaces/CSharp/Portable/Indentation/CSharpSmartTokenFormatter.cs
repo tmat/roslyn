@@ -23,7 +23,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Indentation
 {
     internal sealed class CSharpSmartTokenFormatter : ISmartTokenFormatter
     {
-        private readonly CSharpFormatterOptions _options;
+        private readonly FormatterOptions _options;
         private readonly IEnumerable<AbstractFormattingRule> _formattingRules;
 
         private readonly CompilationUnitSyntax _root;
@@ -31,7 +31,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Indentation
         public CSharpSmartTokenFormatter(
             CompilationUnitSyntax root,
             IEnumerable<AbstractFormattingRule> formattingRules,
-            CSharpFormatterOptions options)
+            FormatterOptions options)
         {
             _options = options;
             _formattingRules = formattingRules;

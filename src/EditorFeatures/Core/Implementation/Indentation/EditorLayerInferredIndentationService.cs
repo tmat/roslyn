@@ -28,22 +28,21 @@ namespace Microsoft.VisualStudio.LanguageServices.Indentation
             _indentationManagerService = indentationManagerService;
         }
 
-        public async Task<DocumentOptionSet> GetDocumentOptionsWithInferredIndentationAsync(Document document, bool explicitFormat, CancellationToken cancellationToken)
+        public async Task<InferredIndentationOptions?> TryInferIndentationAsync(Document document, bool explicitFormat, CancellationToken cancellationToken)
         {
-            var options = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
             var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
             var snapshot = text.FindCorrespondingEditorTextSnapshot();
-
-            if (snapshot != null)
+            if (snapshot == null)
             {
-                _indentationManagerService.GetIndentation(snapshot.TextBuffer, explicitFormat, out var convertTabsToSpaces, out var tabSize, out var indentSize);
-
-                options = options.WithChangedOption(FormattingOptions.UseTabs, !convertTabsToSpaces)
-                                 .WithChangedOption(FormattingOptions.IndentationSize, indentSize)
-                                 .WithChangedOption(FormattingOptions.TabSize, tabSize);
+                return null;
             }
 
-            return options;
+            _indentationManagerService.GetIndentation(snapshot.TextBuffer, explicitFormat, out var convertTabsToSpaces, out var tabSize, out var indentSize);
+
+            return new InferredIndentationOptions(
+                IndentationSize: indentSize,
+                TabSize: tabSize,
+                UseTabs: !convertTabsToSpaces);
         }
     }
 }

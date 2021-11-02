@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.Shared.Extensions;
+using Microsoft.CodeAnalysis.Host;
 
 #if CODE_STYLE
 using WorkspacesResources = Microsoft.CodeAnalysis.CodeStyleResources;
@@ -114,6 +115,8 @@ namespace Microsoft.CodeAnalysis.Formatting
     internal record FormatterOptions(
         bool AllowDisjointSpanMerging,
         bool AutoFormattingOnReturn,
+        bool AutoFormattingOnTyping,
+        bool AutoFormattingOnCloseBrace,
         FormattingOptions.IndentStyle IndentStyle,
         string NewLine,
         int IndentationSize,
@@ -123,12 +126,19 @@ namespace Microsoft.CodeAnalysis.Formatting
         OperatorPlacementWhenWrappingPreference OperatorPlacementWhenWrapping,
         int PreferredWrappingColumn)
     {
+#if !CODE_STYLE
         public static async ValueTask<FormatterOptions> FromDocumentAsync(Document document, CancellationToken cancellationToken)
         {
             var documentOptions = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
-            var formattingService = document.GetRequiredLanguageService<ISyntaxFormattingService>();
-            var optionService = document.Project.Solution.Workspace.Services.GetRequiredService<IOptionService>();
-            return formattingService.GetOptions(documentOptions.AsAnalyzerConfigOptions(optionService, document.Project.Language));
+            return From(documentOptions, document.Project.Solution.Workspace.Services);
         }
+
+        public static FormatterOptions From(DocumentOptionSet documentOptions, HostWorkspaceServices services)
+        {
+            var formattingService = services.GetExtendedLanguageServices(documentOptions.Language).GetRequiredService<ISyntaxFormattingService>();
+            var optionService = services.GetRequiredService<IOptionService>();
+            return formattingService.GetOptions(documentOptions.AsAnalyzerConfigOptions(optionService, documentOptions.Language));
+        }
+#endif
     }
 }

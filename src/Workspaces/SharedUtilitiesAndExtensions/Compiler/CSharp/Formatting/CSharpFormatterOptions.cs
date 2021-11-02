@@ -12,6 +12,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
     internal record CSharpFormatterOptions(
         bool AllowDisjointSpanMerging,
         bool AutoFormattingOnReturn,
+        bool AutoFormattingOnTyping,
+        bool AutoFormattingOnCloseBrace,
         FormattingOptions.IndentStyle IndentStyle,
         string NewLine,
         int IndentationSize,
@@ -69,6 +71,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         bool NewLineForClausesInQuery) : FormatterOptions(
             AllowDisjointSpanMerging,
             AutoFormattingOnReturn,
+            AutoFormattingOnTyping,
+            AutoFormattingOnCloseBrace,
             IndentStyle,
             NewLine,
             IndentationSize,
@@ -84,10 +88,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 // Unused in code-style layer
                 AllowDisjointSpanMerging: false,
                 AutoFormattingOnReturn: false,
+                AutoFormattingOnTyping: false,
+                AutoFormattingOnCloseBrace: false,
                 IndentStyle: FormattingOptions.IndentStyle.None,
 #else
                 AllowDisjointSpanMerging: FormattingBehaviorOptions.AllowDisjointSpanMerging.DefaultValue,
                 AutoFormattingOnReturn: FormattingBehaviorOptions.AutoFormattingOnReturn.DefaultValue,
+                AutoFormattingOnTyping: FormattingBehaviorOptions.AutoFormattingOnTyping.DefaultValue,
+                AutoFormattingOnCloseBrace: FormattingBehaviorOptions.AutoFormattingOnCloseBrace.DefaultValue,
                 IndentStyle: FormattingBehaviorOptions.SmartIndent.DefaultValue,
 #endif
                 OperatorPlacementWhenWrapping: CodeStyleOptions2.OperatorPlacementWhenWrapping.DefaultValue,
@@ -151,10 +159,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 // Unused in code-style layer
                 AllowDisjointSpanMerging: false,
                 AutoFormattingOnReturn: false,
+                AutoFormattingOnTyping: false,
+                AutoFormattingOnCloseBrace: false,
                 IndentStyle: FormattingOptions.IndentStyle.None,
 #else
                 AllowDisjointSpanMerging: options.GetOption(FormattingBehaviorOptions.AllowDisjointSpanMerging),
                 AutoFormattingOnReturn: options.GetOption(FormattingBehaviorOptions.AutoFormattingOnReturn),
+                AutoFormattingOnTyping: options.GetOption(FormattingBehaviorOptions.AutoFormattingOnTyping),
+                AutoFormattingOnCloseBrace: options.GetOption(FormattingBehaviorOptions.AutoFormattingOnCloseBrace),
                 IndentStyle: options.GetOption(FormattingBehaviorOptions.SmartIndent),
 #endif
                 NewLine: options.GetOption(FormattingOptions2.NewLine),

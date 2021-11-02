@@ -23,9 +23,9 @@ namespace Microsoft.CodeAnalysis.CSharp.SplitStringLiteral
                 Document document, int position,
                 SyntaxNode root, SourceText sourceText,
                 InterpolatedStringExpressionSyntax interpolatedStringExpression,
-                bool useTabs, int tabSize, FormattingOptions.IndentStyle indentStyle,
+                FormatterOptions options,
                 CancellationToken cancellationToken)
-                : base(document, position, root, sourceText, useTabs, tabSize, indentStyle, cancellationToken)
+                : base(document, position, root, sourceText, options, cancellationToken)
             {
                 _interpolatedStringExpression = interpolatedStringExpression;
             }
