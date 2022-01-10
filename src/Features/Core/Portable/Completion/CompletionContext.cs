@@ -99,7 +99,9 @@ namespace Microsoft.CodeAnalysis.Completion
                    position,
                    defaultSpan,
                    trigger,
+#pragma warning disable CS0618 // Type or member is obsolete
                    CompletionOptions.From(options ?? throw new ArgumentNullException(nameof(options)), document.Project.Language),
+#pragma warning restore
                    cancellationToken)
         {
             _lazyOptionSet = options;

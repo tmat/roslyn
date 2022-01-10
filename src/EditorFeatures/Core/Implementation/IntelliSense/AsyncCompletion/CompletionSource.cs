@@ -112,7 +112,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
                 return AsyncCompletionData.CompletionStartData.DoesNotParticipateInCompletion;
             }
 
-            var options = CompletionOptions.From(document.Project);
+            var options = CompletionOptions.From(_globalOptions, document.Project.Language);
 
             // The Editor supports the option per textView.
             // There could be mixed desired behavior per textView and even per same completion session.
@@ -273,7 +273,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
                 roslynTrigger = new CompletionTrigger(CompletionTriggerKind.Snippets);
             }
 
-            var options = CompletionOptions.From(document.Project) with
+            var options = CompletionOptions.From(_globalOptions, document.Project.Language) with
             {
                 IsExpandedCompletion = isExpanded
             };
@@ -390,7 +390,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
             if (service == null)
                 return null;
 
-            var options = CompletionOptions.From(document.Project);
+            var options = CompletionOptions.From(_globalOptions, document.Project.Language);
             var displayOptions = SymbolDescriptionOptions.From(document.Project);
             var description = await service.GetDescriptionAsync(document, roslynItem, options, displayOptions, cancellationToken).ConfigureAwait(false);
             if (description == null)

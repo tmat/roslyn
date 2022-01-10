@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.LanguageServer.Handler.Completion;
 using Microsoft.CodeAnalysis.LanguageServices;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.VisualStudio.Text.Adornments;
 using Newtonsoft.Json.Linq;
 using Roslyn.Utilities;
@@ -26,6 +27,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
     /// </summary>
     internal class CompletionResolveHandler : IRequestHandler<LSP.CompletionItem, LSP.CompletionItem>
     {
+        private readonly IGlobalOptionService _globalOptions;
         private readonly CompletionListCache _completionListCache;
 
         public string Method => LSP.Methods.TextDocumentCompletionResolveName;
@@ -33,8 +35,9 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
         public bool MutatesSolutionState => false;
         public bool RequiresLSPSolution => true;
 
-        public CompletionResolveHandler(CompletionListCache completionListCache)
+        public CompletionResolveHandler(IGlobalOptionService globalOptions, CompletionListCache completionListCache)
         {
+            _globalOptions = globalOptions;
             _completionListCache = completionListCache;
         }
 
@@ -64,7 +67,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
                 return completionItem;
             }
 
-            var options = CompletionOptions.From(document.Project);
+            var options = CompletionOptions.From(_globalOptions, document.Project.Language);
             var displayOptions = SymbolDescriptionOptions.From(document.Project);
             var description = await completionService.GetDescriptionAsync(document, selectedItem, options, displayOptions, cancellationToken).ConfigureAwait(false)!;
             if (description != null)

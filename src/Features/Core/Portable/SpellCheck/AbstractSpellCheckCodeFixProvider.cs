@@ -24,6 +24,18 @@ namespace Microsoft.CodeAnalysis.SpellCheck
     {
         private const int MinTokenLength = 3;
 
+        // Disable snippets and unimported types from ever appearing in the completion items. 
+        // -    It's very unlikely the user would ever misspell a snippet, then use spell-checking to fix it, 
+        //      then try to invoke the snippet.
+        // -    We believe spell-check should only compare what you have typed to what symbol would be offered here.
+        private static readonly CompletionOptions s_completionOptions = CompletionOptions.Default with
+        {
+            SnippetsBehavior = SnippetsRule.NeverInclude,
+            ShowItemsFromUnimportedNamespaces = false,
+            IsExpandedCompletion = false,
+            TargetTypedCompletionFilter = false
+        };
+
         public override FixAllProvider GetFixAllProvider()
         {
             // Fix All is not supported by this code fix 
@@ -109,20 +121,8 @@ namespace Microsoft.CodeAnalysis.SpellCheck
             var document = context.Document;
             var service = CompletionService.GetService(document);
 
-            // Disable snippets and unimported types from ever appearing in the completion items. 
-            // -    It's very unlikely the user would ever misspell a snippet, then use spell-checking to fix it, 
-            //      then try to invoke the snippet.
-            // -    We believe spell-check should only compare what you have typed to what symbol would be offered here.
-            var options = CompletionOptions.From(document.Project.Solution.Options, document.Project.Language) with
-            {
-                SnippetsBehavior = SnippetsRule.NeverInclude,
-                ShowItemsFromUnimportedNamespaces = false,
-                IsExpandedCompletion = false,
-                TargetTypedCompletionFilter = false
-            };
-
             var (completionList, _) = await service.GetCompletionsInternalAsync(
-                document, nameToken.SpanStart, options, cancellationToken: cancellationToken).ConfigureAwait(false);
+                document, nameToken.SpanStart, s_completionOptions, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (completionList == null)
             {
                 return;

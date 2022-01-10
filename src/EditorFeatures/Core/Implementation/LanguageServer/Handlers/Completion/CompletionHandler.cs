@@ -545,7 +545,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
             return completionItem.Rules.MatchPriority == MatchPriority.Preselect && completionItem.Rules.SelectionBehavior == CompletionItemSelectionBehavior.HardSelection;
         }
 
-        internal static CompletionOptions GetCompletionOptions(Document document)
+        internal CompletionOptions GetCompletionOptions(Document document)
         {
             // Filter out snippets as they are not supported in the LSP client
             // https://devdiv.visualstudio.com/DevDiv/_workitems/edit/1139740
@@ -555,7 +555,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
             // 2.  We need to figure out how to provide the text edits along with the completion item or provide them in the resolve request.
             //     https://devdiv.visualstudio.com/DevDiv/_workitems/edit/985860/
             // 3.  LSP client should support completion filters / expanders
-            return CompletionOptions.From(document.Project) with
+            return CompletionOptions.From(_globalOptions, document.Project.Language) with
             {
                 SnippetsBehavior = SnippetsRule.NeverInclude,
                 ShowItemsFromUnimportedNamespaces = false,

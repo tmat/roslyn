@@ -67,7 +67,9 @@ namespace Microsoft.CodeAnalysis.Completion
         /// Backward compatibility only.
         /// </summary>
         public sealed override CompletionRules GetRules()
+#pragma warning disable CS0618 // Type or member is obsolete: used to implement legacy API
             => GetRules(CompletionOptions.From(_workspace.CurrentSolution.Options, Language));
+#pragma warning restore
 
         /// <summary>
         /// Returns the providers always available to the service.
@@ -258,7 +260,9 @@ namespace Microsoft.CodeAnalysis.Completion
             OptionSet? options,
             CancellationToken cancellationToken)
         {
+#pragma warning disable CS0618 // Type or member is obsolete: Used only to implement legacy API
             var completionOptions = CompletionOptions.From(options ?? document.Project.Solution.Options, document.Project.Language);
+#pragma warning restore
             var (completionList, _) = await GetCompletionsWithAvailabilityOfExpandedItemsAsync(document, caretPosition, trigger, roles, completionOptions, cancellationToken).ConfigureAwait(false);
             return completionList;
         }
@@ -571,7 +575,9 @@ namespace Microsoft.CodeAnalysis.Completion
         {
             var document = text.GetOpenDocumentInCurrentContextWithChanges();
             var languageServices = document?.Project.LanguageServices ?? _workspace.Services.GetLanguageServices(Language);
+#pragma warning disable CS0618 // Type or member is obsolete: Used to implement legacy API
             var completionOptions = CompletionOptions.From(options ?? document?.Project.Solution.Options ?? _workspace.CurrentSolution.Options, document?.Project.Language ?? Language);
+#pragma warning restore
             return ShouldTriggerCompletion(document?.Project, languageServices, text, caretPosition, trigger, completionOptions, roles);
         }
 

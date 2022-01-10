@@ -14,6 +14,7 @@ using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Text.Shared.Extensions;
@@ -34,6 +35,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
             new(isHandled: false, AsyncCompletionData.CommitBehavior.None);
 
         private readonly RecentItemsManager _recentItemsManager;
+        private readonly IGlobalOptionService _globalOptions;
         private readonly ITextView _textView;
 
         public IEnumerable<char> PotentialCommitCharacters
@@ -52,9 +54,11 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
             }
         }
 
-        internal CommitManager(ITextView textView, RecentItemsManager recentItemsManager, IThreadingContext threadingContext) : base(threadingContext)
+        internal CommitManager(ITextView textView, RecentItemsManager recentItemsManager, IThreadingContext threadingContext, IGlobalOptionService globalOptions)
+            : base(threadingContext)
         {
             _recentItemsManager = recentItemsManager;
+            _globalOptions = globalOptions;
             _textView = textView;
         }
 
@@ -115,7 +119,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.AsyncComplet
                 return new AsyncCompletionData.CommitResult(isHandled: true, AsyncCompletionData.CommitBehavior.CancelCommit);
             }
 
-            var options = CompletionOptions.From(document.Project);
+            var options = CompletionOptions.From(_globalOptions, document.Project.Language);
             var serviceRules = completionService.GetRules(options);
 
             // We can be called before for ShouldCommitCompletion. However, that call does not provide rules applied for the completion item.

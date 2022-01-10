@@ -33,8 +33,10 @@ namespace Microsoft.CodeAnalysis.Completion
         /// </summary>
         public sealed override bool ShouldTriggerCompletion(SourceText text, int caretPosition, CompletionTrigger trigger, OptionSet options)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             Debug.Fail("For backwards API compat only, should not be called");
             return ShouldTriggerCompletionImpl(text, caretPosition, trigger, CompletionOptions.From(options, Language));
+#pragma warning restore
         }
 
         internal override bool ShouldTriggerCompletion(HostLanguageServices languageServices, SourceText text, int caretPosition, CompletionTrigger trigger, CompletionOptions options)
@@ -54,7 +56,9 @@ namespace Microsoft.CodeAnalysis.Completion
         public sealed override Task<CompletionDescription?> GetDescriptionAsync(Document document, CompletionItem item, CancellationToken cancellationToken)
         {
             Debug.Fail("For backwards API compat only, should not be called");
+#pragma warning disable CS0618 // Type or member is obsolete
             return GetDescriptionAsync(document, item, CompletionOptions.From(document.Project), SymbolDescriptionOptions.From(document.Project), cancellationToken);
+#pragma warning restore
         }
 
         internal override async Task<CompletionDescription?> GetDescriptionAsync(Document document, CompletionItem item, CompletionOptions options, SymbolDescriptionOptions displayOptions, CancellationToken cancellationToken)

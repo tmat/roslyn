@@ -51,9 +51,11 @@ namespace Microsoft.CodeAnalysis.Completion
               ProvideRegexCompletions: Metadata.ProvideRegexCompletions.DefaultValue,
               TimeoutInMillisecondsForExtensionMethodImportCompletion: Metadata.TimeoutInMillisecondsForExtensionMethodImportCompletion.DefaultValue);
 
+        [Obsolete("Used only to implement legacy API")]
         public static CompletionOptions From(Project project)
             => From(project.Solution.Options, project.Language);
 
+        [Obsolete("Used only to implement legacy API")]
         public static CompletionOptions From(OptionSet options, string language)
           => new(
               TriggerOnTyping: options.GetOption(Metadata.TriggerOnTyping, language),
@@ -72,6 +74,25 @@ namespace Microsoft.CodeAnalysis.Completion
               ProvideDateAndTimeCompletions: options.GetOption(Metadata.ProvideDateAndTimeCompletions, language),
               ProvideRegexCompletions: options.GetOption(Metadata.ProvideRegexCompletions, language),
               TimeoutInMillisecondsForExtensionMethodImportCompletion: options.GetOption(Metadata.TimeoutInMillisecondsForExtensionMethodImportCompletion));
+
+        public static CompletionOptions From(IGlobalOptionService globalOptions, string language)
+          => new(
+              TriggerOnTyping: globalOptions.GetOption(Metadata.TriggerOnTyping, language),
+              TriggerOnTypingLetters: globalOptions.GetOption(Metadata.TriggerOnTypingLetters, language),
+              TriggerOnDeletion: globalOptions.GetOption(Metadata.TriggerOnDeletion, language),
+              TriggerInArgumentLists: globalOptions.GetOption(Metadata.TriggerInArgumentLists, language),
+              IsExpandedCompletion: globalOptions.GetOption(Metadata.IsExpandedCompletion),
+              EnterKeyBehavior: globalOptions.GetOption(Metadata.EnterKeyBehavior, language),
+              SnippetsBehavior: globalOptions.GetOption(Metadata.SnippetsBehavior, language),
+              HideAdvancedMembers: globalOptions.GetOption(Metadata.HideAdvancedMembers, language),
+              ShowNameSuggestions: globalOptions.GetOption(Metadata.ShowNameSuggestions, language),
+              ShowItemsFromUnimportedNamespaces: globalOptions.GetOption(Metadata.ShowItemsFromUnimportedNamespaces, language),
+              UnnamedSymbolCompletionDisabled: globalOptions.GetOption(Metadata.UnnamedSymbolCompletionDisabledFeatureFlag),
+              TargetTypedCompletionFilter: globalOptions.GetOption(Metadata.TargetTypedCompletionFilterFeatureFlag),
+              TypeImportCompletion: globalOptions.GetOption(Metadata.TypeImportCompletionFeatureFlag),
+              ProvideDateAndTimeCompletions: globalOptions.GetOption(Metadata.ProvideDateAndTimeCompletions, language),
+              ProvideRegexCompletions: globalOptions.GetOption(Metadata.ProvideRegexCompletions, language),
+              TimeoutInMillisecondsForExtensionMethodImportCompletion: globalOptions.GetOption(Metadata.TimeoutInMillisecondsForExtensionMethodImportCompletion));
 
         public OptionSet WithChangedOptions(OptionSet set, string language)
             => set.

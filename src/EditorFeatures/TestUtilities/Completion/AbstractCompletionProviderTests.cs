@@ -490,7 +490,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
 
             MarkupTestFile.GetPosition(expectedCodeAfterCommit, out var actualExpectedCode, out int expectedCaretPosition);
 
-            var options = CompletionOptions.From(document.Project);
+            var options = CompletionOptions.Default;
 
             if (commitChar.HasValue &&
                 !CommitManager.IsCommitCharacter(service.GetRules(options), completionItem, commitChar.Value))
@@ -532,7 +532,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
             MarkupTestFile.GetPosition(expectedCodeAfterCommit, out var actualExpectedCode, out int expectedCaretPosition);
 
             var workspace = workspaceFixture.Target.GetWorkspace();
-            var options = CompletionOptions.From(workspace.CurrentSolution.Options, service.Language);
+            var options = CompletionOptions.Default;
 
             if (commitChar.HasValue &&
                 !CommitManager.IsCommitCharacter(service.GetRules(options), completionItem, commitChar.Value))
@@ -592,7 +592,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
             var commitChar = commitCharOpt ?? '\t';
 
             var text = await document.GetTextAsync();
-            var options = CompletionOptions.From(document.Project);
+            var options = CompletionOptions.Default;
 
             if (commitChar == '\t' ||
                 CommitManager.IsCommitCharacter(service.GetRules(options), firstItem, commitChar))
@@ -1082,7 +1082,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
                 var documentId = workspace.GetDocumentId(hostDocument);
                 var document = workspace.CurrentSolution.GetDocument(documentId);
                 var position = hostDocument.CursorPosition.Value;
-                var options = CompletionOptions.From(document.Project);
+                var options = CompletionOptions.Default;
 
                 var service = GetCompletionService(document.Project);
                 var completionList = await GetCompletionListAsync(service, document, position, RoslynCompletion.CompletionTrigger.Invoke);
