@@ -113,7 +113,7 @@ namespace Microsoft.CodeAnalysis.SpellCheck
             // -    It's very unlikely the user would ever misspell a snippet, then use spell-checking to fix it, 
             //      then try to invoke the snippet.
             // -    We believe spell-check should only compare what you have typed to what symbol would be offered here.
-            var options = CompletionOptions.From(document.Project.Solution.Options, document.Project.Language) with
+            var options = CompletionOptions.Default with
             {
                 SnippetsBehavior = SnippetsRule.NeverInclude,
                 ShowItemsFromUnimportedNamespaces = false,
