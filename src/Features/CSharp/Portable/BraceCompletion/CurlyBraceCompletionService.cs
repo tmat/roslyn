@@ -116,7 +116,7 @@ namespace Microsoft.CodeAnalysis.CSharp.BraceCompletion
             var textToFormat = originalDocumentText;
             if (closingPointLine - openingPointLine == 1)
             {
-                var newLineString = options.FormattingOptions.GetOption(FormattingOptions2.NewLine);
+                var newLineString = options.FormattingOptions.NewLine;
                 newLineEdit = new TextChange(new TextSpan(closingPoint - 1, 0), newLineString);
                 textToFormat = originalDocumentText.WithChanges(newLineEdit.Value);
 

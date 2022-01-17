@@ -34,11 +34,10 @@ namespace Microsoft.CodeAnalysis.Formatting
         public static SyntaxFormattingOptions Create(AnalyzerConfigOptions options)
             => new(options);
 
-        public T GetOption<T>(Option2<T> option)
-            => Options.GetOption(option);
-
-        public T GetOption<T>(PerLanguageOption2<T> option)
-            => Options.GetOption(option);
+        public string NewLine => Options.GetOption(FormattingOptions2.NewLine);
+        public int IndentationSize => Options.GetOption(FormattingOptions2.IndentationSize);
+        public bool UseTabs => Options.GetOption(FormattingOptions2.UseTabs);
+        public int TabSize => Options.GetOption(FormattingOptions2.TabSize);
 
 #if !CODE_STYLE
         public static SyntaxFormattingOptions Create(OptionSet options, HostWorkspaceServices services, string language)
