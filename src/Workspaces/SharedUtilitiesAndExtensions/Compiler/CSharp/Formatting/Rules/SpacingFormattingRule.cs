@@ -33,29 +33,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         {
             var newOptions = options as CSharpSyntaxFormattingOptions ?? CSharpSyntaxFormattingOptions.Default;
 
-            if (_options.SpacesIgnoreAroundVariableDeclaration == newOptions.SpacesIgnoreAroundVariableDeclaration &&
-                _options.SpacingAfterMethodDeclarationName == newOptions.SpacingAfterMethodDeclarationName &&
-                _options.SpaceBetweenEmptyMethodDeclarationParentheses == newOptions.SpaceBetweenEmptyMethodDeclarationParentheses &&
-                _options.SpaceWithinMethodDeclarationParenthesis == newOptions.SpaceWithinMethodDeclarationParenthesis &&
-                _options.SpaceAfterMethodCallName == newOptions.SpaceAfterMethodCallName &&
-                _options.SpaceBetweenEmptyMethodCallParentheses == newOptions.SpaceBetweenEmptyMethodCallParentheses &&
-                _options.SpaceWithinMethodCallParentheses == newOptions.SpaceWithinMethodCallParentheses &&
-                _options.SpaceAfterControlFlowStatementKeyword == newOptions.SpaceAfterControlFlowStatementKeyword &&
-                _options.SpaceWithinExpressionParentheses == newOptions.SpaceWithinExpressionParentheses &&
-                _options.SpaceWithinCastParentheses == newOptions.SpaceWithinCastParentheses &&
-                _options.SpaceBeforeSemicolonsInForStatement == newOptions.SpaceBeforeSemicolonsInForStatement &&
-                _options.SpaceAfterSemicolonsInForStatement == newOptions.SpaceAfterSemicolonsInForStatement &&
-                _options.SpaceWithinOtherParentheses == newOptions.SpaceWithinOtherParentheses &&
-                _options.SpaceAfterCast == newOptions.SpaceAfterCast &&
-                _options.SpaceBeforeOpenSquareBracket == newOptions.SpaceBeforeOpenSquareBracket &&
-                _options.SpaceBetweenEmptySquareBrackets == newOptions.SpaceBetweenEmptySquareBrackets &&
-                _options.SpaceWithinSquareBrackets == newOptions.SpaceWithinSquareBrackets &&
-                _options.SpaceAfterColonInBaseTypeDeclaration == newOptions.SpaceAfterColonInBaseTypeDeclaration &&
-                _options.SpaceBeforeColonInBaseTypeDeclaration == newOptions.SpaceBeforeColonInBaseTypeDeclaration &&
-                _options.SpaceAfterComma == newOptions.SpaceAfterComma &&
-                _options.SpaceBeforeComma == newOptions.SpaceBeforeComma &&
-                _options.SpaceAfterDot == newOptions.SpaceAfterDot &&
-                _options.SpaceBeforeDot == newOptions.SpaceBeforeDot &&
+            if (_options.Spacing == newOptions.Spacing &&
                 _options.SpacingAroundBinaryOperator == newOptions.SpacingAroundBinaryOperator)
             {
                 return this;

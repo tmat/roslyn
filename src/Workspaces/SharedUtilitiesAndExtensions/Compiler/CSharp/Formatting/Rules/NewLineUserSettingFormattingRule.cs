@@ -28,20 +28,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
         {
             var newOptions = options as CSharpSyntaxFormattingOptions ?? CSharpSyntaxFormattingOptions.Default;
 
-            if (_options.NewLineForMembersInObjectInit == newOptions.NewLineForMembersInObjectInit &&
-                _options.NewLineForMembersInAnonymousTypes == newOptions.NewLineForMembersInAnonymousTypes &&
-                _options.NewLineForElse == newOptions.NewLineForElse &&
-                _options.NewLineForCatch == newOptions.NewLineForCatch &&
-                _options.NewLineForFinally == newOptions.NewLineForFinally &&
-                _options.NewLinesForBracesInTypes == newOptions.NewLinesForBracesInTypes &&
-                _options.NewLinesForBracesInAnonymousTypes == newOptions.NewLinesForBracesInAnonymousTypes &&
-                _options.NewLinesForBracesInObjectCollectionArrayInitializers == newOptions.NewLinesForBracesInObjectCollectionArrayInitializers &&
-                _options.NewLinesForBracesInProperties == newOptions.NewLinesForBracesInProperties &&
-                _options.NewLinesForBracesInMethods == newOptions.NewLinesForBracesInMethods &&
-                _options.NewLinesForBracesInAccessors == newOptions.NewLinesForBracesInAccessors &&
-                _options.NewLinesForBracesInAnonymousMethods == newOptions.NewLinesForBracesInAnonymousMethods &&
-                _options.NewLinesForBracesInLambdaExpressionBody == newOptions.NewLinesForBracesInLambdaExpressionBody &&
-                _options.NewLinesForBracesInControlBlocks == newOptions.NewLinesForBracesInControlBlocks &&
+            if (_options.NewLines == newOptions.NewLines &&
                 _options.WrappingKeepStatementsOnSingleLine == newOptions.WrappingKeepStatementsOnSingleLine)
             {
                 return this;
