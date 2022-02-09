@@ -160,7 +160,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     return ImmutableArray<DiagnosticData>.Empty;
 
                 var compilationWithAnalyzers = await AnalyzerHelper.CreateCompilationWithAnalyzersAsync(
-                    project, analyzers, includeSuppressedDiagnostics: false, cancellationToken).ConfigureAwait(false);
+                    project, analyzers, ideOptions, includeSuppressedDiagnostics: false, cancellationToken).ConfigureAwait(false);
                 var analysisScope = new DocumentAnalysisScope(document, span: null, analyzers, kind);
                 var executor = new DocumentAnalysisExecutor(analysisScope, compilationWithAnalyzers, _diagnosticAnalyzerRunner, logPerformanceInfo: true);
 

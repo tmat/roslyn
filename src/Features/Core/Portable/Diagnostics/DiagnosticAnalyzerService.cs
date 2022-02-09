@@ -136,7 +136,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     var project = solution.GetProject(projectId);
                     if (project != null)
                     {
-                        await analyzer.ForceAnalyzeProjectAsync(project, cancellationToken).ConfigureAwait(false);
+                        await analyzer.ForceAnalyzeProjectAsync(project, ideOptions, cancellationToken).ConfigureAwait(false);
                         onProjectAnalyzed(project);
                     }
                 }
@@ -148,7 +148,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     {
                         tasks[index++] = Task.Run(async () =>
                             {
-                                await analyzer.ForceAnalyzeProjectAsync(project, cancellationToken).ConfigureAwait(false);
+                                await analyzer.ForceAnalyzeProjectAsync(project, ideOptions, cancellationToken).ConfigureAwait(false);
                                 onProjectAnalyzed(project);
                             }, cancellationToken);
                     }

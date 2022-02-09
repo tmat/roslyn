@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.Serialization;
 using Microsoft.CodeAnalysis.Text;
@@ -12,7 +13,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
     /// helper type to package diagnostic arguments to pass around between remote hosts
     /// </summary>
     [DataContract]
-    internal class DiagnosticArguments
+    internal sealed class DiagnosticArguments
     {
         /// <summary>
         /// Flag indicating if suppressed diagnostics should be returned.
@@ -66,7 +67,13 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         /// Array of analyzer IDs for analyzers that need to be executed for computing diagnostics.
         /// </summary>
         [DataMember(Order = 7)]
-        public string[] AnalyzerIds;
+        public ImmutableArray<string> AnalyzerIds;
+
+        /// <summary>
+        /// Options passed to the analyzers that are not stored in editorconfig files.
+        /// </summary>
+        [DataMember(Order = 8)]
+        public IdeAnalyzerOptions Options;
 
         public DiagnosticArguments(
             bool reportSuppressedDiagnostics,
@@ -76,7 +83,8 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             TextSpan? documentSpan,
             AnalysisKind? documentAnalysisKind,
             ProjectId projectId,
-            string[] analyzerIds)
+            ImmutableArray<string> analyzerIds,
+            IdeAnalyzerOptions options)
         {
             Debug.Assert(documentId != null || documentSpan == null);
             Debug.Assert(documentId != null || documentAnalysisKind == null);
@@ -92,6 +100,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             DocumentAnalysisKind = documentAnalysisKind;
             ProjectId = projectId;
             AnalyzerIds = analyzerIds;
+            Options = options;
         }
     }
 }

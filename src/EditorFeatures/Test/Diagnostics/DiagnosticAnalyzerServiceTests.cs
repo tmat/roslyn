@@ -1045,7 +1045,7 @@ class A
             var diagnosticAnalyzerInfoCache = new DiagnosticAnalyzerInfoCache();
 
             var kind = actionKind == AnalyzerRegisterActionKind.SyntaxTree ? AnalysisKind.Syntax : AnalysisKind.Semantic;
-            var diagnosticComputer = new DiagnosticComputer(document, project, span: null, kind, diagnosticAnalyzerInfoCache);
+            var diagnosticComputer = new DiagnosticComputer(document, project, options, span: null, kind, diagnosticAnalyzerInfoCache);
             var analyzerIds = new[] { analyzer.GetAnalyzerId() };
 
             // First invoke analysis with cancellation token, and verify canceled compilation and no reported diagnostics.

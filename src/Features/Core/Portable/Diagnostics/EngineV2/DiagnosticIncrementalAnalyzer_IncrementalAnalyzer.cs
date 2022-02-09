@@ -107,21 +107,21 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
             }
         }
 
-        public async Task AnalyzeProjectAsync(Project project, bool semanticsChanged, InvocationReasons reasons, CancellationToken cancellationToken)
+        public async Task AnalyzeProjectAsync(Project project, IdeAnalyzerOptions ideOptions, bool semanticsChanged, InvocationReasons reasons, CancellationToken cancellationToken)
         {
             // Perf optimization. check whether we want to analyze this project or not.
-            if (!FullAnalysisEnabled(project, forceAnalyzerRun: false))
+            if (!FullAnalysisEnabled(project, ideOptions, forceAnalyzerRun: false))
             {
                 return;
             }
 
-            await AnalyzeProjectAsync(project, forceAnalyzerRun: false, cancellationToken).ConfigureAwait(false);
+            await AnalyzeProjectAsync(project, ideOptions, forceAnalyzerRun: false, cancellationToken).ConfigureAwait(false);
         }
 
-        public Task ForceAnalyzeProjectAsync(Project project, CancellationToken cancellationToken)
-            => AnalyzeProjectAsync(project, forceAnalyzerRun: true, cancellationToken);
+        public Task ForceAnalyzeProjectAsync(Project project, IdeAnalyzerOptions ideOptions, CancellationToken cancellationToken)
+            => AnalyzeProjectAsync(project, ideOptions, forceAnalyzerRun: true, cancellationToken);
 
-        private async Task AnalyzeProjectAsync(Project project, bool forceAnalyzerRun, CancellationToken cancellationToken)
+        private async Task AnalyzeProjectAsync(Project project, IdeAnalyzerOptions ideOptions, bool forceAnalyzerRun, CancellationToken cancellationToken)
         {
             try
             {
@@ -135,7 +135,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                                         .Where(a => !DiagnosticAnalyzerInfoCache.IsAnalyzerSuppressed(a, project) && !a.IsOpenFileOnly(options));
 
                 // get driver only with active analyzers.
-                var compilationWithAnalyzers = await AnalyzerHelper.CreateCompilationWithAnalyzersAsync(project, activeAnalyzers, includeSuppressedDiagnostics: true, cancellationToken).ConfigureAwait(false);
+                var compilationWithAnalyzers = await AnalyzerHelper.CreateCompilationWithAnalyzersAsync(project, activeAnalyzers, ideOptions, includeSuppressedDiagnostics: true, cancellationToken).ConfigureAwait(false);
 
                 var result = await GetProjectAnalysisDataAsync(compilationWithAnalyzers, project, stateSets, forceAnalyzerRun, cancellationToken).ConfigureAwait(false);
                 if (result.OldResult == null)

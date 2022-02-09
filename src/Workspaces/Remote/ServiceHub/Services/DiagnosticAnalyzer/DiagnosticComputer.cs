@@ -20,7 +20,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Remote.Diagnostics
 {
-    internal class DiagnosticComputer
+    internal sealed class DiagnosticComputer
     {
         /// <summary>
         /// Cache of <see cref="CompilationWithAnalyzers"/> and a map from analyzer IDs to <see cref="DiagnosticAnalyzer"/>s
@@ -32,11 +32,11 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
         /// NOTE: We do not re-use this cache for project analysis as it leads to significant memory increase in the OOP process,
         /// and CWT does not seem to drop entries until ForceGC happens.
         /// </summary>
-        private static readonly ConditionalWeakTable<Project, CompilationWithAnalyzersCacheEntry> s_compilationWithAnalyzersCache
-            = new ConditionalWeakTable<Project, CompilationWithAnalyzersCacheEntry>();
+        private static readonly ConditionalWeakTable<Project, CompilationWithAnalyzersCacheEntry> s_compilationWithAnalyzersCache = new();
 
         private readonly TextDocument? _document;
         private readonly Project _project;
+        private readonly IdeAnalyzerOptions _ideOptions;
         private readonly TextSpan? _span;
         private readonly AnalysisKind? _analysisKind;
         private readonly IPerformanceTrackerService? _performanceTracker;
@@ -45,12 +45,14 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
         public DiagnosticComputer(
             TextDocument? document,
             Project project,
+            IdeAnalyzerOptions ideOptions,
             TextSpan? span,
             AnalysisKind? analysisKind,
             DiagnosticAnalyzerInfoCache analyzerInfoCache)
         {
             _document = document;
             _project = project;
+            _ideOptions = ideOptions;
             _span = span;
             _analysisKind = analysisKind;
             _analyzerInfoCache = analyzerInfoCache;
@@ -67,7 +69,7 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
             CancellationToken cancellationToken)
         {
             var (compilationWithAnalyzers, analyzerToIdMap) = await GetOrCreateCompilationWithAnalyzersAsync(
-                _project, isDocumentAnalysis: _document != null, cancellationToken).ConfigureAwait(false);
+                _project, _ideOptions, isDocumentAnalysis: _document != null, cancellationToken).ConfigureAwait(false);
 
             var analyzers = GetAnalyzers(analyzerToIdMap, analyzerIds);
             if (analyzers.IsEmpty)
@@ -214,6 +216,7 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
 
         private static async Task<(CompilationWithAnalyzers compilationWithAnalyzers, BidirectionalMap<string, DiagnosticAnalyzer> analyzerToIdMap)> GetOrCreateCompilationWithAnalyzersAsync(
             Project project,
+            IdeAnalyzerOptions ideOptions,
             bool isDocumentAnalysis,
             CancellationToken cancellationToken)
         {
@@ -225,7 +228,7 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
                 if (!isDocumentAnalysis)
                 {
                     // Only use cache for document analysis.
-                    return await CreateCompilationWithAnalyzersCacheEntryAsync(project, cancellationToken).ConfigureAwait(false);
+                    return await CreateCompilationWithAnalyzersCacheEntryAsync(project, ideOptions, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (s_compilationWithAnalyzersCache.TryGetValue(project, out var data))
@@ -233,12 +236,12 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
                     return data;
                 }
 
-                data = await CreateCompilationWithAnalyzersCacheEntryAsync(project, cancellationToken).ConfigureAwait(false);
+                data = await CreateCompilationWithAnalyzersCacheEntryAsync(project, ideOptions, cancellationToken).ConfigureAwait(false);
                 return s_compilationWithAnalyzersCache.GetValue(project, _ => data);
             }
         }
 
-        private static async Task<CompilationWithAnalyzersCacheEntry> CreateCompilationWithAnalyzersCacheEntryAsync(Project project, CancellationToken cancellationToken)
+        private static async Task<CompilationWithAnalyzersCacheEntry> CreateCompilationWithAnalyzersCacheEntryAsync(Project project, IdeAnalyzerOptions ideOptions, CancellationToken cancellationToken)
         {
             // We could consider creating a service so that we don't do this repeatedly if this shows up as perf cost
             using var pooledObject = SharedPools.Default<HashSet<object>>().GetPooledObject();
@@ -261,7 +264,7 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
             }
 
             var compilationWithAnalyzers = await CreateCompilationWithAnalyzerAsync(
-                project, analyzerBuilder.ToImmutable(), cancellationToken).ConfigureAwait(false);
+                project, analyzerBuilder.ToImmutable(), ideOptions, cancellationToken).ConfigureAwait(false);
             var analyzerToIdMap = new BidirectionalMap<string, DiagnosticAnalyzer>(analyzerMapBuilder);
 
             return new CompilationWithAnalyzersCacheEntry(compilationWithAnalyzers, analyzerToIdMap);
@@ -269,6 +272,7 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
             static async Task<CompilationWithAnalyzers> CreateCompilationWithAnalyzerAsync(
                 Project project,
                 ImmutableArray<DiagnosticAnalyzer> analyzers,
+                IdeAnalyzerOptions ideOptions,
                 CancellationToken cancellationToken)
             {
                 // Always run analyzers concurrently in OOP
@@ -287,7 +291,7 @@ namespace Microsoft.CodeAnalysis.Remote.Diagnostics
                 // TODO: can we support analyzerExceptionFilter in remote host? 
                 //       right now, host doesn't support watson, we might try to use new NonFatal watson API?
                 var analyzerOptions = new CompilationWithAnalyzersOptions(
-                    options: new WorkspaceAnalyzerOptions(project.AnalyzerOptions, project.Solution),
+                    options: new WorkspaceAnalyzerOptions(project.AnalyzerOptions, ideOptions, project.Solution),
                     onAnalyzerException: null,
                     analyzerExceptionFilter: null,
                     concurrentAnalysis: concurrentAnalysis,

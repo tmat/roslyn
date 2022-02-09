@@ -186,10 +186,11 @@ namespace AnalyzerRunner
             var stopwatch = PerformanceTracker.StartNew();
             for (int i = 0; i < analyzerOptionsInternal.TestDocumentIterations; i++)
             {
-                var workspaceAnalyzerOptions = new WorkspaceAnalyzerOptions(project.AnalyzerOptions, project.Solution);
-                CompilationWithAnalyzers compilationWithAnalyzers = compilation.WithAnalyzers(languageAnalyzers, new CompilationWithAnalyzersOptions(workspaceAnalyzerOptions, null, analyzerOptionsInternal.RunConcurrent, logAnalyzerExecutionTime: true, reportSuppressedDiagnostics: analyzerOptionsInternal.ReportSuppressedDiagnostics));
+                var ideOptions = IdeAnalyzerOptions.CodeStyleDefault;
+                var workspaceAnalyzerOptions = new WorkspaceAnalyzerOptions(project.AnalyzerOptions, ideOptions, project.Solution);
+                var compilationWithAnalyzers = compilation.WithAnalyzers(languageAnalyzers, new CompilationWithAnalyzersOptions(workspaceAnalyzerOptions, null, analyzerOptionsInternal.RunConcurrent, logAnalyzerExecutionTime: true, reportSuppressedDiagnostics: analyzerOptionsInternal.ReportSuppressedDiagnostics));
 
-                SyntaxTree tree = await project.GetDocument(documentId).GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+                var tree = await project.GetDocument(documentId).GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
                 await compilationWithAnalyzers.GetAnalyzerSyntaxDiagnosticsAsync(tree, cancellationToken).ConfigureAwait(false);
                 await compilationWithAnalyzers.GetAnalyzerSemanticDiagnosticsAsync(compilation.GetSemanticModel(tree), null, cancellationToken).ConfigureAwait(false);
             }
@@ -390,10 +391,11 @@ namespace AnalyzerRunner
 
             try
             {
-                Compilation compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+                var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
                 var newCompilation = compilation.RemoveAllSyntaxTrees().AddSyntaxTrees(compilation.SyntaxTrees);
 
-                var workspaceAnalyzerOptions = new WorkspaceAnalyzerOptions(project.AnalyzerOptions, project.Solution);
+                var ideOptions = IdeAnalyzerOptions.CodeStyleDefault;
+                var workspaceAnalyzerOptions = new WorkspaceAnalyzerOptions(project.AnalyzerOptions, ideOptions, project.Solution);
                 CompilationWithAnalyzers compilationWithAnalyzers = newCompilation.WithAnalyzers(analyzers, new CompilationWithAnalyzersOptions(workspaceAnalyzerOptions, null, analyzerOptionsInternal.RunConcurrent, logAnalyzerExecutionTime: true, reportSuppressedDiagnostics: analyzerOptionsInternal.ReportSuppressedDiagnostics));
                 var analystResult = await compilationWithAnalyzers.GetAnalysisResultAsync(cancellationToken).ConfigureAwait(false);
                 return analystResult;

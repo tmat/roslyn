@@ -13,13 +13,6 @@ namespace Microsoft.CodeAnalysis.Features.EmbeddedLanguages.RegularExpressions.L
 {
     internal class RegularExpressionsOptions
     {
-        public static PerLanguageOption2<bool> ReportInvalidRegexPatterns =
-            new(
-                nameof(RegularExpressionsOptions),
-                nameof(ReportInvalidRegexPatterns),
-                defaultValue: true,
-                storageLocation: new RoamingProfileStorageLocation("TextEditor.%LANGUAGE%.Specific.ReportInvalidRegexPatterns"));
-
         public static PerLanguageOption2<bool> HighlightRelatedRegexComponentsUnderCursor =
             new(
                 nameof(RegularExpressionsOptions),
@@ -38,7 +31,6 @@ namespace Microsoft.CodeAnalysis.Features.EmbeddedLanguages.RegularExpressions.L
         }
 
         public ImmutableArray<IOption> Options { get; } = ImmutableArray.Create<IOption>(
-            RegularExpressionsOptions.ReportInvalidRegexPatterns,
             RegularExpressionsOptions.HighlightRelatedRegexComponentsUnderCursor);
     }
 }

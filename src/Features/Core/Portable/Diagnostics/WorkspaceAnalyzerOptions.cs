@@ -19,28 +19,16 @@ namespace Microsoft.CodeAnalysis.Diagnostics
     /// </summary>
     internal sealed class WorkspaceAnalyzerOptions : AnalyzerOptions
     {
+        public IdeAnalyzerOptions IdeOptions { get; }
+
         private readonly Solution _solution;
 
-        // IDE options for each encountered language
-        private ImmutableDictionary<string, IdeAnalyzerOptions> _ideOptionsCache;
-
-        public WorkspaceAnalyzerOptions(AnalyzerOptions options, Solution solution)
+        public WorkspaceAnalyzerOptions(AnalyzerOptions options, IdeAnalyzerOptions ideOptions, Solution solution)
             : base(options.AdditionalFiles, options.AnalyzerConfigOptionsProvider)
         {
+            IdeOptions = ideOptions;
             _solution = solution;
-            _ideOptionsCache = ImmutableDictionary<string, IdeAnalyzerOptions>.Empty;
         }
-
-        public IdeAnalyzerOptions GetIdeOptions(string language)
-            => ImmutableInterlocked.GetOrAdd(
-                ref _ideOptionsCache,
-                language,
-                static (language, solution) => new IdeAnalyzerOptions(
-                    FadeOutUnusedImports: solution.Options.GetOption(Fading.FadingOptions.Metadata.FadeOutUnusedImports, language),
-                    FadeOutUnreachableCode: solution.Options.GetOption(Fading.FadingOptions.Metadata.FadeOutUnusedImports, language),
-                    ReportInvalidPlaceholdersInStringDotFormatCalls: solution.Options.GetOption(ValidateFormatString.ValidateFormatStringOption.ReportInvalidPlaceholdersInStringDotFormatCalls, language),
-                    ReportInvalidRegexPatterns: solution.Options.GetOption(Features.EmbeddedLanguages.RegularExpressions.LanguageServices.RegularExpressionsOptions.ReportInvalidRegexPatterns, language)),
-                _solution);
 
         public HostWorkspaceServices Services => _solution.Workspace.Services;
 

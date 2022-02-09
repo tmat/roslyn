@@ -78,8 +78,8 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                         forceExecuteAllAnalyzers, logPerformanceInfo, getTelemetryInfo, cancellationToken).ConfigureAwait(false);
                 }
 
-                return await AnalyzeInProcAsync(documentAnalysisScope, project, compilationWithAnalyzers,
-                    client: null, logPerformanceInfo, getTelemetryInfo, cancellationToken).ConfigureAwait(false);
+                return await AnalyzeInProcAsync(documentAnalysisScope, project, compilationWithAnalyzers, client: null,
+                    logPerformanceInfo, getTelemetryInfo, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -173,7 +173,10 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 return DiagnosticAnalysisResultMap<DiagnosticAnalyzer, DiagnosticAnalysisResult>.Empty;
             }
 
-            var argument = new DiagnosticArguments(
+            Contract.ThrowIfNull(compilationWithAnalyzers.AnalysisOptions.Options);
+            var analyzerOptions = (WorkspaceAnalyzerOptions)compilationWithAnalyzers.AnalysisOptions.Options;
+
+            var arguments = new DiagnosticArguments(
                 compilationWithAnalyzers.AnalysisOptions.ReportSuppressedDiagnostics,
                 logPerformanceInfo,
                 getTelemetryInfo,
@@ -181,11 +184,12 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 documentAnalysisScope?.Span,
                 documentAnalysisScope?.Kind,
                 project.Id,
-                analyzerMap.Keys.ToArray());
+                analyzerMap.Keys.ToImmutableArray(),
+                analyzerOptions.IdeOptions);
 
             var result = await client.TryInvokeAsync<IRemoteDiagnosticAnalyzerService, SerializableDiagnosticAnalysisResults>(
                 solution,
-                invocation: (service, solutionInfo, cancellationToken) => service.CalculateDiagnosticsAsync(solutionInfo, argument, cancellationToken),
+                invocation: (service, solutionInfo, cancellationToken) => service.CalculateDiagnosticsAsync(solutionInfo, arguments, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
 
             if (!result.HasValue)

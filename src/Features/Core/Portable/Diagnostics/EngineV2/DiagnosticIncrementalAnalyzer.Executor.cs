@@ -236,8 +236,12 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                     // if we reduced to 0, we just pass in null for analyzer drvier. it could be reduced to 0
                     // since we might have up to date results for analyzers from compiler but not for 
                     // workspace analyzers.
+                    Contract.ThrowIfNull(compilationWithAnalyzers.AnalysisOptions.Options);
+
+                    var analyzerOptions = (WorkspaceAnalyzerOptions)compilationWithAnalyzers.AnalysisOptions.Options;
+
                     var compilationWithReducedAnalyzers = (analyzersToRun.Length == 0) ? null :
-                        await AnalyzerHelper.CreateCompilationWithAnalyzersAsync(project, analyzersToRun, compilationWithAnalyzers.AnalysisOptions.ReportSuppressedDiagnostics, cancellationToken).ConfigureAwait(false);
+                        await AnalyzerHelper.CreateCompilationWithAnalyzersAsync(project, analyzersToRun, analyzerOptions.IdeOptions, compilationWithAnalyzers.AnalysisOptions.ReportSuppressedDiagnostics, cancellationToken).ConfigureAwait(false);
 
                     var result = await ComputeDiagnosticsAsync(compilationWithReducedAnalyzers, project, ideAnalyzers, forcedAnalysis, cancellationToken).ConfigureAwait(false);
                     return MergeExistingDiagnostics(version, existing, result);
