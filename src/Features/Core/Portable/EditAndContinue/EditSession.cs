@@ -171,6 +171,20 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var descriptor = EditAndContinueDiagnosticDescriptors.GetModuleDiagnosticDescriptor(availability.Status);
             var messageArgs = new[] { newProject.Name, availability.LocalizedMessage };
 
+            return await GetDiagnosticsForChangedLocationsAsync(descriptor, messageArgs, oldProject, newProject, documentAnalyses, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Creates diagnostic for each changed location.
+        /// </summary>
+        private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsForChangedLocationsAsync(
+            DiagnosticDescriptor descriptor,
+            string?[] messageArgs,
+            Project oldProject,
+            Project newProject,
+            ImmutableArray<DocumentAnalysisResults> documentAnalyses,
+            CancellationToken cancellationToken)
+        {
             using var _ = ArrayBuilder<Diagnostic>.GetInstance(out var diagnostics);
 
             await foreach (var location in CreateChangedLocationsAsync(oldProject, newProject, documentAnalyses, cancellationToken).ConfigureAwait(false))
@@ -779,7 +793,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 var hasEmitErrors = false;
                 foreach (var newProject in solution.Projects)
                 {
-                    var oldProject = oldSolution.GetProject(newProject.Id);
+                    var oldProject = oldSolution.GetOrCommitFullyLoadedProject(newProject);
                     if (oldProject == null)
                     {
                         EditAndContinueWorkspaceService.Log.Write("EnC state of '{0}' queried: project not loaded", newProject.FilePath);
@@ -798,6 +812,10 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         continue;
                     }
 
+                    // Determine all documents that changed between the old snapshot and the new one.
+                    // This set might include documents that have actually not changed when compared to the baseline metadata (using PDB checksums).
+                    // These false positives might be caused by the project being partially loaded (design-time build incomplete) and will be filtered out
+                    // later on when we check the content of the document against the PDB checksum.
                     await PopulateChangedAndAddedDocumentsAsync(oldProject, newProject, changedOrAddedDocuments, cancellationToken).ConfigureAwait(false);
                     if (changedOrAddedDocuments.IsEmpty())
                     {
@@ -877,7 +895,38 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         isBlocked = true;
                     }
 
-                    if (projectSummary == ProjectAnalysisSummary.CompilationErrors)
+                    // If design-time build of the new project is incomplete or failed we do not have complete information to emit a delta and the project summary might not be accurate.
+                    // Hence do not report compilation errors or rude edits and instead report a more explanatory error message.
+                    if (!newProject.State.HasAllInformation)
+                    {
+                        EditAndContinueWorkspaceService.Log.Write("Project not fully loaded: '{0}'", newProject.FilePath);
+
+                        // If the debugger already blocks EnC for the module the state of the project is irrelevant.
+                        if (!isModuleEncBlocked)
+                        {
+                            var descriptor = EditAndContinueDiagnosticDescriptors.GetDescriptor(EditAndContinueErrorCode.ProjectDesignTimeBuildIncompleteOrFailed);
+
+                            var projectDiagnostics = await GetDiagnosticsForChangedLocationsAsync(
+                                descriptor,
+                                messageArgs: new[] { newProject.Name },
+                                oldProject,
+                                newProject,
+                                changedDocumentAnalyses,
+                                cancellationToken).ConfigureAwait(false);
+
+                            diagnostics.Add((newProject.Id, projectDiagnostics));
+
+                            Telemetry.LogProjectAnalysisSummary(projectSummary, newProject.State.ProjectInfo.Attributes.TelemetryId, ImmutableArray.Create(descriptor.Id));
+                            isBlocked = true;
+
+                            // TODO: Report as an emit error, i.e. an error that can't be fixed by restarting the app (the project might still not be loaded when the app is restarted).
+                            // Consider adding another ManagedModuleUpdateStatus code to indicate an intermittent issue. See https://github.com/dotnet/roslyn/issues/62491
+                            hasEmitErrors = true;
+
+                            continue;
+                        }
+                    }
+                    else if (projectSummary == ProjectAnalysisSummary.CompilationErrors)
                     {
                         // only remember the first syntax error we encounter:
                         syntaxError ??= changedDocumentAnalyses.FirstOrDefault(a => a.SyntaxError != null)?.SyntaxError;

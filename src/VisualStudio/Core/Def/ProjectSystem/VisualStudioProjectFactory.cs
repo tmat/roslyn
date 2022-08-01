@@ -112,7 +112,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                         filePath: creationInfo.FilePath,
                         compilationOptions: creationInfo.CompilationOptions,
                         parseOptions: creationInfo.ParseOptions)
-                    .WithTelemetryId(creationInfo.ProjectGuid);
+                    .WithTelemetryId(creationInfo.ProjectGuid)
+                    .WithHasAllInformation(false);
 
                 // If we don't have any projects and this is our first project being added, then we'll create a new SolutionId
                 if (w.CurrentSolution.ProjectIds.Count == 0)

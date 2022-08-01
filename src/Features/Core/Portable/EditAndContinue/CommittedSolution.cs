@@ -131,6 +131,41 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             => _solution.ContainsDocument(documentId);
 
         /// <summary>
+        /// If the committed project with <see cref="Project.Id"/> of <paramref name="currentProject"/> is fully loaded returns that project,
+        /// otherwise if <paramref name="currentProject"/> is fully loaded substitutes the committed project in the 
+        /// underlying solution with <paramref name="currentProject"/> and returns this committed project in the updated
+        /// solution snapshot.
+        /// </summary>
+        /// <remarks>
+        /// When the debugging session starts the committed solution is the snapshot at the time.
+        /// This snapshot might contain projects that are not fully loaded (design-time build has not finished).
+        /// EnC analysis comparing changes of <paramref name="currentProject"/> against the corresponding committed project that is not fully loaded
+        /// is imprecise since the base project might be missing files. If the <paramref name="currentProject"/> is fully loaded
+        /// we replace the committed project with this project, so that next 
+        /// </remarks>
+        public Project? GetOrCommitFullyLoadedProject(Project currentProject)
+        {
+            var projectId = currentProject.Id;
+            var project = _solution.GetProject(projectId);
+            if (project == null || project.State.HasAllInformation || !currentProject.State.HasAllInformation)
+            {
+                return project;
+            }
+
+            lock (_guard)
+            {
+                project = _solution.GetProject(projectId);
+                if (project == null || project.State.HasAllInformation)
+                {
+                    return project;
+                }
+
+                _solution = _solution.RemoveProject(projectId).AddProject(currentProject.State.ProjectInfo);
+                return _solution.GetRequiredProject(projectId);
+            }
+        }
+
+        /// <summary>
         /// Observes the content of the specified document checks if it matches the PDB.
         /// </summary>
         /// <remarks>

@@ -24,6 +24,7 @@ using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.ExternalAccess.UnitTesting.Api;
 using Microsoft.CodeAnalysis.ExternalAccess.Watch.Api;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.UnitTests;
@@ -594,6 +595,90 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             Assert.Equal(ManagedModuleUpdateStatus.None, updates.Status);
             Assert.Empty(updates.Updates);
             Assert.Empty(emitDiagnostics);
+
+            EndDebuggingSession(debuggingSession);
+        }
+
+        [Theory]
+        [CombinatorialData]
+        public async Task ProjectPartiallyLoaded(bool moduleEncAllowed)
+        {
+            var sourceA1 = "class A { public static void M() { System.Console.WriteLine(1); } }";
+            var sourceA2 = "class A { public static void M() { System.Console.WriteLine(2); } }";
+            var sourceB = "class B {}";
+
+            var sourceFileA = Temp.CreateFile().WriteAllText(sourceA1);
+            var sourceFileB = Temp.CreateFile().WriteAllText(sourceB);
+
+            using var _ = CreateWorkspace(out var solution, out var service);
+
+            var documentA = solution.
+                AddProject("test_proj", "test", LanguageNames.CSharp).
+                AddMetadataReferences(TargetFrameworkUtil.GetReferences(TargetFramework.Mscorlib40)).
+                AddDocument("A.cs", SourceText.From(sourceA1, Encoding.UTF8), filePath: sourceFileA.Path);
+
+            var projectId = documentA.Project.Id;
+
+            // evaluation only adds source file A:
+            solution = documentA.Project.Solution.WithHasAllInformation(projectId, false);
+
+            // All source files are compiled to the library:
+            var moduleId = EmitLibrary(new[] { (sourceA1, sourceFileA.Path), (sourceB, sourceFileB.Path) });
+
+            var availability = moduleEncAllowed ?
+                new ManagedHotReloadAvailability(ManagedHotReloadAvailabilityStatus.Available) :
+                new ManagedHotReloadAvailability(ManagedHotReloadAvailabilityStatus.NotAllowedForRuntime, "*message*");
+
+            LoadLibraryToDebuggee(moduleId, availability);
+
+            var debuggingSession = await StartDebuggingSessionAsync(service, solution);
+            EnterBreakState(debuggingSession);
+
+            // Project System adds file B:
+            solution = solution.GetRequiredProject(projectId).AddDocument("B.cs", SourceText.From(sourceB, Encoding.UTF8), filePath: sourceFileB.Path).Project.Solution;
+
+            // no actual changes have been made:
+            var (updates2, emitDiagnostics2) = await EmitSolutionUpdateAsync(debuggingSession, solution);
+            Assert.Equal(ManagedModuleUpdateStatus.None, updates2.Status);
+            Assert.Empty(emitDiagnostics2);
+
+            // an actual update to A:
+            solution = solution.WithDocumentText(documentA.Id, SourceText.From(sourceA2, Encoding.UTF8));
+
+            // can't apply an actual change before design-time build is complete:
+            var (updates3, emitDiagnostics3) = await EmitSolutionUpdateAsync(debuggingSession, solution);
+
+            if (moduleEncAllowed)
+            {
+                Assert.Equal(ManagedModuleUpdateStatus.Blocked, updates3.Status);
+                AssertEx.Equal(new[] { $"{sourceFileA.Path}: (0,0)-(0,67): Error ENC1008: {string.Format(FeaturesResources.ProjectChangesCantBeAppliedUntilFullyLoaded, "test_proj")}" }, InspectDiagnostics(emitDiagnostics3));
+            }
+            else
+            {
+                Assert.Equal(ManagedModuleUpdateStatus.RestartRequired, updates3.Status);
+                AssertEx.Equal(new[] { $"{sourceFileA.Path}: (0,0)-(0,67): Error ENC2016: {string.Format(FeaturesResources.EditAndContinueDisallowedByProject, "test_proj", "*message*")}" }, InspectDiagnostics(emitDiagnostics3));
+            }
+
+            // Project System completes design-time build:
+            solution = solution.WithHasAllInformation(projectId, true);
+
+            // no actual changes have been made:
+            var (updates4, emitDiagnostics4) = await EmitSolutionUpdateAsync(debuggingSession, solution);
+
+            if (moduleEncAllowed)
+            {
+                Assert.Equal(ManagedModuleUpdateStatus.Ready, updates4.Status);
+                Assert.Empty(emitDiagnostics4);
+
+                debuggingSession.DiscardSolutionUpdate();
+            }
+            else
+            {
+                Assert.Equal(ManagedModuleUpdateStatus.RestartRequired, updates3.Status);
+                AssertEx.Equal(new[] { $"{sourceFileA.Path}: (0,0)-(0,67): Error ENC2016: {string.Format(FeaturesResources.EditAndContinueDisallowedByProject, "test_proj", "*message*")}" }, InspectDiagnostics(emitDiagnostics3));
+            }
+
+            ExitBreakState(debuggingSession);
 
             EndDebuggingSession(debuggingSession);
         }
