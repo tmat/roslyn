@@ -32,6 +32,9 @@ namespace Microsoft.CodeAnalysis.Text
             UnderlyingSpan = span;
         }
 
+        public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => new SubText(UnderlyingText.WithChecksumAlgorithm(checksumAlgorithm), UnderlyingSpan);
+
         public override Encoding? Encoding => UnderlyingText.Encoding;
 
         public SourceText UnderlyingText { get; }

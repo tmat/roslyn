@@ -22,6 +22,9 @@ namespace Roslyn.Test.Utilities.Syntax
             }
         }
 
+        public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => throw new NotImplementedException();
+
         public override char this[int position] => _buffer[position % _buffer.Length];
 
         public override Encoding Encoding => Encoding.UTF8;

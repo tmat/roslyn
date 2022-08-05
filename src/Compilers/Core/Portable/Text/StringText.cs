@@ -99,5 +99,8 @@ namespace Microsoft.CodeAnalysis.Text
                 base.Write(textWriter, span, cancellationToken);
             }
         }
+
+        public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => new StringText(_source, _encodingOpt, checksum: default, checksumAlgorithm, embeddedTextBlob: default);
     }
 }

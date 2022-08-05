@@ -30,6 +30,9 @@ namespace Microsoft.CodeAnalysis.Text
             _encodingOpt = encodingOpt;
         }
 
+        public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => new StringBuilderText(_builder, _encodingOpt, checksumAlgorithm);
+
         public override Encoding? Encoding
         {
             get { return _encodingOpt; }

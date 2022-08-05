@@ -32,29 +32,25 @@ namespace Microsoft.CodeAnalysis.Text
             public readonly ITextImage TextImage;
 
             private readonly ITextBufferCloneService? _textBufferCloneService;
-
             private readonly Encoding? _encoding;
             private readonly TextBufferContainer? _container;
 
             private SnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextSnapshot editorSnapshot, TextBufferContainer container)
+                : this(textBufferCloneService, RecordReverseMapAndGetImage(editorSnapshot), editorSnapshot.TextBuffer.GetEncodingOrUTF8(), SourceHashAlgorithms.Default, container)
             {
-                Contract.ThrowIfNull(editorSnapshot);
-
-                _textBufferCloneService = textBufferCloneService;
-                this.TextImage = RecordReverseMapAndGetImage(editorSnapshot);
-                _encoding = editorSnapshot.TextBuffer.GetEncodingOrUTF8();
-                _container = container;
             }
 
-            public SnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextImage textImage, Encoding? encoding, TextBufferContainer? container)
+            public SnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextImage textImage, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, TextBufferContainer? container)
+                : base(checksumAlgorithm: checksumAlgorithm)
             {
-                Contract.ThrowIfNull(textImage);
-
+                TextImage = textImage;
                 _textBufferCloneService = textBufferCloneService;
-                this.TextImage = textImage;
                 _encoding = encoding;
                 _container = container;
             }
+
+            public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+                => new SnapshotSourceText(_textBufferCloneService, TextImage, _encoding, checksumAlgorithm, _container);
 
             /// <summary>
             /// A weak map of all Editor ITextSnapshots and their associated SourceText
@@ -263,26 +259,32 @@ namespace Microsoft.CodeAnalysis.Text
             /// </summary>
             internal sealed class ClosedSnapshotSourceText : SnapshotSourceText
             {
-                public ClosedSnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextImage textImage, Encoding? encoding)
-                    : base(textBufferCloneService, textImage, encoding, container: null)
+                public ClosedSnapshotSourceText(ITextBufferCloneService? textBufferCloneService, ITextImage textImage, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm)
+                    : base(textBufferCloneService, textImage, encoding, checksumAlgorithm, container: null)
                 {
                 }
+
+                public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+                    => new ClosedSnapshotSourceText(_textBufferCloneService, TextImage, _encoding, checksumAlgorithm);
             }
 
             /// <summary>
             /// Perf: Optimize calls to GetChangeRanges after WithChanges by using editor snapshots
             /// </summary>
-            private class ChangedSourceText : SnapshotSourceText
+            private sealed class ChangedSourceText : SnapshotSourceText
             {
                 private readonly SnapshotSourceText _baseText;
                 private readonly ITextImage _baseSnapshot;
 
                 public ChangedSourceText(ITextBufferCloneService? textBufferCloneService, SnapshotSourceText baseText, ITextImage baseSnapshot, ITextImage currentSnapshot)
-                    : base(textBufferCloneService, currentSnapshot, baseText.Encoding, container: null)
+                    : base(textBufferCloneService, currentSnapshot, baseText.Encoding, baseText.ChecksumAlgorithm, container: null)
                 {
                     _baseText = baseText;
                     _baseSnapshot = baseSnapshot;
                 }
+
+                public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+                    => new ChangedSourceText(_textBufferCloneService, (SnapshotSourceText)_baseText.WithChecksumAlgorithm(checksumAlgorithm), _baseSnapshot, TextImage);
 
                 public override IReadOnlyList<TextChangeRange> GetChangeRanges(SourceText oldText)
                 {

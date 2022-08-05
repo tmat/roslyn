@@ -17,8 +17,15 @@ namespace Microsoft.CodeAnalysis.Text
         private readonly SourceText _newText;
         private readonly ChangeInfo _info;
 
+        private ChangedText(SourceText newText, ChangeInfo info)
+            : base(checksumAlgorithm: newText.ChecksumAlgorithm)
+        {
+            _newText = newText;
+            _info = info;
+        }
+
         public ChangedText(SourceText oldText, SourceText newText, ImmutableArray<TextChangeRange> changeRanges)
-            : base(checksumAlgorithm: oldText.ChecksumAlgorithm)
+            : base(checksumAlgorithm: newText.ChecksumAlgorithm)
         {
             RoslynDebug.Assert(newText != null);
             Debug.Assert(newText is CompositeText || newText is SubText || newText is StringText || newText is LargeText);
@@ -166,6 +173,9 @@ namespace Microsoft.CodeAnalysis.Text
                 return this;
             }
         }
+
+        internal override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => new ChangedText(_newText.WithChecksumAlgorithm(checksumAlgorithm), _info);
 
         public override IReadOnlyList<TextChangeRange> GetChangeRanges(SourceText oldText)
         {

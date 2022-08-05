@@ -10,6 +10,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 using System.Diagnostics;
+using Microsoft.CodeAnalysis.Shared.Collections;
 
 namespace Microsoft.CodeAnalysis.Text
 {
@@ -25,31 +26,49 @@ namespace Microsoft.CodeAnalysis.Text
         internal const int ChunkSize = SourceText.LargeObjectHeapLimitInChars; // 40K Unicode chars is 80KB which is less than the large object heap limit.
 
         private readonly ImmutableArray<char[]> _chunks;
-        private readonly int[] _chunkStartOffsets;
+        private readonly ImmutableArray<int> _chunkStartOffsets;
         private readonly int _length;
-        private readonly Encoding? _encodingOpt;
+        private readonly Encoding? _encoding;
 
-        internal LargeText(ImmutableArray<char[]> chunks, Encoding? encodingOpt, ImmutableArray<byte> checksum, SourceHashAlgorithm checksumAlgorithm, ImmutableArray<byte> embeddedTextBlob)
+        private LargeText(ImmutableArray<char[]> chunks, ImmutableArray<int> chunkStartOffsets, int length, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, ImmutableArray<byte> checksum, ImmutableArray<byte> embeddedTextBlob)
             : base(checksum, checksumAlgorithm, embeddedTextBlob)
         {
             _chunks = chunks;
-            _encodingOpt = encodingOpt;
-            _chunkStartOffsets = new int[chunks.Length];
+            _chunkStartOffsets = chunkStartOffsets;
+            _length = length;
+            _encoding = encoding;
+        }
+
+        internal LargeText(ImmutableArray<char[]> chunks, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, ImmutableArray<byte> checksum, ImmutableArray<byte> embeddedTextBlob)
+            : base(checksum, checksumAlgorithm, embeddedTextBlob)
+        {
+            _chunks = chunks;
+            _encoding = encoding;
+            CalculateChunkStartOffsets(chunks, out _chunkStartOffsets, out _length);
+        }
+
+        internal LargeText(ImmutableArray<char[]> chunks, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm)
+            : this(chunks, encoding, checksumAlgorithm, checksum: default, embeddedTextBlob: default)
+        {
+        }
+
+        private static void CalculateChunkStartOffsets(ImmutableArray<char[]> chunks, out ImmutableArray<int> chunkStartOffsets, out int length)
+        {
+            var builder = ImmutableArray.CreateBuilder<int>(chunks.Length);
 
             int offset = 0;
             for (int i = 0; i < chunks.Length; i++)
             {
-                _chunkStartOffsets[i] = offset;
+                builder.Add(offset);
                 offset += chunks[i].Length;
             }
 
-            _length = offset;
+            length = offset;
+            chunkStartOffsets = builder.MoveToImmutable();
         }
 
-        internal LargeText(ImmutableArray<char[]> chunks, Encoding? encodingOpt, SourceHashAlgorithm checksumAlgorithm)
-            : this(chunks, encodingOpt, default(ImmutableArray<byte>), checksumAlgorithm, default(ImmutableArray<byte>))
-        {
-        }
+        public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => new LargeText(_chunks, _chunkStartOffsets, _length, _encoding, checksumAlgorithm, checksum: default, embeddedTextBlob: default);
 
         internal static SourceText Decode(Stream stream, Encoding encoding, SourceHashAlgorithm checksumAlgorithm, bool throwIfBinaryDetected, bool canBeEmbedded)
         {
@@ -148,7 +167,7 @@ namespace Microsoft.CodeAnalysis.Text
             }
         }
 
-        public override Encoding? Encoding => _encodingOpt;
+        public override Encoding? Encoding => _encoding;
 
         public override int Length => _length;
 

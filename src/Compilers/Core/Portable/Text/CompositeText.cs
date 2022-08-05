@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.CodeAnalysis.Shared.Collections;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Text
@@ -22,8 +23,20 @@ namespace Microsoft.CodeAnalysis.Text
         private readonly ImmutableArray<SourceText> _segments;
         private readonly int _length;
         private readonly int _storageSize;
-        private readonly int[] _segmentOffsets;
+        private readonly ImmutableArray<int> _segmentOffsets;
         private readonly Encoding? _encoding;
+
+        private CompositeText(ImmutableArray<SourceText> segments, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, int length, int storageSize, ImmutableArray<int> segmentOffsets)
+            : base(checksumAlgorithm: checksumAlgorithm)
+        {
+            Debug.Assert(!segments.IsDefaultOrEmpty);
+
+            _segments = segments;
+            _encoding = encoding;
+            _length = length;
+            _storageSize = storageSize;
+            _segmentOffsets = segmentOffsets;
+        }
 
         private CompositeText(ImmutableArray<SourceText> segments, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm)
             : base(checksumAlgorithm: checksumAlgorithm)
@@ -34,15 +47,25 @@ namespace Microsoft.CodeAnalysis.Text
             _encoding = encoding;
 
             ComputeLengthAndStorageSize(segments, out _length, out _storageSize);
-
-            _segmentOffsets = new int[segments.Length];
-            int offset = 0;
-            for (int i = 0; i < _segmentOffsets.Length; i++)
-            {
-                _segmentOffsets[i] = offset;
-                offset += _segments[i].Length;
-            }
+            _segmentOffsets = CalculateSegmentOffsets(segments);
         }
+
+        private static ImmutableArray<int> CalculateSegmentOffsets(ImmutableArray<SourceText> segments)
+        {
+            var builder = ImmutableArray.CreateBuilder<int?>(segments.Length);
+
+            int offset = 0;
+            for (int i = 0; i < segments.Length; i++)
+            {
+                builder.Add(offset);
+                offset += segments[i].Length;
+            }
+
+            return builder.MoveToImmutable();
+        }
+
+        public override SourceText WithChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
+            => new CompositeText(_segments, _encoding, checksumAlgorithm, _length, _storageSize, _segmentOffsets);
 
         public override Encoding? Encoding
         {
