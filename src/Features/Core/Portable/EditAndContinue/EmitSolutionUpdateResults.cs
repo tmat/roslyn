@@ -22,7 +22,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         internal readonly struct Data
         {
             [DataMember(Order = 0)]
-            public readonly ModuleUpdates ModuleUpdates;
+            public readonly ManagedModuleUpdates ModuleUpdates;
 
             [DataMember(Order = 1)]
             public readonly ImmutableArray<DiagnosticData> Diagnostics;
@@ -34,7 +34,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             public readonly DiagnosticData? SyntaxError;
 
             public Data(
-                ModuleUpdates moduleUpdates,
+                ManagedModuleUpdates moduleUpdates,
                 ImmutableArray<DiagnosticData> diagnostics,
                 ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)> rudeEdits,
                 DiagnosticData? syntaxError)
@@ -47,18 +47,18 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         }
 
         public static readonly EmitSolutionUpdateResults Empty =
-            new(moduleUpdates: new ModuleUpdates(ModuleUpdateStatus.None, ImmutableArray<ModuleUpdate>.Empty),
+            new(moduleUpdates: new ManagedModuleUpdates(ManagedModuleUpdateStatus.None, ImmutableArray<ManagedModuleUpdate>.Empty),
                 diagnostics: ImmutableArray<(ProjectId, ImmutableArray<Diagnostic>)>.Empty,
                 documentsWithRudeEdits: ImmutableArray<(DocumentId, ImmutableArray<RudeEditDiagnostic>)>.Empty,
                 syntaxError: null);
 
-        public readonly ModuleUpdates ModuleUpdates;
+        public readonly ManagedModuleUpdates ModuleUpdates;
         public readonly ImmutableArray<(ProjectId ProjectId, ImmutableArray<Diagnostic> Diagnostics)> Diagnostics;
         public readonly ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)> RudeEdits;
         public readonly Diagnostic? SyntaxError;
 
         public EmitSolutionUpdateResults(
-            ModuleUpdates moduleUpdates,
+            ManagedModuleUpdates moduleUpdates,
             ImmutableArray<(ProjectId ProjectId, ImmutableArray<Diagnostic> Diagnostic)> diagnostics,
             ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)> documentsWithRudeEdits,
             Diagnostic? syntaxError)
@@ -133,7 +133,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             ImmutableArray<DiagnosticData> diagnosticData,
             ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)> rudeEdits,
             DiagnosticData? syntaxError,
-            ModuleUpdateStatus updateStatus,
             CancellationToken cancellationToken)
         {
             using var _ = ArrayBuilder<ManagedHotReloadDiagnostic>.GetInstance(out var builder);
@@ -154,9 +153,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 builder.Add(new ManagedHotReloadDiagnostic(
                     data.Id,
                     data.Message ?? FeaturesResources.Unknown_error_occurred,
-                    (updateStatus == ModuleUpdateStatus.RestartRequired) ?
-                        ManagedHotReloadDiagnosticSeverity.RestartRequired :
-                        ManagedHotReloadDiagnosticSeverity.Error,
+                    ManagedHotReloadDiagnosticSeverity.Error,
                     fileSpan?.Path ?? "",
                     fileSpan?.Span.ToSourceSpan() ?? default));
 

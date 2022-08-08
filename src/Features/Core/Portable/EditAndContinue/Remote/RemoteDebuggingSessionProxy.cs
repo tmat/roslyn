@@ -94,7 +94,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         }
 
         public async ValueTask<(
-                ModuleUpdates updates,
+                ManagedModuleUpdates updates,
                 ImmutableArray<DiagnosticData> diagnostics,
                 ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)> rudeEdits,
                 DiagnosticData? syntaxError)> EmitSolutionUpdateAsync(
@@ -104,7 +104,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             EditAndContinueDiagnosticUpdateSource diagnosticUpdateSource,
             CancellationToken cancellationToken)
         {
-            ModuleUpdates moduleUpdates;
+            ManagedModuleUpdates moduleUpdates;
             ImmutableArray<DiagnosticData> diagnosticData;
             ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)> rudeEdits;
             DiagnosticData? syntaxError;
@@ -137,7 +137,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     }
                     else
                     {
-                        moduleUpdates = new ModuleUpdates(ModuleUpdateStatus.RestartRequired, ImmutableArray<ModuleUpdate>.Empty);
+                        moduleUpdates = new ManagedModuleUpdates(ManagedModuleUpdateStatus.RestartRequired, ImmutableArray<ManagedModuleUpdate>.Empty);
                         diagnosticData = ImmutableArray<DiagnosticData>.Empty;
                         rudeEdits = ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)>.Empty;
                         syntaxError = null;
@@ -155,7 +155,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
                 diagnosticData = ImmutableArray.Create(DiagnosticData.Create(diagnostic, project: null));
                 rudeEdits = ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)>.Empty;
-                moduleUpdates = new ModuleUpdates(ModuleUpdateStatus.RestartRequired, ImmutableArray<ModuleUpdate>.Empty);
+                moduleUpdates = new ManagedModuleUpdates(ManagedModuleUpdateStatus.RestartRequired, ImmutableArray<ManagedModuleUpdate>.Empty);
                 syntaxError = null;
             }
 

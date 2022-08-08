@@ -9,7 +9,8 @@ using Microsoft.VisualStudio.Debugger.Contracts.HotReload;
 namespace Microsoft.CodeAnalysis.EditAndContinue
 {
     /// <summary>
-    /// Allow us to run integration tests on older VS than build that has the required version of Microsoft.VisualStudio.Debugger.Contracts.
+    /// Temporaroly needed to allow us to run integration tests on older VS than build that has the required version of Microsoft.VisualStudio.Debugger.Contracts.
+    /// TODO:  Remove (https://github.com/dotnet/roslyn/issues/56742)
     /// </summary>
     internal static class DebuggerContractVersionCheck
     {
@@ -28,6 +29,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         private static Type LoadContracts()
-            => typeof(ManagedActiveStatementUpdate);
+            => typeof(ManagedHotReloadAvailability);
     }
 }
