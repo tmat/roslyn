@@ -295,7 +295,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
                 {
                     var assemblyName = GetAssemblyNameFromProjectPath(projectPath);
 
-                    var parseOptions = GetLanguageService<ISyntaxTreeFactoryService>(language)
+                    var parseOptions = GetLanguageService<ISyntaxTreeFactory>(language)
                         ?.GetDefaultParseOptions();
                     var compilationOptions = GetLanguageService<ICompilationFactoryService>(language)
                         ?.GetDefaultCompilationOptions();

@@ -239,7 +239,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             _languageServices = workspace.Services.GetLanguageServices(language);
 
             _compilationOptions = compilationOptions ?? this.LanguageServiceProvider.GetService<ICompilationFactoryService>().GetDefaultCompilationOptions();
-            _parseOptions = parseOptions ?? this.LanguageServiceProvider.GetService<ISyntaxTreeFactoryService>().GetDefaultParseOptions();
+            _parseOptions = parseOptions ?? this.LanguageServiceProvider.GetService<ISyntaxTreeFactory>().GetDefaultParseOptions();
             this.Documents = documents ?? SpecializedCollections.EmptyEnumerable<TestHostDocument>();
             this.AdditionalDocuments = additionalDocuments ?? SpecializedCollections.EmptyEnumerable<TestHostDocument>();
             this.AnalyzerConfigDocuments = analyzerConfigDocuments ?? SpecializedCollections.EmptyEnumerable<TestHostDocument>();

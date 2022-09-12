@@ -251,7 +251,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 
                 var metadataService = Services.GetService<IMetadataService>();
                 var metadataResolver = RuntimeMetadataReferenceResolver.CreateCurrentPlatformResolver(fileReferenceProvider: metadataService.GetReference);
-                var syntaxFactory = languageServices.GetService<ISyntaxTreeFactoryService>();
+                var syntaxFactory = languageServices.GetService<ISyntaxTreeFactory>();
                 var compilationFactory = languageServices.GetService<ICompilationFactoryService>();
                 var compilationOptions = compilationFactory.GetDefaultCompilationOptions()
                     .WithOutputKind(OutputKind.DynamicallyLinkedLibrary)
@@ -411,7 +411,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             }
             else
             {
-                parseOptions = languageServices.GetService<ISyntaxTreeFactoryService>().GetDefaultParseOptions();
+                parseOptions = languageServices.GetService<ISyntaxTreeFactory>().GetDefaultParseOptions();
             }
 
             var languageVersionAttribute = projectElement.Attribute(LanguageVersionAttributeName);

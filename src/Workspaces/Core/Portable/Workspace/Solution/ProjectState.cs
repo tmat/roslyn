@@ -155,7 +155,7 @@ namespace Microsoft.CodeAnalysis
 
             if (projectInfo.ParseOptions == null)
             {
-                var syntaxTreeFactory = _languageServices.GetService<ISyntaxTreeFactoryService>();
+                var syntaxTreeFactory = _languageServices.GetService<ISyntaxTreeFactory>();
                 if (syntaxTreeFactory != null)
                 {
                     projectInfo = projectInfo.WithParseOptions(syntaxTreeFactory.GetDefaultParseOptions());

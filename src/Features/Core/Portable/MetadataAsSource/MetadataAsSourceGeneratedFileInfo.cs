@@ -37,7 +37,7 @@ namespace Microsoft.CodeAnalysis.MetadataAsSource
             }
             else
             {
-                _parseOptions = Workspace.Services.GetLanguageServices(LanguageName).GetRequiredService<ISyntaxTreeFactoryService>().GetDefaultParseOptionsWithLatestLanguageVersion();
+                _parseOptions = Workspace.Services.GetLanguageServices(LanguageName).GetRequiredService<ISyntaxTreeFactory>().GetDefaultParseOptionsWithLatestLanguageVersion();
             }
 
             this.References = sourceProject.MetadataReferences.ToImmutableArray();

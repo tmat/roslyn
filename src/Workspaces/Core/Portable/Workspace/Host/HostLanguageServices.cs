@@ -66,9 +66,9 @@ namespace Microsoft.CodeAnalysis.Host
         }
 
         // needs some work on the interface before it can be public
-        internal virtual ISyntaxTreeFactoryService? SyntaxTreeFactory
+        internal virtual ISyntaxTreeFactory? SyntaxTreeFactory
         {
-            get { return this.GetService<ISyntaxTreeFactoryService>(); }
+            get { return this.GetService<ISyntaxTreeFactory>(); }
         }
     }
 }

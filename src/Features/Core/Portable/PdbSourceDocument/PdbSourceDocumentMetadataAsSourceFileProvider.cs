@@ -250,7 +250,7 @@ namespace Microsoft.CodeAnalysis.PdbSourceDocument
 
             // TODO: Use compiler API when available: https://github.com/dotnet/roslyn/issues/57356
             var compilationOptions = languageServices.GetRequiredService<ICompilationFactoryService>().TryParsePdbCompilationOptions(pdbCompilationOptions);
-            var parseOptions = languageServices.GetRequiredService<ISyntaxTreeFactoryService>().TryParsePdbParseOptions(pdbCompilationOptions);
+            var parseOptions = languageServices.GetRequiredService<ISyntaxTreeFactory>().TryParsePdbParseOptions(pdbCompilationOptions);
 
             var projectId = ProjectId.CreateNewId();
             return ProjectInfo.Create(

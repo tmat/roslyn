@@ -2876,7 +2876,7 @@ public class C : A {
             var solution = workspace.CurrentSolution;
             var dummyProject = solution.AddProject("dummy", "dummy", LanguageNames.CSharp);
 
-            var factory = dummyProject.Services.GetService<ISyntaxTreeFactoryService>();
+            var factory = dummyProject.Services.GetService<ISyntaxTreeFactory>();
 
             // create the origin tree
             var strongTree = factory.ParseSyntaxTree("dummy", dummyProject.ParseOptions, SourceText.From("// emtpy"), CancellationToken.None);

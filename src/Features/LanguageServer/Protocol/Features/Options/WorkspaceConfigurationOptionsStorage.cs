@@ -27,7 +27,7 @@ internal static class WorkspaceConfigurationOptionsStorage
         new FeatureFlagStorageLocation("Roslyn.CloudCache3"));
 
     /// <summary>
-    /// Disables if the workspace creates recoverable trees when from its <see cref="ISyntaxTreeFactoryService"/>s.
+    /// Disables if the workspace creates recoverable trees when from its <see cref="ISyntaxTreeFactory"/>s.
     /// </summary>
     public static readonly Option2<bool> DisableRecoverableTrees = new(
         "WorkspaceConfigurationOptions", "DisableRecoverableTrees", WorkspaceConfigurationOptions.Default.DisableRecoverableTrees,

@@ -188,7 +188,7 @@ namespace Microsoft.CodeAnalysis
         {
             var text = textAndVersion.Text;
 
-            var treeFactory = languageServices.GetRequiredService<ISyntaxTreeFactoryService>();
+            var treeFactory = languageServices.GetRequiredService<ISyntaxTreeFactory>();
 
             var tree = treeFactory.ParseSyntaxTree(filePath, options, text, cancellationToken);
 
@@ -369,7 +369,7 @@ namespace Microsoft.CodeAnalysis
                 }
                 else if (existingTree.TryGetRoot(out var existingRoot) && !existingRoot.ContainsDirectives)
                 {
-                    var treeFactory = _languageServices.GetRequiredService<ISyntaxTreeFactoryService>();
+                    var treeFactory = _languageServices.GetRequiredService<ISyntaxTreeFactory>();
                     newTree = treeFactory.CreateSyntaxTree(FilePath, options, existingTree.Encoding, existingRoot);
                 }
 
@@ -547,7 +547,7 @@ namespace Microsoft.CodeAnalysis
                 encoding = null;
             }
 
-            var syntaxTreeFactory = _languageServices.GetRequiredService<ISyntaxTreeFactoryService>();
+            var syntaxTreeFactory = _languageServices.GetRequiredService<ISyntaxTreeFactory>();
 
             var filePath = GetSyntaxTreeFilePath(Attributes);
 
@@ -591,7 +591,7 @@ namespace Microsoft.CodeAnalysis
             Encoding? encoding,
             DocumentInfo.DocumentAttributes attributes,
             ParseOptions options,
-            ISyntaxTreeFactoryService factory,
+            ISyntaxTreeFactory factory,
             PreservationMode mode)
         {
             SyntaxTree tree;
