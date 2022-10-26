@@ -10,8 +10,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Emit;
+using Microsoft.CodeAnalysis.CSharp.Lowering.Instrumentation;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.RuntimeMembers;
 using Roslyn.Utilities;
@@ -84,7 +86,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             TypeCompilationState compilationState,
             SynthesizedSubmissionFields previousSubmissionFields,
             bool allowOmissionOfConditionalCalls,
-            bool instrumentForDynamicAnalysis,
+            ImmutableArray<InstrumentationKind> instrumentation,
             ref ImmutableArray<SourceSpan> dynamicAnalysisSpans,
             DebugDocumentProvider debugDocumentProvider,
             BindingDiagnosticBag diagnostics,
@@ -98,12 +100,29 @@ namespace Microsoft.CodeAnalysis.CSharp
             try
             {
                 var factory = new SyntheticBoundNodeFactory(method, statement.Syntax, compilationState, diagnostics);
-                DynamicAnalysisInjector? dynamicInstrumenter = instrumentForDynamicAnalysis ? DynamicAnalysisInjector.TryCreate(method, statement, factory, diagnostics, debugDocumentProvider, Instrumenter.NoOp) : null;
 
-                // We don’t want IL to differ based upon whether we write the PDB to a file/stream or not.
+                // create chain of instrumenters:
+
+                var instrumenter = Instrumenter.NoOp;
+
+                if (instrumentation.Contains(InstrumentationKind.LocalStateTracing) &&
+                    LocalStateTrackingInstrumenter.TryCreate(method, factory, diagnostics, instrumenter, out var localStateTrackingInstrumenter))
+                {
+                    instrumenter = localStateTrackingInstrumenter;
+                }
+
+                DynamicAnalysisInjector? testCoverageInstrumenter = null;
+                if (instrumentation.Contains(InstrumentationKind.TestCoverage) &&
+                    DynamicAnalysisInjector.TryCreate(method, statement, factory, diagnostics, debugDocumentProvider, instrumenter, out testCoverageInstrumenter))
+                {
+                    instrumenter = testCoverageInstrumenter;
+                }
+
+                instrumenter = DebugInfoInjector.Create(instrumenter);
+
+                // We don't want IL to differ based upon whether we write the PDB to a file/stream or not.
                 // Presence of sequence points in the tree affects final IL, therefore, we always generate them.
-                var localRewriter = new LocalRewriter(compilation, method, methodOrdinal, statement, containingType, factory, previousSubmissionFields, allowOmissionOfConditionalCalls, diagnostics,
-                                                      dynamicInstrumenter != null ? new DebugInfoInjector(dynamicInstrumenter) : DebugInfoInjector.Singleton);
+                var localRewriter = new LocalRewriter(compilation, method, methodOrdinal, statement, containingType, factory, previousSubmissionFields, allowOmissionOfConditionalCalls, diagnostics, instrumenter);
                 statement.CheckLocalsDefined();
                 var loweredStatement = localRewriter.VisitStatement(statement);
                 Debug.Assert(loweredStatement is { });
@@ -120,9 +139,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                     loweredStatement = spilledStatement;
                 }
 
-                if (dynamicInstrumenter != null)
+                if (testCoverageInstrumenter != null)
                 {
-                    dynamicAnalysisSpans = dynamicInstrumenter.DynamicAnalysisSpans;
+                    dynamicAnalysisSpans = testCoverageInstrumenter.DynamicAnalysisSpans;
                 }
 #if DEBUG
                 LocalRewritingValidator.Validate(loweredStatement);
@@ -347,25 +366,25 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 case DynamicAnalysisInjector { Previous: var previous }:
                     return RemoveDynamicAnalysisInjectors(previous);
-                case DebugInfoInjector { Previous: var previous } injector:
-                    var newPrevious = RemoveDynamicAnalysisInjectors(previous);
-                    if ((object)newPrevious == previous)
+
+                case LocalStateTrackingInstrumenter { Previous: var previous }:
                     {
-                        return injector;
+                        var newPrevious = RemoveDynamicAnalysisInjectors(previous);
+                        return ((object)newPrevious == previous) ? instrumenter : DebugInfoInjector.Create(newPrevious);
                     }
-                    else if ((object)newPrevious == Instrumenter.NoOp)
+
+                case DebugInfoInjector { Previous: var previous }:
                     {
-                        return DebugInfoInjector.Singleton;
+                        var newPrevious = RemoveDynamicAnalysisInjectors(previous);
+                        return ((object)newPrevious == previous) ? instrumenter : DebugInfoInjector.Create(newPrevious);
                     }
-                    else
-                    {
-                        return new DebugInfoInjector(previous);
-                    }
+
                 case CompoundInstrumenter compound:
                     // If we hit this it means a new kind of compound instrumenter is in use.
                     // Either add a new case or add an abstraction that lets us
                     // filter out the unwanted injectors in a more generalized way.
                     throw ExceptionUtilities.UnexpectedValue(compound);
+
                 default:
                     Debug.Assert((object)instrumenter == Instrumenter.NoOp);
                     return instrumenter;

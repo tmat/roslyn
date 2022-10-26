@@ -30,6 +30,12 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
         }
 
+        public virtual BoundExpression InstrumentAssignment(BoundAssignmentOperator original, BoundExpression rewritten)
+        {
+            Debug.Assert(!original.WasCompilerGenerated);
+            return rewritten;
+        }
+
         private static BoundStatement InstrumentStatement(BoundStatement original, BoundStatement rewritten)
         {
             Debug.Assert(!original.WasCompilerGenerated);

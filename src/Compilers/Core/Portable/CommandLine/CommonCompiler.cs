@@ -1203,7 +1203,7 @@ namespace Microsoft.CodeAnalysis
                             moduleBeingBuilt,
                             Arguments.EmitPdb,
                             emitOptions.EmitMetadataOnly,
-                            emitOptions.EmitTestCoverageData,
+                            emitOptions.InstrumentationKinds,
                             diagnostics,
                             filterOpt: null,
                             cancellationToken: cancellationToken);

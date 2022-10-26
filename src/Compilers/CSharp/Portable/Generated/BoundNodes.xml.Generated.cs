@@ -74,6 +74,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         AwaitExpression,
         TypeOfOperator,
         MethodDefIndex,
+        LocalDefIndex,
         MaximumMethodDefIndex,
         InstrumentationPayloadRoot,
         ModuleVersionId,
@@ -2254,6 +2255,46 @@ namespace Microsoft.CodeAnalysis.CSharp
             if (!Symbols.SymbolEqualityComparer.ConsiderEverything.Equals(method, this.Method) || !TypeSymbol.Equals(type, this.Type, TypeCompareKind.ConsiderEverything))
             {
                 var result = new BoundMethodDefIndex(this.Syntax, method, type, this.HasErrors);
+                result.CopyAttributes(this);
+                return result;
+            }
+            return this;
+        }
+    }
+
+    internal sealed partial class BoundLocalDefIndex : BoundExpression
+    {
+        public BoundLocalDefIndex(SyntaxNode syntax, LocalSymbol local, TypeSymbol type, bool hasErrors)
+            : base(BoundKind.LocalDefIndex, syntax, type, hasErrors)
+        {
+
+            RoslynDebug.Assert(local is object, "Field 'local' cannot be null (make the type nullable in BoundNodes.xml to remove this check)");
+            RoslynDebug.Assert(type is object, "Field 'type' cannot be null (make the type nullable in BoundNodes.xml to remove this check)");
+
+            this.Local = local;
+        }
+
+        public BoundLocalDefIndex(SyntaxNode syntax, LocalSymbol local, TypeSymbol type)
+            : base(BoundKind.LocalDefIndex, syntax, type)
+        {
+
+            RoslynDebug.Assert(local is object, "Field 'local' cannot be null (make the type nullable in BoundNodes.xml to remove this check)");
+            RoslynDebug.Assert(type is object, "Field 'type' cannot be null (make the type nullable in BoundNodes.xml to remove this check)");
+
+            this.Local = local;
+        }
+
+        public new TypeSymbol Type => base.Type!;
+        public LocalSymbol Local { get; }
+
+        [DebuggerStepThrough]
+        public override BoundNode? Accept(BoundTreeVisitor visitor) => visitor.VisitLocalDefIndex(this);
+
+        public BoundLocalDefIndex Update(LocalSymbol local, TypeSymbol type)
+        {
+            if (!Symbols.SymbolEqualityComparer.ConsiderEverything.Equals(local, this.Local) || !TypeSymbol.Equals(type, this.Type, TypeCompareKind.ConsiderEverything))
+            {
+                var result = new BoundLocalDefIndex(this.Syntax, local, type, this.HasErrors);
                 result.CopyAttributes(this);
                 return result;
             }
@@ -8464,6 +8505,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return VisitTypeOfOperator((BoundTypeOfOperator)node, arg);
                 case BoundKind.MethodDefIndex:
                     return VisitMethodDefIndex((BoundMethodDefIndex)node, arg);
+                case BoundKind.LocalDefIndex:
+                    return VisitLocalDefIndex((BoundLocalDefIndex)node, arg);
                 case BoundKind.MaximumMethodDefIndex:
                     return VisitMaximumMethodDefIndex((BoundMaximumMethodDefIndex)node, arg);
                 case BoundKind.InstrumentationPayloadRoot:
@@ -8858,6 +8901,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         public virtual R VisitAwaitExpression(BoundAwaitExpression node, A arg) => this.DefaultVisit(node, arg);
         public virtual R VisitTypeOfOperator(BoundTypeOfOperator node, A arg) => this.DefaultVisit(node, arg);
         public virtual R VisitMethodDefIndex(BoundMethodDefIndex node, A arg) => this.DefaultVisit(node, arg);
+        public virtual R VisitLocalDefIndex(BoundLocalDefIndex node, A arg) => this.DefaultVisit(node, arg);
         public virtual R VisitMaximumMethodDefIndex(BoundMaximumMethodDefIndex node, A arg) => this.DefaultVisit(node, arg);
         public virtual R VisitInstrumentationPayloadRoot(BoundInstrumentationPayloadRoot node, A arg) => this.DefaultVisit(node, arg);
         public virtual R VisitModuleVersionId(BoundModuleVersionId node, A arg) => this.DefaultVisit(node, arg);
@@ -9082,6 +9126,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         public virtual BoundNode? VisitAwaitExpression(BoundAwaitExpression node) => this.DefaultVisit(node);
         public virtual BoundNode? VisitTypeOfOperator(BoundTypeOfOperator node) => this.DefaultVisit(node);
         public virtual BoundNode? VisitMethodDefIndex(BoundMethodDefIndex node) => this.DefaultVisit(node);
+        public virtual BoundNode? VisitLocalDefIndex(BoundLocalDefIndex node) => this.DefaultVisit(node);
         public virtual BoundNode? VisitMaximumMethodDefIndex(BoundMaximumMethodDefIndex node) => this.DefaultVisit(node);
         public virtual BoundNode? VisitInstrumentationPayloadRoot(BoundInstrumentationPayloadRoot node) => this.DefaultVisit(node);
         public virtual BoundNode? VisitModuleVersionId(BoundModuleVersionId node) => this.DefaultVisit(node);
@@ -9473,6 +9518,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             return null;
         }
         public override BoundNode? VisitMethodDefIndex(BoundMethodDefIndex node) => null;
+        public override BoundNode? VisitLocalDefIndex(BoundLocalDefIndex node) => null;
         public override BoundNode? VisitMaximumMethodDefIndex(BoundMaximumMethodDefIndex node) => null;
         public override BoundNode? VisitInstrumentationPayloadRoot(BoundInstrumentationPayloadRoot node) => null;
         public override BoundNode? VisitModuleVersionId(BoundModuleVersionId node) => null;
@@ -10569,6 +10615,11 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             TypeSymbol? type = this.VisitType(node.Type);
             return node.Update(node.Method, type);
+        }
+        public override BoundNode? VisitLocalDefIndex(BoundLocalDefIndex node)
+        {
+            TypeSymbol? type = this.VisitType(node.Type);
+            return node.Update(node.Local, type);
         }
         public override BoundNode? VisitMaximumMethodDefIndex(BoundMaximumMethodDefIndex node)
         {
@@ -12352,6 +12403,23 @@ namespace Microsoft.CodeAnalysis.CSharp
             else
             {
                 updatedNode = node.Update(method, node.Type);
+            }
+            return updatedNode;
+        }
+
+        public override BoundNode? VisitLocalDefIndex(BoundLocalDefIndex node)
+        {
+            LocalSymbol local = GetUpdatedSymbol(node, node.Local);
+            BoundLocalDefIndex updatedNode;
+
+            if (_updatedNullabilities.TryGetValue(node, out (NullabilityInfo Info, TypeSymbol? Type) infoAndType))
+            {
+                updatedNode = node.Update(local, infoAndType.Type!);
+                updatedNode.TopLevelNullability = infoAndType.Info;
+            }
+            else
+            {
+                updatedNode = node.Update(local, node.Type);
             }
             return updatedNode;
         }
@@ -14665,6 +14733,14 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override TreeDumperNode VisitMethodDefIndex(BoundMethodDefIndex node, object? arg) => new TreeDumperNode("methodDefIndex", null, new TreeDumperNode[]
         {
             new TreeDumperNode("method", node.Method, null),
+            new TreeDumperNode("type", node.Type, null),
+            new TreeDumperNode("isSuppressed", node.IsSuppressed, null),
+            new TreeDumperNode("hasErrors", node.HasErrors, null)
+        }
+        );
+        public override TreeDumperNode VisitLocalDefIndex(BoundLocalDefIndex node, object? arg) => new TreeDumperNode("localDefIndex", null, new TreeDumperNode[]
+        {
+            new TreeDumperNode("local", node.Local, null),
             new TreeDumperNode("type", node.Type, null),
             new TreeDumperNode("isSuppressed", node.IsSuppressed, null),
             new TreeDumperNode("hasErrors", node.HasErrors, null)

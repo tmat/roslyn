@@ -2432,7 +2432,7 @@ namespace Microsoft.CodeAnalysis
             CommonPEModuleBuilder moduleBuilder,
             bool emittingPdb,
             bool emitMetadataOnly,
-            bool emitTestCoverageData,
+            ImmutableArray<InstrumentationKind> instrumentation,
             DiagnosticBag diagnostics,
             Predicate<ISymbolInternal>? filterOpt,
             CancellationToken cancellationToken);
@@ -2568,7 +2568,7 @@ namespace Microsoft.CodeAnalysis
                     moduleBuilder,
                     emittingPdb,
                     emitMetadataOnly: false,
-                    emitTestCoverageData: false,
+                    instrumentation: ImmutableArray<InstrumentationKind>.Empty,
                     diagnostics: diagnostics,
                     filterOpt: filterOpt,
                     cancellationToken: cancellationToken);
@@ -2919,7 +2919,7 @@ namespace Microsoft.CodeAnalysis
                         moduleBeingBuilt,
                         emittingPdb: pdbStream != null || embedPdb,
                         emitMetadataOnly: options.EmitMetadataOnly,
-                        emitTestCoverageData: options.EmitTestCoverageData,
+                        instrumentation: options.InstrumentationKinds,
                         diagnostics: diagnostics,
                         filterOpt: null,
                         cancellationToken: cancellationToken);
@@ -3238,7 +3238,7 @@ namespace Microsoft.CodeAnalysis
                         emitOptions.EmitMetadataOnly,
                         emitOptions.IncludePrivateMembers,
                         deterministic,
-                        emitOptions.EmitTestCoverageData,
+                        emitOptions.InstrumentationKinds.Contains(InstrumentationKind.TestCoverage),
                         privateKeyOpt,
                         cancellationToken))
                     {

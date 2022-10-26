@@ -2785,7 +2785,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                                                                        cancellationToken: cancellationToken)
                                                 : null,
                 emittingPdb: false,
-                emitTestCoverageData: false,
+                instrumentations: ImmutableArray<InstrumentationKind>.Empty,
                 hasDeclarationErrors: false,
                 emitMethodBodies: false,
                 diagnostics: diagnostics,
@@ -2899,7 +2899,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                                 compilation: this,
                                 moduleBeingBuiltOpt: null,
                                 emittingPdb: false,
-                                emitTestCoverageData: false,
+                                instrumentations: ImmutableArray<InstrumentationKind>.Empty,
                                 hasDeclarationErrors: false,
                                 emitMethodBodies: false,
                                 diagnostics: bindingDiagnostics,
@@ -3187,7 +3187,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             CommonPEModuleBuilder moduleBuilder,
             bool emittingPdb,
             bool emitMetadataOnly,
-            bool emitTestCoverageData,
+            ImmutableArray<InstrumentationKind> instrumentations,
             DiagnosticBag diagnostics,
             Predicate<ISymbolInternal>? filterOpt,
             CancellationToken cancellationToken)
@@ -3228,7 +3228,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                if ((emittingPdb || emitTestCoverageData) &&
+                if ((emittingPdb || instrumentations.Contains(InstrumentationKind.TestCoverage)) &&
                     !CreateDebugDocuments(moduleBeingBuilt.DebugDocumentsBuilder, moduleBeingBuilt.EmbeddedTexts, diagnostics))
                 {
                     return false;
@@ -3246,7 +3246,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     this,
                     moduleBeingBuilt,
                     emittingPdb,
-                    emitTestCoverageData,
+                    instrumentations,
                     hasDeclarationErrors,
                     emitMethodBodies: true,
                     diagnostics: new BindingDiagnosticBag(methodBodyDiagnosticBag),
