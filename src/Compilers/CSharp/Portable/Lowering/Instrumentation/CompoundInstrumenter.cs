@@ -24,6 +24,11 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public Instrumenter Previous { get; }
 
+        public override BoundExpression InstrumentAssignment(BoundAssignmentOperator original, BoundExpression rewritten)
+        {
+            return Previous.InstrumentAssignment(original, rewritten);
+        }
+
         public override BoundStatement InstrumentNoOpStatement(BoundNoOpStatement original, BoundStatement rewritten)
         {
             return Previous.InstrumentNoOpStatement(original, rewritten);

@@ -247,6 +247,11 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
                     EmitMethodDefIndexExpression((BoundMethodDefIndex)expression);
                     break;
 
+                case BoundKind.LocalDefIndex:
+                    Debug.Assert(used);
+                    EmitLocalDefIndexExpression((BoundLocalDefIndex)expression);
+                    break;
+
                 case BoundKind.MaximumMethodDefIndex:
                     Debug.Assert(used);
                     EmitMaximumMethodDefIndexExpression((BoundMaximumMethodDefIndex)expression);
@@ -3235,6 +3240,14 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
             var symbol = node.Method.PartialDefinitionPart ?? node.Method;
 
             EmitSymbolToken(symbol, node.Syntax, null, encodeAsRawDefinitionToken: true);
+        }
+
+        private void EmitLocalDefIndexExpression(BoundLocalDefIndex node)
+        {
+            Debug.Assert(node.Type.SpecialType == SpecialType.System_UInt16);
+            var slotIndex = GetLocal(node.Local).SlotIndex;
+            Debug.Assert(slotIndex is >= 0 and <= ushort.MaxValue);
+            _builder.EmitIntConstant(slotIndex);
         }
 
         private void EmitMaximumMethodDefIndexExpression(BoundMaximumMethodDefIndex node)

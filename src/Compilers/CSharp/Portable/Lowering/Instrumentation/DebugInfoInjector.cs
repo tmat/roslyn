@@ -22,12 +22,15 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <summary>
         /// A singleton object that performs only one type of instrumentation - addition of debugging sequence points. 
         /// </summary>
-        public static readonly DebugInfoInjector Singleton = new DebugInfoInjector(Instrumenter.NoOp);
+        private static readonly DebugInfoInjector s_singleton = new DebugInfoInjector(Instrumenter.NoOp);
 
-        public DebugInfoInjector(Instrumenter previous)
+        private DebugInfoInjector(Instrumenter previous)
             : base(previous)
         {
         }
+
+        public static DebugInfoInjector Create(Instrumenter previous)
+            => (previous == Instrumenter.NoOp) ? s_singleton : new DebugInfoInjector(previous);
 
         public override BoundStatement InstrumentNoOpStatement(BoundNoOpStatement original, BoundStatement rewritten)
         {

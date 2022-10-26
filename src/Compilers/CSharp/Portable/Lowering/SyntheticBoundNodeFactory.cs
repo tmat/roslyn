@@ -1215,6 +1215,15 @@ namespace Microsoft.CodeAnalysis.CSharp
             { WasCompilerGenerated = true };
         }
 
+        public BoundExpression LocalDefIndex(LocalSymbol local)
+        {
+            return new BoundLocalDefIndex(
+                Syntax,
+                local,
+                SpecialType(Microsoft.CodeAnalysis.SpecialType.System_UInt16))
+            { WasCompilerGenerated = true };
+        }
+
         /// <summary>
         /// Synthesizes an expression that evaluates to the current module's MVID.
         /// </summary>

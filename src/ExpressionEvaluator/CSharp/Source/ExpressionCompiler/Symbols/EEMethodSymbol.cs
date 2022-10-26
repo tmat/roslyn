@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
@@ -557,7 +558,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                         compilationState: compilationState,
                         previousSubmissionFields: null,
                         allowOmissionOfConditionalCalls: false,
-                        instrumentForDynamicAnalysis: false,
+                        instrumentation: ImmutableArray<InstrumentationKind>.Empty,
                         debugDocumentProvider: null,
                         dynamicAnalysisSpans: ref dynamicAnalysisSpans,
                         diagnostics: diagnostics,

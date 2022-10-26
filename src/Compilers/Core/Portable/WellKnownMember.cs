@@ -425,6 +425,8 @@ namespace Microsoft.CodeAnalysis
 
         Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningSingleFile,
         Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningMultipleFiles,
+        Microsoft_CodeAnalysis_Runtime_Instrumentation__LogLocalStoreInt32,
+        Microsoft_CodeAnalysis_Runtime_Instrumentation__LogLocalStoreObject,
 
         System_Runtime_CompilerServices_NullableAttribute__ctorByte,
         System_Runtime_CompilerServices_NullableAttribute__ctorTransformFlags,

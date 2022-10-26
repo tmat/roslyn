@@ -2947,6 +2947,26 @@ namespace Microsoft.CodeAnalysis
                     (byte)SignatureTypeCode.ByReference, (byte)SignatureTypeCode.SZArray, (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Boolean,
                     (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,
 
+                // Microsoft_CodeAnalysis_Runtime_Instrumentation__LogLocalStoreInt32
+                (byte)(MemberFlags.Method | MemberFlags.Static),                                                                                    // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_Instrumentation - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                  // Arity
+                    3,                                                                                                                              // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,  // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,  // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,  // Method token
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_Instrumentation__LogLocalStoreObject
+                (byte)(MemberFlags.Method | MemberFlags.Static),                                                                                    // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_Instrumentation - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                  // Arity
+                    3,                                                                                                                              // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Object, // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Object, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,  // Method token
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Local index
+
                 // System_Runtime_CompilerServices_NullableAttribute__ctorByte
                 (byte)MemberFlags.Constructor,                                                                              // Flags
                 (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.System_Runtime_CompilerServices_NullableAttribute - WellKnownType.ExtSentinel),                                       // DeclaringTypeId
@@ -4045,6 +4065,8 @@ namespace Microsoft.CodeAnalysis
 
                 "CreatePayload",                            // Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningSingleFile
                 "CreatePayload",                            // Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningMultipleFiles
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_Instrumentation__LogLocalStoreInt32
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_Instrumentation__LogLocalStoreObject
 
                 ".ctor",                                    // System_Runtime_CompilerServices_NullableAttribute__ctorByte
                 ".ctor",                                    // System_Runtime_CompilerServices_NullableAttribute__ctorTransformFlags

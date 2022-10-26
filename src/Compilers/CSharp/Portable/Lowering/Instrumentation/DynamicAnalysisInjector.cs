@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Cci;
 using Microsoft.CodeAnalysis.CodeGen;
-using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.PooledObjects;
@@ -35,25 +33,28 @@ namespace Microsoft.CodeAnalysis.CSharp
         private readonly DebugDocumentProvider _debugDocumentProvider;
         private readonly SyntheticBoundNodeFactory _methodBodyFactory;
 
-        public static DynamicAnalysisInjector TryCreate(
+        public static bool TryCreate(
             MethodSymbol method,
             BoundStatement methodBody,
             SyntheticBoundNodeFactory methodBodyFactory,
             BindingDiagnosticBag diagnostics,
             DebugDocumentProvider debugDocumentProvider,
-            Instrumenter previous)
+            Instrumenter previous,
+            [NotNullWhen(true)] out DynamicAnalysisInjector? instrumenter)
         {
+            instrumenter = null;
+
             // Do not instrument implicitly-declared methods, except for constructors.
             // Instrument implicit constructors in order to instrument member initializers.
             if (method.IsImplicitlyDeclared && !method.IsImplicitConstructor)
             {
-                return null;
+                return false;
             }
 
             // Do not instrument methods marked with or in scope of ExcludeFromCodeCoverageAttribute.
             if (IsExcludedFromCodeCoverage(method))
             {
-                return null;
+                return false;
             }
 
             MethodSymbol createPayloadForMethodsSpanningSingleFile = GetCreatePayloadOverload(
@@ -69,19 +70,19 @@ namespace Microsoft.CodeAnalysis.CSharp
                 diagnostics);
 
             // Do not instrument any methods if CreatePayload is not present.
-            if ((object)createPayloadForMethodsSpanningSingleFile == null || (object)createPayloadForMethodsSpanningMultipleFiles == null)
+            if (createPayloadForMethodsSpanningSingleFile is null || createPayloadForMethodsSpanningMultipleFiles is null)
             {
-                return null;
+                return false;
             }
 
             // Do not instrument CreatePayload if it is part of the current compilation (which occurs only during testing).
             // CreatePayload will fail at run time with an infinite recursion if it is instrumented.
             if (method.Equals(createPayloadForMethodsSpanningSingleFile) || method.Equals(createPayloadForMethodsSpanningMultipleFiles))
             {
-                return null;
+                return false;
             }
 
-            return new DynamicAnalysisInjector(
+            instrumenter = new DynamicAnalysisInjector(
                 method,
                 methodBody,
                 methodBodyFactory,
@@ -90,8 +91,10 @@ namespace Microsoft.CodeAnalysis.CSharp
                 diagnostics,
                 debugDocumentProvider,
                 previous);
-        }
 
+            return true;
+        }
+#nullable disable
         private DynamicAnalysisInjector(
             MethodSymbol method,
             BoundStatement methodBody,

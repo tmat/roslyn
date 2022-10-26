@@ -15,7 +15,15 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override BoundNode VisitAssignmentOperator(BoundAssignmentOperator node)
         {
             // Assume value of expression is used.
-            return VisitAssignmentOperator(node, used: true);
+            var result = VisitAssignmentOperator(node, used: true);
+
+            if (Instrument && !node.WasCompilerGenerated)
+            {
+                Debug.Assert(!result.WasCompilerGenerated);
+                result = _instrumenter.InstrumentAssignment(node, result);
+            }
+
+            return result;
         }
 
         private BoundExpression VisitAssignmentOperator(BoundAssignmentOperator node, bool used)
