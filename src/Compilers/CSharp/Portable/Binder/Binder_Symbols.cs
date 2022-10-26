@@ -1542,7 +1542,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             return diagnostics.ReportUseSite(symbol, location);
         }
-
+#nullable enable
         /// <summary>
         /// This is a layer on top of the Compilation version that generates a diagnostic if the well-known
         /// type isn't found.
@@ -1590,7 +1590,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             return typeSymbol;
         }
 
-        internal Symbol GetWellKnownTypeMember(WellKnownMember member, BindingDiagnosticBag diagnostics, Location location = null, SyntaxNode syntax = null, bool isOptional = false)
+        internal Symbol? GetWellKnownTypeMember(WellKnownMember member, BindingDiagnosticBag diagnostics, Location? location = null, SyntaxNode? syntax = null, bool isOptional = false)
         {
             return GetWellKnownTypeMember(Compilation, member, diagnostics, location, syntax, isOptional);
         }
@@ -1599,21 +1599,21 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// Retrieves a well-known type member and reports diagnostics.
         /// </summary>
         /// <returns>Null if the symbol is missing.</returns>
-        internal static Symbol GetWellKnownTypeMember(CSharpCompilation compilation, WellKnownMember member, BindingDiagnosticBag diagnostics, Location location = null, SyntaxNode syntax = null, bool isOptional = false)
+        internal static Symbol? GetWellKnownTypeMember(CSharpCompilation compilation, WellKnownMember member, BindingDiagnosticBag diagnostics, Location? location = null, SyntaxNode? syntax = null, bool isOptional = false)
         {
             Debug.Assert((syntax != null) ^ (location != null));
 
             UseSiteInfo<AssemblySymbol> useSiteInfo;
-            Symbol memberSymbol = GetWellKnownTypeMember(compilation, member, out useSiteInfo, isOptional);
-            diagnostics.Add(useSiteInfo, location ?? syntax.Location);
+            Symbol? memberSymbol = GetWellKnownTypeMember(compilation, member, out useSiteInfo, isOptional);
+            diagnostics.Add(useSiteInfo, location ?? syntax!.Location);
             return memberSymbol;
         }
 
-        internal static Symbol GetWellKnownTypeMember(CSharpCompilation compilation, WellKnownMember member, out UseSiteInfo<AssemblySymbol> useSiteInfo, bool isOptional = false)
+        internal static Symbol? GetWellKnownTypeMember(CSharpCompilation compilation, WellKnownMember member, out UseSiteInfo<AssemblySymbol> useSiteInfo, bool isOptional = false)
         {
-            Symbol memberSymbol = compilation.GetWellKnownTypeMember(member);
+            Symbol? memberSymbol = compilation.GetWellKnownTypeMember(member);
 
-            if ((object)memberSymbol != null)
+            if (memberSymbol is not null)
             {
                 useSiteInfo = GetUseSiteInfoForWellKnownMemberOrContainingType(memberSymbol);
                 if (useSiteInfo.DiagnosticInfo != null)
@@ -1651,7 +1651,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             return memberSymbol;
         }
-
+#nullable disable
         private class ConsistentSymbolOrder : IComparer<Symbol>
         {
             public static readonly ConsistentSymbolOrder Instance = new ConsistentSymbolOrder();

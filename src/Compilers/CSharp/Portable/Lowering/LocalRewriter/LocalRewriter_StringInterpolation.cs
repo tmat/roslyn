@@ -371,7 +371,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             InterpolationHandlerResult result = RewriteToInterpolatedStringHandlerPattern(data, parts, syntax);
 
             // resultTemp = builderTemp.ToStringAndClear();
-            var toStringAndClear = (MethodSymbol)Binder.GetWellKnownTypeMember(_compilation, WellKnownMember.System_Runtime_CompilerServices_DefaultInterpolatedStringHandler__ToStringAndClear, _diagnostics, syntax: syntax);
+            var toStringAndClear = (MethodSymbol?)Binder.GetWellKnownTypeMember(_compilation, WellKnownMember.System_Runtime_CompilerServices_DefaultInterpolatedStringHandler__ToStringAndClear, _diagnostics, syntax: syntax);
             BoundExpression toStringAndClearCall = toStringAndClear is not null
                 ? BoundCall.Synthesized(syntax, result.HandlerTemp, toStringAndClear)
                 : new BoundBadExpression(syntax, LookupResultKind.Empty, symbols: ImmutableArray<Symbol?>.Empty, childBoundNodes: ImmutableArray<BoundExpression>.Empty, type);

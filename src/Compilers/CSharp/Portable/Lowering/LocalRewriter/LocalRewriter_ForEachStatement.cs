@@ -228,12 +228,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             return result;
         }
 
-        private bool TryGetDisposeMethod(CommonForEachStatementSyntax forEachSyntax, ForEachEnumeratorInfo enumeratorInfo, out MethodSymbol disposeMethod)
+        private bool TryGetDisposeMethod(CommonForEachStatementSyntax forEachSyntax, ForEachEnumeratorInfo enumeratorInfo, [NotNullWhen(true)] out MethodSymbol? disposeMethod)
         {
             if (enumeratorInfo.IsAsync)
             {
-                disposeMethod = (MethodSymbol)Binder.GetWellKnownTypeMember(_compilation, WellKnownMember.System_IAsyncDisposable__DisposeAsync, _diagnostics, syntax: forEachSyntax);
-                return (object)disposeMethod != null;
+                disposeMethod = (MethodSymbol?)Binder.GetWellKnownTypeMember(_compilation, WellKnownMember.System_IAsyncDisposable__DisposeAsync, _diagnostics, syntax: forEachSyntax);
+                return disposeMethod is not null;
             }
 
             return Binder.TryGetSpecialTypeMember(_compilation, SpecialMember.System_IDisposable__Dispose, forEachSyntax, _diagnostics, out disposeMethod);
@@ -1031,7 +1031,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             // A bound sequence point is permitted to have a null syntax to make a hidden sequence point.
             return BoundSequencePoint.CreateHidden(
                 statementOpt: new BoundExpressionStatement(syntax,
-                    expression: new BoundAssignmentOperator(syntax,
+                    expression: _factory.AssignmentExpression(syntax,
                         left: boundPositionVar,
                         right: new BoundBinaryOperator(syntax,
                             operatorKind: BinaryOperatorKind.IntAddition, // unchecked, never overflows since array/string index can't be >= Int32.MaxValue
