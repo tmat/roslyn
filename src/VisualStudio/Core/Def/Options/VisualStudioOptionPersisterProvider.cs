@@ -7,6 +7,7 @@ using System.ComponentModel.Composition;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
+using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.Internal.VisualStudio.Shell.Interop;
@@ -17,33 +18,44 @@ using SAsyncServiceProvider = Microsoft.VisualStudio.Shell.Interop.SAsyncService
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.Options
 {
     [Export(typeof(IOptionPersisterProvider))]
-    internal sealed class VisualStudioSettingsOptionPersisterProvider : IOptionPersisterProvider
+    internal sealed class VisualStudioOptionPersisterProvider : IOptionPersisterProvider
     {
         private readonly IAsyncServiceProvider _serviceProvider;
         private readonly IGlobalOptionService _optionService;
-        private VisualStudioSettingsOptionPersister? _lazyPersister;
+        private readonly IThreadingContext _threadingContext;
+
+        private VisualStudioOptionPersister? _lazyPersister;
 
         [ImportingConstructor]
         [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-        public VisualStudioSettingsOptionPersisterProvider(
+        public VisualStudioOptionPersisterProvider(
             [Import(typeof(SAsyncServiceProvider))] IAsyncServiceProvider serviceProvider,
+            IThreadingContext threadingContext,
             IGlobalOptionService optionService)
         {
             _serviceProvider = serviceProvider;
+            _threadingContext = threadingContext;
             _optionService = optionService;
         }
 
         public async ValueTask<IOptionPersister> GetOrCreatePersisterAsync(CancellationToken cancellationToken)
+            => _lazyPersister ??= 
+                new VisualStudioOptionPersister(
+                    new VisualStudioSettingsOptionPersister(_optionService, await TryGetServiceAsync<SVsSettingsPersistenceManager, ISettingsManager>().ConfigureAwait(true)),
+                    new PackageSettingsPersister(_threadingContext, _serviceProvider, _optionService),
+                    await LocalUserRegistryOptionPersister.CreateAsync(_serviceProvider).ConfigureAwait(false),
+                    new FeatureFlagPersister(await TryGetServiceAsync<SVsFeatureFlags, IVsFeatureFlags>().ConfigureAwait(false)));
+
+        private async ValueTask<I?> TryGetServiceAsync<T, I>() where I : class
         {
-            if (_lazyPersister is not null)
+            try
             {
-                return _lazyPersister;
+                return (I?)await _serviceProvider.GetServiceAsync(typeof(T)).ConfigureAwait(false);
             }
-
-            var settingsManager = (ISettingsManager?)await _serviceProvider.GetServiceAsync(typeof(SVsSettingsPersistenceManager)).ConfigureAwait(true);
-
-            _lazyPersister ??= new VisualStudioSettingsOptionPersister(_optionService, settingsManager);
-            return _lazyPersister;
+            catch (Exception e) when (FatalError.ReportAndCatch(e))
+            {
+                return null;
+            }
         }
     }
 }
