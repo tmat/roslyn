@@ -21,11 +21,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
         }
 
         private protected override object? GetOptionCore(OptionKey optionKey)
-        {
-            Contract.ThrowIfFalse(_values.TryGetValue(optionKey, out var value));
-
-            return value;
-        }
+            => _values.TryGetValue(optionKey, out var value) ? value : optionKey.Option.DefaultValue;
 
         public override OptionSet WithChangedOption(OptionKey optionAndLanguage, object? value)
         {
