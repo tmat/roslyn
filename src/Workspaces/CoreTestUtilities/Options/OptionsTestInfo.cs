@@ -14,8 +14,6 @@ namespace Microsoft.CodeAnalysis.UnitTests;
 
 internal readonly record struct OptionsTestInfo(IOption2 Option, string? ContainingAssemblyLanguage, List<string> Accessors, bool IsPublic)
 {
-    System.Runtime.CompilerServices.IsExternalInit x;
-
     public static Dictionary<string, OptionsTestInfo> CollectOptions(string directory)
     {
         var result = new Dictionary<string, OptionsTestInfo>();

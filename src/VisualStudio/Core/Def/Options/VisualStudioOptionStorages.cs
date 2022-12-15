@@ -110,8 +110,8 @@ internal abstract class VisualStudioOptionStorage
         }
     }
 
-    public static bool TryGetStorage(OptionKey2 optionKey, out VisualStudioOptionStorage storage)
-        => s_storages.TryGetValue(optionKey.Option.OptionDefinition.ConfigName, out storage);
+    public static bool TryGetStorage(string configName, out VisualStudioOptionStorage storage)
+        => s_storages.TryGetValue(configName, out storage);
 
     private static readonly IReadOnlyDictionary<string, VisualStudioOptionStorage> s_storages = new Dictionary<string, VisualStudioOptionStorage>()
     {
