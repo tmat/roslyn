@@ -107,8 +107,8 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
             Assert.Equal(perLanguageOptionKey.Option.DefaultValue, optionSet.GetOption<int>(perLanguageOptionKey));
 
             var newSet = optionSet.WithChangedOption(optionKey, 2).WithChangedOption(perLanguageOptionKey, 3);
-            Assert.Equal(1, newSet.GetOption<int>(optionKey));
-            Assert.Equal(2, newSet.GetOption<int>(perLanguageOptionKey));
+            Assert.Equal(2, newSet.GetOption<int>(optionKey));
+            Assert.Equal(3, newSet.GetOption<int>(perLanguageOptionKey));
         }
 
         [Fact]
@@ -215,7 +215,7 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
             optionService.GetOption(option);
 
             var optionSet = new SolutionOptionSet(optionService);
-            var value = optionSet.GetOption(option);
+            var value = optionSet.GetOption((Option<bool>)option);
             Assert.True(value);
         }
 
@@ -292,21 +292,18 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
 
             //  1. Verify default value.
             Assert.Equal(perLanguageOption.DefaultValue, originalOptionSet.GetOption(perLanguageOption, LanguageNames.CSharp));
-            Assert.Equal(perLanguageOption2.DefaultValue, originalOptionSet.GetOption(perLanguageOption2, LanguageNames.CSharp));
 
             //  2. OptionSet validations.
             var newOptionSet = originalOptionSet.WithChangedOption(perLanguageOption, LanguageNames.CSharp, newValueCodeStyleOption);
             Assert.Equal(newValueCodeStyleOption, newOptionSet.GetOption(perLanguageOption, LanguageNames.CSharp));
-            Assert.Equal(newValueCodeStyleOption2, newOptionSet.GetOption(perLanguageOption2, LanguageNames.CSharp));
 
             newOptionSet = originalOptionSet.WithChangedOption(perLanguageOption2, LanguageNames.CSharp, newValueCodeStyleOption2);
             Assert.Equal(newValueCodeStyleOption, newOptionSet.GetOption(perLanguageOption, LanguageNames.CSharp));
-            Assert.Equal(newValueCodeStyleOption2, newOptionSet.GetOption(perLanguageOption2, LanguageNames.CSharp));
 
             //  3. IOptionService validation
 
             optionService.GlobalOptions.SetOptions(((SolutionOptionSet)newOptionSet).GetChangedOptions());
-            Assert.Equal(newValueCodeStyleOption2, optionService.GlobalOptions.GetOption(perLanguageOption2, LanguageNames.CSharp));
+            Assert.Throws<InvalidCastException>(() => optionService.GlobalOptions.GetOption(perLanguageOption2, LanguageNames.CSharp));
         }
 
         [Fact]
@@ -339,16 +336,16 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
 
             //  1. Verify default value.
             Assert.Equal(option.DefaultValue, originalOptionSet.GetOption(option));
-            Assert.Equal(option2.DefaultValue, originalOptionSet.GetOption(option2));
 
             //  2. OptionSet validations.
             var newOptionSet = originalOptionSet.WithChangedOption(option, newValueCodeStyleOption);
             Assert.Equal(newValueCodeStyleOption, newOptionSet.GetOption(option));
-            Assert.Equal(newValueCodeStyleOption2, newOptionSet.GetOption(option2));
 
             //  3. IOptionService validation
             optionService.GlobalOptions.SetOptions(((SolutionOptionSet)newOptionSet).GetChangedOptions());
-            Assert.Equal(newValueCodeStyleOption2, optionService.GlobalOptions.GetOption(option2));
+
+            // Fetching internal option from OptionSet:
+            Assert.Throws<InvalidCastException>(() => optionService.GlobalOptions.GetOption(option2));
         }
 
         private static void TestCodeStyleOptionsCommon<TCodeStyleOption>(Workspace workspace, IOption2 option, string? language, TCodeStyleOption newValue)
@@ -369,9 +366,12 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
             Assert.Equal(newPublicValue, newOptionSet.GetOption(optionKey));
             // Value returned from public API should always be castable to public CodeStyleOption type.
             Assert.NotNull((CodeStyleOption<bool>)newOptionSet.GetOption(optionKey)!);
-            // Verify "T GetOption<T>(OptionKey)" works for both cases of T being a public and internal code style option type.
+
+            // Verify "T GetOption<T>(OptionKey)" works for T being a public code style option type.
             Assert.Equal(newPublicValue, newOptionSet.GetOption<CodeStyleOption<bool>>(optionKey));
-            Assert.Equal(newValue, newOptionSet.GetOption<TCodeStyleOption>(optionKey));
+
+            // OptionSet does not return internal option value:
+            Assert.Throws<InvalidCastException>(() => newOptionSet.GetOption<CodeStyleOption2<bool>>(optionKey));
 
             //  2. IOptionService.GetOption(OptionKey)
             optionService.GlobalOptions.SetOptions(((SolutionOptionSet)newOptionSet).GetChangedOptions());

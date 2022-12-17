@@ -118,7 +118,7 @@ public class FormatterTests
 
         // Validate that options are read from specified OptionSet:
 
-        var updatedOptions = OptionsTestHelpers.GetOptionSetWithChangedOptions(OptionSet.Empty, OptionsTestHelpers.PublicFormattingOptionsWithNonDefaultValues);
+        var updatedOptions = OptionsTestHelpers.GetOptionSetWithChangedOptions(TestOptionSet.Empty, OptionsTestHelpers.PublicFormattingOptionsWithNonDefaultValues);
         ValidateCSharpOptions((CSharpSyntaxFormattingOptions)(await Formatter.GetFormattingOptionsAsync(csDocument, updatedOptions, CancellationToken.None)).Syntax!);
         ValidateVisualBasicOptions((VisualBasicSyntaxFormattingOptions)(await Formatter.GetFormattingOptionsAsync(vbDocument, updatedOptions, CancellationToken.None)).Syntax!);
 

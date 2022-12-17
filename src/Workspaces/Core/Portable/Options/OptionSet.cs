@@ -40,18 +40,6 @@ namespace Microsoft.CodeAnalysis.Options
         public T GetOption<T>(OptionKey optionKey)
             => (T)GetOptionCore(optionKey)!;
 
-        /// <summary>
-        /// Gets the value of the option, or the default value if not otherwise set.
-        /// </summary>
-        internal T GetOption<T>(Option2<T> option)
-            => GetOption<T>(new OptionKey(option));
-
-        /// <summary>
-        /// Gets the value of the option, or the default value if not otherwise set.
-        /// </summary>
-        internal T GetOption<T>(PerLanguageOption2<T> option, string language)
-            => GetOption<T>(new OptionKey(option, language));
-
 #pragma warning disable RS0030 // Do not used banned APIs: PerLanguageOption<T>
         /// <summary>
         /// Gets the value of the option, or the default value if not otherwise set.
