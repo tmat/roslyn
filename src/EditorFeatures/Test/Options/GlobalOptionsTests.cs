@@ -73,14 +73,6 @@ public class GlobalOptionsTests
 
         #region Unused
 
-        public void RegisterWorkspace(Workspace workspace)
-        {
-        }
-
-        public void UnregisterWorkspace(Workspace workspace)
-        {
-        }
-
 #pragma warning disable CS0067
         public event EventHandler<OptionChangedEventArgs>? OptionChanged;
 #pragma warning restore
@@ -100,10 +92,7 @@ public class GlobalOptionsTests
         public void SetGlobalOption(OptionKey2 optionKey, object? value)
             => throw new NotImplementedException();
 
-        public void SetGlobalOptions(ImmutableArray<KeyValuePair<OptionKey2, object?>> options)
-            => throw new NotImplementedException();
-
-        public void SetOptions(ImmutableArray<KeyValuePair<OptionKey2, object?>> options)
+        public bool SetGlobalOptions(ImmutableArray<KeyValuePair<OptionKey2, object?>> options)
             => throw new NotImplementedException();
 
         #endregion

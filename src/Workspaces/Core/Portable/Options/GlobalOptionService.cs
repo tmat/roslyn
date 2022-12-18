@@ -8,15 +8,9 @@ using System.Collections.Immutable;
 using System.Composition;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Host.Mef;
-using Microsoft.CodeAnalysis.Options.Providers;
-using Microsoft.CodeAnalysis.Remote;
 using Microsoft.CodeAnalysis.Shared.Collections;
-using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Shared.Utilities;
 using Roslyn.Utilities;
 
@@ -28,9 +22,6 @@ namespace Microsoft.CodeAnalysis.Options
         private readonly IWorkspaceThreadingService? _workspaceThreadingService;
         private readonly ImmutableArray<Lazy<IOptionPersisterProvider>> _optionPersisterProviders;
 
-        // access is interlocked
-        private ImmutableArray<Workspace> _registeredWorkspaces;
-
         private readonly object _gate = new();
 
         #region Guarded by _gate
@@ -40,6 +31,8 @@ namespace Microsoft.CodeAnalysis.Options
 
         #endregion
 
+        public event EventHandler<OptionChangedEventArgs>? OptionChanged;
+
         [ImportingConstructor]
         [SuppressMessage("RoslynDiagnosticsReliability", "RS0033:Importing constructor should be [Obsolete]", Justification = "Used in test code: https://github.com/dotnet/roslyn/issues/42814")]
         public GlobalOptionService(
@@ -48,7 +41,6 @@ namespace Microsoft.CodeAnalysis.Options
         {
             _workspaceThreadingService = workspaceThreadingService;
             _optionPersisterProviders = optionPersisters.ToImmutableArray();
-            _registeredWorkspaces = ImmutableArray<Workspace>.Empty;
 
             _currentValues = ImmutableDictionary.Create<OptionKey2, object?>();
         }
@@ -163,30 +155,13 @@ namespace Microsoft.CodeAnalysis.Options
         public void SetGlobalOption<T>(PerLanguageOption2<T> option, string language, T value)
             => SetGlobalOption(new OptionKey2(option, language), value);
 
-        /// <summary>
-        /// Sets value of a global option, which is not stored in <see cref="Solution.Options"/>.
-        /// Does not clear <see cref="SolutionOptionSet"/> of registered workspaces.
-        /// </summary>
         public void SetGlobalOption(OptionKey2 optionKey, object? value)
-            => SetGlobalOptions(ImmutableArray.Create(KeyValuePairUtil.Create(optionKey, value)));
+            => SetGlobalOptions(OneOrMany.Create(KeyValuePairUtil.Create(optionKey, value)));
 
-        /// <summary>
-        /// Sets values of global options, which are not stored in <see cref="Solution.Options"/>.
-        /// Does not clear <see cref="SolutionOptionSet"/> of registered workspaces.
-        /// </summary>
-        public void SetGlobalOptions(ImmutableArray<KeyValuePair<OptionKey2, object?>> options)
-            => SetOptions(options, updateWorkspaces: false);
+        public bool SetGlobalOptions(ImmutableArray<KeyValuePair<OptionKey2, object?>> options)
+            => SetGlobalOptions(OneOrMany.Create(options));
 
-        /// <summary>
-        /// Sets values of options that may be stored in <see cref="Solution.Options"/> (public options).
-        /// Clears <see cref="SolutionOptionSet"/> of registered workspaces so that next time
-        /// <see cref="Solution.Options"/> are queried for the options new values are fetched from 
-        /// <see cref="GlobalOptionService"/>.
-        /// </summary>
-        public void SetOptions(ImmutableArray<KeyValuePair<OptionKey2, object?>> options)
-            => SetOptions(options, updateWorkspaces: true);
-
-        private void SetOptions(ImmutableArray<KeyValuePair<OptionKey2, object?>> options, bool updateWorkspaces)
+        private bool SetGlobalOptions(OneOrMany<KeyValuePair<OptionKey2, object?>> options)
         {
             var changedOptions = new List<OptionChangedEventArgs>();
             var persisters = GetOptionPersisters();
@@ -206,18 +181,18 @@ namespace Microsoft.CodeAnalysis.Options
                 }
             }
 
+            if (changedOptions.Count == 0)
+            {
+                return false;
+            }
+
             foreach (var changedOption in changedOptions)
             {
                 PersistOption(persisters, changedOption.OptionKey, changedOption.Value);
             }
 
-            // Outside of the lock, raise the events on our task queue.
-            if (updateWorkspaces)
-            {
-                UpdateRegisteredWorkspaces(changedOptions);
-            }
-
             RaiseOptionChangedEvent(changedOptions);
+            return true;
         }
 
         private static void PersistOption(ImmutableArray<IOptionPersister> persisters, OptionKey2 optionKey, object? value)
@@ -248,31 +223,12 @@ namespace Microsoft.CodeAnalysis.Options
             }
 
             var changedOptions = new List<OptionChangedEventArgs> { new OptionChangedEventArgs(optionKey, newValue) };
-            UpdateRegisteredWorkspaces(changedOptions);
             RaiseOptionChangedEvent(changedOptions);
-        }
-
-        private void UpdateRegisteredWorkspaces(List<OptionChangedEventArgs> changedOptions)
-        {
-            if (changedOptions.Count == 0)
-            {
-                return;
-            }
-
-            // Ensure that the Workspace's CurrentSolution snapshot is updated with new options for all registered workspaces
-            // prior to raising option changed event handlers.
-            foreach (var workspace in _registeredWorkspaces)
-            {
-                workspace.UpdateCurrentSolutionOnOptionsChanged();
-            }
         }
 
         private void RaiseOptionChangedEvent(List<OptionChangedEventArgs> changedOptions)
         {
-            if (changedOptions.Count == 0)
-            {
-                return;
-            }
+            Debug.Assert(changedOptions.Count > 0);
 
             // Raise option changed events.
             var optionChanged = OptionChanged;
@@ -284,13 +240,5 @@ namespace Microsoft.CodeAnalysis.Options
                 }
             }
         }
-
-        public void RegisterWorkspace(Workspace workspace)
-            => ImmutableInterlocked.Update(ref _registeredWorkspaces, (workspaces, workspace) => workspaces.Add(workspace), workspace);
-
-        public void UnregisterWorkspace(Workspace workspace)
-            => ImmutableInterlocked.Update(ref _registeredWorkspaces, (workspaces, workspace) => workspaces.Remove(workspace), workspace);
-
-        public event EventHandler<OptionChangedEventArgs>? OptionChanged;
     }
 }

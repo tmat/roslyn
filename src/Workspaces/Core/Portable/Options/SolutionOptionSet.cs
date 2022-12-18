@@ -2,18 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using Microsoft.CodeAnalysis.CodeStyle;
-using Microsoft.CodeAnalysis.Diagnostics.Analyzers.NamingStyles;
-using Microsoft.CodeAnalysis.PooledObjects;
-using Microsoft.CodeAnalysis.Remote;
-using Microsoft.CodeAnalysis.Shared.Extensions;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Options
@@ -60,14 +52,8 @@ namespace Microsoft.CodeAnalysis.Options
                 return value;
             }
 
-            if (optionKey.Option is not IOption2 internalOption)
-            {
-                return optionKey.Option.DefaultValue;
-            }
-
-            var internalValue = _globalOptions.GetOption(new OptionKey2(internalOption, optionKey.Language));
-
             // Global options store internal representation of code style options. Translate to public representation.
+            var internalValue = _globalOptions.GetOption(optionKey);
             value = internalValue is ICodeStyleOption codeStyleOption ? codeStyleOption.AsPublicCodeStyleOption() : internalValue;
 
             return ImmutableInterlocked.GetOrAdd(ref _values, optionKey, value);
@@ -103,10 +89,12 @@ namespace Microsoft.CodeAnalysis.Options
         internal IEnumerable<OptionKey> GetChangedOptionKeys()
             => _changedOptionKeys;
 
-        internal ImmutableArray<KeyValuePair<OptionKey2, object?>> GetChangedOptions()
-            => _changedOptionKeys
-                .Where(key => key.Option is IOption2)
-                .SelectAsArray(key => KeyValuePairUtil.Create(new OptionKey2((IOption2)key.Option, key.Language), GetOption(key)));
+        internal (ImmutableArray<KeyValuePair<OptionKey2, object?>> internallyDefined, ImmutableArray<KeyValuePair<OptionKey, object?>> externallyDefined) GetChangedOptions()
+        {
+            var internallyDefined = _changedOptionKeys.Where(key => key.Option is IOption2).SelectAsArray(key => KeyValuePairUtil.Create(new OptionKey2((IOption2)key.Option, key.Language), GetOption(key)));
+            var externallyDefined = _changedOptionKeys.Where(key => key.Option is not IOption2).SelectAsArray(key => KeyValuePairUtil.Create(key, GetOption(key)));
+            return (internallyDefined, externallyDefined);
+        }
 
         internal override IEnumerable<OptionKey> GetChangedOptions(OptionSet? optionSet)
         {

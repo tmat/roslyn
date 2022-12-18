@@ -302,11 +302,11 @@ namespace Microsoft.CodeAnalysis
                 var changedOptions = value switch
                 {
                     null => throw new ArgumentNullException(nameof(value)),
-                    SolutionOptionSet serializableOptionSet => serializableOptionSet.GetChangedOptions(),
+                    SolutionOptionSet solutionOptionSet => solutionOptionSet.GetChangedOptions(),
                     _ => throw new ArgumentException(WorkspacesResources.Options_did_not_come_from_specified_Solution, paramName: nameof(value))
                 };
 
-                _legacyOptions.SetOptions(changedOptions);
+                _legacyOptions.SetOptions(changedOptions.internallyDefined, changedOptions.externallyDefined);
             }
         }
 
@@ -1224,7 +1224,8 @@ namespace Microsoft.CodeAnalysis
 
                 if (this.CurrentSolution.Options != newSolution.Options)
                 {
-                    _legacyOptions.SetOptions(newSolution.State.Options.GetChangedOptions());
+                    var changedOptions = newSolution.State.Options.GetChangedOptions();
+                    _legacyOptions.SetOptions(changedOptions.internallyDefined, changedOptions.externallyDefined);
                 }
 
                 if (!CurrentSolution.AnalyzerReferences.SequenceEqual(newSolution.AnalyzerReferences))
