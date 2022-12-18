@@ -5,16 +5,17 @@
 #pragma warning disable RS0030 // Do not used banned APIs
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.Diagnostics.Analyzers.NamingStyles;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Options;
-using Roslyn.Test.Utilities;
+using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Utilities;
+using Xunit;
 
 namespace Microsoft.CodeAnalysis.UnitTests
 {
@@ -117,38 +118,52 @@ namespace Microsoft.CodeAnalysis.UnitTests
             => value switch
             {
                 _ when type == typeof(bool) => !(bool)value!,
-                _ when type.IsEnum => GetDifferentEnumValue(type, value),
                 _ when type == typeof(string) => (string?)value == "X" ? "Y" : "X",
                 _ when type == typeof(int) => (int)value! == 0 ? 1 : 0,
-                ICodeStyleOption codeStyleOption => codeStyleOption.WithNotification(codeStyleOption.Notification == NotificationOption2.Warning ? NotificationOption2.Error : NotificationOption2.Warning),
+                _ when type == typeof(long) => (long)value! == 0 ? 1L : 0L,
+                _ when type.IsEnum => GetDifferentEnumValue(type, value!),
+                ICodeStyleOption codeStyle => codeStyle
+                    .WithValue(GetDifferentValue(codeStyle.GetType().GetGenericArguments()[0], codeStyle.Value!)!)
+                    .WithNotification((codeStyle.Notification == NotificationOption2.Error) ? NotificationOption2.Warning : NotificationOption2.Error),
                 NamingStylePreferences namingPreference => namingPreference.IsEmpty ? NamingStylePreferences.Default : NamingStylePreferences.Empty,
-                ImmutableArray<string> strings => strings.IsEmpty ? ImmutableArray.Create("X") : ImmutableArray<string>.Empty,
-                _ when type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) => (value is null) ? Activator.CreateInstance(type.GetGenericArguments()[0]) : null,
-                _ when type == typeof(long) => (long)((long)value! == 0 ? 1 : 0),
-                _ when type == typeof(ulong) => (ulong)((ulong)value! == 0 ? 1 : 0),
-                _ when type == typeof(uint) => (uint)((uint)value! == 0 ? 1 : 0),
-                _ when type == typeof(short) => (short)((short)value! == 0 ? 1 : 0),
-                _ when type == typeof(ushort) => (ushort)((ushort)value! == 0 ? 1 : 0),
-                _ when type == typeof(byte) => (byte)((byte)value! == 0 ? 1 : 0),
-                _ when type == typeof(sbyte) => (sbyte)((sbyte)value! == 0 ? 1 : 0),
-                _ when type == typeof(char) => (char)value! == '0' ? '1' : '0',
+                _ when type == typeof(bool?) => value is null ? true : null,
+                _ when type == typeof(int?) => value is null ? 1 : null,
+                _ when type == typeof(long?) => value is null ? 1L : null,
+                ImmutableArray<bool> array => array.IsEmpty ? ImmutableArray.Create("X") : ImmutableArray<bool>.Empty,
+                ImmutableArray<string> array => array.IsEmpty ? ImmutableArray.Create("X") : ImmutableArray<string>.Empty,
+                ImmutableArray<int> array => array.IsEmpty ? ImmutableArray.Create("X") : ImmutableArray<int>.Empty,
+                ImmutableArray<long> array => array.IsEmpty ? ImmutableArray.Create("X") : ImmutableArray<long>.Empty,
 
                 // Hit when a new option is introduced that uses type not handled above:
                 _ => throw ExceptionUtilities.UnexpectedValue(type)
             };
 
-        private static object GetDifferentEnumValue(Type type, object? defaultValue)
+        private static object GetDifferentEnumValue(Type type, object defaultValue)
         {
-            foreach (var value in Enum.GetValues(type))
-            {
-                if (value != defaultValue)
-                {
-                    return value;
-                }
-            }
-
-            // enum has only a single value:
-            throw ExceptionUtilities.Unreachable();
+            var zero = Enum.ToObject(type, 0);
+            return defaultValue.Equals(zero) ? Enum.ToObject(type, 1) : zero;
         }
+
+        /// <summary>
+        /// True if the type is a type of an option value.
+        /// </summary>
+        public static bool IsOptionValueType(Type type)
+            => type == typeof(bool) ||
+               type == typeof(string) ||
+               type == typeof(int) ||
+               type == typeof(long) ||
+               type == typeof(bool?) ||
+               type == typeof(int?) ||
+               type == typeof(long?) ||
+               type.IsEnum ||
+               typeof(ICodeStyleOption).IsAssignableFrom(type) ||
+               type == typeof(NamingStylePreferences) ||
+               type == typeof(ImmutableArray<bool>) ||
+               type == typeof(ImmutableArray<string>) ||
+               type == typeof(ImmutableArray<int>) ||
+               type == typeof(ImmutableArray<long>);
+
+        public static Type GetNonNullableType(Type type)
+            => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) ? type.GetGenericArguments()[0] : type;
     }
 }
