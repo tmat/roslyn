@@ -4,6 +4,7 @@
 
 using System;
 using System.Threading;
+using Microsoft.CodeAnalysis;
 using Roslyn.Collections.Immutable;
 
 namespace Roslyn.Utilities
