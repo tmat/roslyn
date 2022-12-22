@@ -72,32 +72,5 @@ namespace Microsoft.CodeAnalysis.Options
 
         public static bool operator !=(OptionDefinition left, OptionDefinition right)
             => !left.Equals(right);
-
-        #region Backward compat helpers
-
-        // The following are used only to implement equality/ToString of public Option<T> and PerLanguageOption<T> options.
-        // Public options can be instantiated with non-unique config name and thus we need to include default value in the equality
-        // to avoid collisions among them.
-
-        public string PublicOptionDefinitionToString()
-            => $"{Feature} - {_name}";
-
-        public bool PublicOptionDefinitionEquals(OptionDefinition other)
-        {
-            var equals = this.Name == other.Name &&
-                this.Feature == other.Feature &&
-                this.Group == other.Group;
-
-            // DefaultValue and Type can differ between different but equivalent implementations of "ICodeStyleOption".
-            // So, we skip these fields for equality checks of code style options.
-            if (equals && !(this.DefaultValue is ICodeStyleOption))
-            {
-                equals = Equals(this.DefaultValue, other.DefaultValue) && this.Type == other.Type;
-            }
-
-            return equals;
-        }
-
-        #endregion
     }
 }

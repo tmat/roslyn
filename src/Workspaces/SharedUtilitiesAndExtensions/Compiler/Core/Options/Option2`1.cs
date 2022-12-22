@@ -10,7 +10,7 @@ namespace Microsoft.CodeAnalysis.Options
     /// <summary>
     /// Marker interface for options that has the same value for all languages.
     /// </summary>
-    internal interface ISingleValuedOption : IOptionWithGroup
+    internal interface ISingleValuedOption : IOption2
     {
         /// <summary>
         /// The language name that supports this option, or null if it's supported by multiple languages.
@@ -37,9 +37,6 @@ namespace Microsoft.CodeAnalysis.Options
     internal partial class Option2<T> : ISingleValuedOption<T>
     {
         public OptionDefinition OptionDefinition { get; }
-
-        /// <inheritdoc cref="OptionDefinition.Feature"/>
-        public string Feature => OptionDefinition.Feature;
 
         /// <inheritdoc cref="OptionDefinition.Group"/>
         internal OptionGroup Group => OptionDefinition.Group;
@@ -90,22 +87,9 @@ namespace Microsoft.CodeAnalysis.Options
             LanguageName = languageName;
         }
 
-#if CODE_STYLE
         object? IOption2.DefaultValue => this.DefaultValue;
 
-        bool IOption2.IsPerLanguage => false;
-#else
-        object? IOption.DefaultValue => this.DefaultValue;
-
-        bool IOption.IsPerLanguage => false;
-
-        ImmutableArray<OptionStorageLocation> IOption.StorageLocations
-            => this.StorageLocations.As<OptionStorageLocation>();
-#endif
-
-        OptionGroup IOptionWithGroup.Group => this.Group;
-
-        OptionDefinition IOption2.OptionDefinition => OptionDefinition;
+        public bool IsPerLanguage => false;
 
         public string? LanguageName { get; }
 

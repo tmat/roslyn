@@ -7,12 +7,13 @@
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Microsoft.CodeAnalysis.CodeStyle;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Options
 {
     /// <inheritdoc cref="Option2{T}"/>
-    public class Option<T> : ISingleValuedOption<T>
+    public class Option<T> : IOption
     {
         private readonly OptionDefinition _optionDefinition;
 
@@ -70,39 +71,25 @@ namespace Microsoft.CodeAnalysis.Options
             this.StorageLocations = storageLocations;
         }
 
-        OptionGroup IOptionWithGroup.Group => this.Group;
-
         object? IOption.DefaultValue => this.DefaultValue;
 
         bool IOption.IsPerLanguage => false;
 
-        OptionDefinition IOption2.OptionDefinition => _optionDefinition;
-
-        string? ISingleValuedOption.LanguageName
-        {
-            get
-            {
-                Debug.Fail("It's not expected that we access LanguageName property for Option<T>. The options we use should be Option2<T>.");
-                return null;
-            }
-        }
-
-        bool IEquatable<IOption2?>.Equals(IOption2? other) => Equals(other);
-
-        public override string ToString() => _optionDefinition.PublicOptionDefinitionToString();
+        public override string ToString()
+            => this.PublicOptionDefinitionToString();
 
         public override int GetHashCode() => _optionDefinition.GetHashCode();
 
-        public override bool Equals(object? obj) => Equals(obj as IOption2);
+        public override bool Equals(object? obj) => Equals(obj as IOption);
 
-        private bool Equals(IOption2? other)
+        private bool Equals(IOption? other)
         {
             if (ReferenceEquals(this, other))
             {
                 return true;
             }
 
-            return other is not null && _optionDefinition.PublicOptionDefinitionEquals(other.OptionDefinition);
+            return other is not null && this.PublicOptionDefinitionEquals(other);
         }
 
         public static implicit operator OptionKey(Option<T> option)

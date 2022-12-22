@@ -16,8 +16,8 @@ namespace Microsoft.CodeAnalysis.Options
             RoslynDebug.Assert(option != null);
 
             return new Option<CodeStyleOption<T>>(
-                option.Feature,
-                option.Group,
+                option.OptionDefinition.Feature,
+                option.OptionDefinition.Group,
                 option.Name,
                 defaultValue: new CodeStyleOption<T>(option.DefaultValue),
                 option.StorageLocations.As<OptionStorageLocation>());

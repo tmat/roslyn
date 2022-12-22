@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 namespace Microsoft.CodeAnalysis.Options
 {
     /// <inheritdoc cref="PerLanguageOption2{T}"/>
-    public class PerLanguageOption<T> : IPerLanguageValuedOption<T>
+    public class PerLanguageOption<T> : IOption
     {
         private readonly OptionDefinition _optionDefinition;
 
@@ -61,30 +61,24 @@ namespace Microsoft.CodeAnalysis.Options
             StorageLocations = storageLocations;
         }
 
-        OptionDefinition IOption2.OptionDefinition => _optionDefinition;
-
-        OptionGroup IOptionWithGroup.Group => this.Group;
-
         object? IOption.DefaultValue => this.DefaultValue;
 
         bool IOption.IsPerLanguage => true;
 
-        bool IEquatable<IOption2?>.Equals(IOption2? other) => Equals(other);
-
-        public override string ToString() => _optionDefinition.PublicOptionDefinitionToString();
+        public override string ToString() => this.PublicOptionDefinitionToString();
 
         public override int GetHashCode() => _optionDefinition.GetHashCode();
 
-        public override bool Equals(object? obj) => Equals(obj as IOption2);
+        public override bool Equals(object? obj) => Equals(obj as IOption);
 
-        private bool Equals(IOption2? other)
+        private bool Equals(IOption? other)
         {
             if (ReferenceEquals(this, other))
             {
                 return true;
             }
 
-            return other is not null && _optionDefinition.PublicOptionDefinitionEquals(other.OptionDefinition);
+            return other is not null && this.PublicOptionDefinitionEquals(other);
         }
     }
 }

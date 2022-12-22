@@ -11,7 +11,7 @@ namespace Microsoft.CodeAnalysis.Options
     /// Marker interface for <see cref="PerLanguageOption2{T}"/>.
     /// This option may apply to multiple languages, such that the option can have a different value for each language.
     /// </summary>
-    internal interface IPerLanguageValuedOption : IOptionWithGroup
+    internal interface IPerLanguageValuedOption : IOption2
     {
     }
 
@@ -104,22 +104,10 @@ namespace Microsoft.CodeAnalysis.Options
             this.StorageLocations = storageLocations;
         }
 
-        OptionGroup IOptionWithGroup.Group => this.Group;
-
-        OptionDefinition IOption2.OptionDefinition => OptionDefinition;
-
-#if CODE_STYLE
         object? IOption2.DefaultValue => this.DefaultValue;
 
-        bool IOption2.IsPerLanguage => true;
-#else
-        object? IOption.DefaultValue => this.DefaultValue;
+        public bool IsPerLanguage => true;
 
-        bool IOption.IsPerLanguage => true;
-
-        ImmutableArray<OptionStorageLocation> IOption.StorageLocations
-            => this.StorageLocations.As<OptionStorageLocation>();
-#endif
         public override string ToString() => OptionDefinition.ToString();
 
         public override int GetHashCode() => OptionDefinition.GetHashCode();
