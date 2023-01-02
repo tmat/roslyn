@@ -132,7 +132,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions
 
                 var editorConfigStorageLocation = optionKey.Option.StorageLocation;
                 Assert.NotNull(editorConfigStorageLocation);
-                analyzerConfig.AppendLine($"{optionKey.Option.OptionDefinition.ConfigName} = {editorConfigStorageLocation!.GetEditorConfigStringValue(value)}");
+                analyzerConfig.AppendLine($"{optionKey.Option.ConfigName} = {editorConfigStorageLocation!.GetEditorConfigStringValue(value)}");
             }
 
             return SourceText.From(analyzerConfig.ToString(), Encoding.UTF8);

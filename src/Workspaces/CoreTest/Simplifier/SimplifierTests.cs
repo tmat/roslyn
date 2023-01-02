@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Simplification;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.UnitTests;
 using Microsoft.CodeAnalysis.VisualBasic.Simplification;
 using Xunit;
 
@@ -80,7 +81,7 @@ public class SimplifierTests
         var csDocument = workspace.AddDocument(csProject.Id, "File.cs", SourceText.From("class C { }"));
         var vbDocument = workspace.AddDocument(vbProject.Id, "File.vb", SourceText.From("Class C : End Class"));
 
-        var updatedOptions = GetOptionSetWithChangedPublicOptions(workspace.CurrentSolution.Options);
+        var updatedOptions = OptionsTestHelpers.GetOptionSetWithChangedOptions(workspace.CurrentSolution.Options, OptionsTestHelpers.PublicCodeStyleOptionsWithNonDefaultValues);
 
         // Validate that options are read from specified OptionSet:
 
@@ -96,41 +97,6 @@ public class SimplifierTests
         ValidateCSharpOptions((CSharpSimplifierOptions)await Simplifier.GetOptionsAsync(csDocumentWithUpdatedOptions, optionSet: null, CancellationToken.None));
         ValidateVisualBasicOptions((VisualBasicSimplifierOptions)await Simplifier.GetOptionsAsync(vbDocumentWithUpdatedOptions, optionSet: null, CancellationToken.None));
 
-        static OptionSet GetOptionSetWithChangedPublicOptions(OptionSet options)
-        {
-            // all public options and their non-default values:
-
-            var publicOptions = new (IOption, object)[]
-            {
-                (CodeStyleOptions.QualifyFieldAccess, false),
-                (CodeStyleOptions.QualifyPropertyAccess, false),
-                (CodeStyleOptions.QualifyMethodAccess, false),
-                (CodeStyleOptions.QualifyEventAccess, false),
-                (CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInMemberAccess, false),
-                (CodeStyleOptions.PreferIntrinsicPredefinedTypeKeywordInDeclaration, false),
-                (CSharpCodeStyleOptions.VarForBuiltInTypes, false),
-                (CSharpCodeStyleOptions.VarWhenTypeIsApparent, false),
-                (CSharpCodeStyleOptions.VarElsewhere, false),
-                (CSharpCodeStyleOptions.PreferSimpleDefaultExpression, false),
-                (CSharpCodeStyleOptions.PreferBraces, PreferBracesPreference.WhenMultiline),
-            };
-
-            var updatedOptions = options;
-            foreach (var (option, newValue) in publicOptions)
-            {
-                var languages = (option is IPerLanguageValuedOption) ? new[] { LanguageNames.CSharp, LanguageNames.VisualBasic } : new string?[] { null };
-
-                foreach (var language in languages)
-                {
-                    var key = new OptionKey(option, language);
-                    var current = (ICodeStyleOption)options.GetOption(key)!;
-                    updatedOptions = updatedOptions.WithChangedOption(key, current.WithValue(newValue));
-                }
-            }
-
-            return updatedOptions;
-        }
-
         static void ValidateCommonOptions(SimplifierOptions simplifierOptions)
         {
             Assert.False(simplifierOptions.QualifyFieldAccess.Value);
@@ -144,12 +110,6 @@ public class SimplifierTests
         static void ValidateCSharpOptions(CSharpSimplifierOptions simplifierOptions)
         {
             ValidateCommonOptions(simplifierOptions);
-
-            Assert.False(simplifierOptions.VarForBuiltInTypes.Value);
-            Assert.False(simplifierOptions.VarWhenTypeIsApparent.Value);
-            Assert.False(simplifierOptions.VarElsewhere.Value);
-            Assert.False(simplifierOptions.PreferSimpleDefaultExpression.Value);
-            Assert.Equal(PreferBracesPreference.WhenMultiline, simplifierOptions.PreferBraces.Value);
         }
 
         static void ValidateVisualBasicOptions(VisualBasicSimplifierOptions simplifierOptions)

@@ -5,27 +5,26 @@
 #pragma warning disable RS0030 // Do not used banned APIs
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.Diagnostics.Analyzers.NamingStyles;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Utilities;
-using Xunit;
 
 namespace Microsoft.CodeAnalysis.UnitTests
 {
     internal static class OptionsTestHelpers
     {
-        public static readonly Option<bool> CustomPublicOption = new Option<bool>("My Feature", "My Option", defaultValue: true);
-
-        // all public options and their non-default values:
         public static readonly ImmutableArray<(IOption, object)> PublicCustomOptionsWithNonDefaultValues = ImmutableArray.Create<(IOption, object)>(
-            (CustomPublicOption, false));
+            (new Option<bool>("Test", "TestOptionBool", defaultValue: true), false),
+            (new PerLanguageOption<bool>("Test", "PerLanguageTestOptionBool", defaultValue: true), false),
+            (new TestOption() { Feature = "Test", Name = "TestIOption", DefaultValue = 1 }, 2),
+            (new TestOption<int>("Test", "TestOptionInt", defaultValue: 1), 2),
+            (new PerLanguageTestOption<int>("Test", "PerLanguageTestOptionInt", defaultValue: 1), 2));
 
         public static readonly ImmutableArray<(IOption, object)> PublicAutoFormattingOptionsWithNonDefaultValues = ImmutableArray.Create<(IOption, object)>(
             (FormattingOptions.SmartIndent, FormattingOptions2.IndentStyle.Block));
@@ -112,7 +111,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
         }
 
         public static IEnumerable<string?> GetApplicableLanguages(IOption option)
-            => (option is IPerLanguageValuedOption) ? new[] { LanguageNames.CSharp, LanguageNames.VisualBasic } : new string?[] { null };
+            => option.IsPerLanguage ? new[] { LanguageNames.CSharp, LanguageNames.VisualBasic } : new string?[] { null };
 
         public static object? GetDifferentValue(Type type, object? value)
             => value switch

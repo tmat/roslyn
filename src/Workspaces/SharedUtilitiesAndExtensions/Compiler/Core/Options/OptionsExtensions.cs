@@ -6,6 +6,10 @@ using System;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Roslyn.Utilities;
 
+#if !CODE_STYLE
+using System.Collections.Immutable;
+#endif
+
 namespace Microsoft.CodeAnalysis.Options;
 
 internal static class OptionsExtensions
@@ -38,25 +42,30 @@ internal static class OptionsExtensions
 #pragma warning disable RS0030 // Do not used banned APIs: Option<T>, PerLanguageOption<T>
 
     public static Option2<T> WithPublicOption<T, TPublicValue>(this Option2<T> option, string feature, string name, Func<T, TPublicValue> toPublicValue)
-        => new(
-            option.OptionDefinition,
-            option.StorageLocation,
-            option.LanguageName,
-            publicOption: new Option<TPublicValue>(
-                option.OptionDefinition.WithDefaultValue(toPublicValue(option.DefaultValue)),
-                feature,
-                name,
-                ((IOption2)option).StorageLocations));
+    {
+        var publicOption = new Option<TPublicValue>(
+            option.OptionDefinition.WithDefaultValue(toPublicValue(option.DefaultValue)),
+            feature,
+            name,
+            option.StorageLocation != null ? ImmutableArray.Create((OptionStorageLocation)option.StorageLocation) : ImmutableArray<OptionStorageLocation>.Empty);
+
+        var result = new Option2<T>(option.OptionDefinition, option.StorageLocation, option.LanguageName, publicOption);
+        publicOption.InitializeInternalOption(result);
+        return result;
+    }
 
     public static PerLanguageOption2<T> WithPublicOption<T, TPublicValue>(this PerLanguageOption2<T> option, string feature, string name, Func<T, TPublicValue> toPublicValue)
-        => new(
-            option.OptionDefinition,
-            option.StorageLocation,
-            publicOption: new PerLanguageOption<TPublicValue>(
-                option.OptionDefinition.WithDefaultValue(toPublicValue(option.DefaultValue)),
-                feature,
-                name,
-                ((IOption2)option).StorageLocations));
+    {
+        var publicOption = new PerLanguageOption<TPublicValue>(
+            option.OptionDefinition.WithDefaultValue(toPublicValue(option.DefaultValue)),
+            feature,
+            name,
+            option.StorageLocation != null ? ImmutableArray.Create((OptionStorageLocation)option.StorageLocation) : ImmutableArray<OptionStorageLocation>.Empty);
+
+        var result = new PerLanguageOption2<T>(option.OptionDefinition, option.StorageLocation, publicOption);
+        publicOption.InitializeInternalOption(result);
+        return result;
+    }
 
     public static Option2<T> WithPublicOption<T>(this Option2<T> option, string feature, string name)
         => WithPublicOption(option, feature, name, static value => value);
@@ -98,12 +107,12 @@ internal static class OptionsExtensions
     // Public options can be instantiated with non-unique config name and thus we need to include default value in the equality
     // to avoid collisions among them.
 
-    public static string PublicOptionDefinitionToString(this IOption2 option)
+    public static string PublicOptionDefinitionToString(this IOption option)
         => $"{option.Feature} - {option.Name}";
 
-    public static bool PublicOptionDefinitionEquals(this IOption2 x, IOption2 y)
+    public static bool PublicOptionDefinitionEquals(this IOption x, IOption y)
     {
-        var equals = x.OptionDefinition.ConfigName == y.OptionDefinition.ConfigName && x.OptionDefinition.Group == y.OptionDefinition.Group;
+        var equals = x.Feature == y.Feature && x.Name == y.Name;
 
         // DefaultValue and Type can differ between different but equivalent implementations of "ICodeStyleOption".
         // So, we skip these fields for equality checks of code style options.

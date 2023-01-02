@@ -671,10 +671,10 @@ dotnet_diagnostic.JSON002.severity = %value%
             foreach (var (diagnosticId, options) in diagnosticIdAndOptions)
             {
                 var hasEditorConfigCodeStyleOptions = false;
-                foreach (var option in options.OrderBy(o => o.OptionDefinition.ConfigName))
+                foreach (var option in options.OrderBy(o => o.ConfigName))
                 {
                     var editorConfigLocation = (IEditorConfigStorageLocation)option.StorageLocations.Single();
-                    var editorConfigString = $"{option.OptionDefinition.ConfigName} = {editorConfigLocation.GetEditorConfigStringValue(option.DefaultValue)}";
+                    var editorConfigString = $"{option.ConfigName} = {editorConfigLocation.GetEditorConfigStringValue(option.DefaultValue)}";
 
                     ProcessDiagnosticIdAndOption(diagnosticId, option, editorConfigString);
                     hasEditorConfigCodeStyleOptions = true;
@@ -713,7 +713,7 @@ dotnet_diagnostic.JSON002.severity = %value%
                 var diagnosticIdString = $"# {diagnosticId}";
                 if (optionOpt != null)
                 {
-                    diagnosticIdString += $", {optionOpt.OptionDefinition.ConfigName}";
+                    diagnosticIdString += $", {optionOpt.ConfigName}";
                 }
 
                 if (expectedLines.Length == 0)

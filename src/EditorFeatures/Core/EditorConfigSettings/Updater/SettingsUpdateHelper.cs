@@ -59,8 +59,10 @@ namespace Microsoft.CodeAnalysis.Editor.EditorConfigSettings.Updater
 
             static (string option, string value, Language language) GetOptionValueAndLanguage(IOption2 option, object value)
             {
-                var storageLocation = (IEditorConfigStorageLocation)option.StorageLocations.Single();
-                var optionName = option.OptionDefinition.ConfigName;
+                var storageLocation = option.StorageLocation;
+                Contract.ThrowIfNull(storageLocation);
+
+                var optionName = option.ConfigName;
                 var optionValue = storageLocation.GetEditorConfigStringValue(value);
 
                 if (value is ICodeStyleOption codeStyleOption && !optionValue.Contains(':'))
@@ -77,23 +79,20 @@ namespace Microsoft.CodeAnalysis.Editor.EditorConfigSettings.Updater
                 }
 
                 Language language;
-                if (option is ISingleValuedOption singleValuedOption)
-                {
-                    language = singleValuedOption.LanguageName switch
-                    {
-                        LanguageNames.CSharp => Language.CSharp,
-                        LanguageNames.VisualBasic => Language.VisualBasic,
-                        null => Language.CSharp | Language.VisualBasic,
-                        _ => throw ExceptionUtilities.UnexpectedValue(singleValuedOption.LanguageName),
-                    };
-                }
-                else if (option is IPerLanguageValuedOption perLanguageValuedOption)
+                if (option.IsPerLanguage)
                 {
                     language = Language.CSharp | Language.VisualBasic;
                 }
                 else
                 {
-                    throw ExceptionUtilities.UnexpectedValue(option);
+                    var languageName = ((ISingleValuedOption)option).LanguageName;
+                    language = languageName switch
+                    {
+                        LanguageNames.CSharp => Language.CSharp,
+                        LanguageNames.VisualBasic => Language.VisualBasic,
+                        null => Language.CSharp | Language.VisualBasic,
+                        _ => throw ExceptionUtilities.UnexpectedValue(languageName),
+                    };
                 }
 
                 return (optionName, optionValue, language);

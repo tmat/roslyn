@@ -80,15 +80,11 @@ namespace Microsoft.CodeAnalysis.UnitTests.Options
         public void Names()
         {
             var option1 = new Option2<bool>(name: "name", false);
-            Assert.Equal("config", ((IOption)option1).Feature);
-            Assert.Equal("name", ((IOption)option1).Name);
-            Assert.Equal("name", option1.OptionDefinition.ConfigName);
+            Assert.Equal("name", option1.ConfigName);
             Assert.Equal("name", option1.ToString());
 
             var option2 = new PerLanguageOption2<bool>(name: "name", false);
-            Assert.Equal("config", ((IOption)option2).Feature);
-            Assert.Equal("name", ((IOption)option2).Name);
-            Assert.Equal("name", option2.OptionDefinition.ConfigName);
+            Assert.Equal("name", option2.ConfigName);
             Assert.Equal("name", option2.ToString());
         }
 
@@ -162,6 +158,15 @@ namespace Microsoft.CodeAnalysis.UnitTests.Options
             Assert.False(option2.Equals(option1));
             Assert.False(CSharpFormattingOptions.SpacingAfterMethodDeclarationName.Equals(option3));
             Assert.False(option3.Equals(CSharpFormattingOptions.SpacingAfterMethodDeclarationName));
+        }
+
+        [Fact]
+        public void Equals_Option_Default()
+        {
+            var option = new Option<bool>("FooFeature", "BarName", defaultValue: false);
+
+            Assert.True(default(OptionKey).Equals(default));
+            Assert.False(default(OptionKey).Equals(new OptionKey(option)));
         }
 
         [Fact]

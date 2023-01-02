@@ -10,6 +10,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Diagnostics.Analyzers.NamingStyles;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Options
 {
@@ -43,9 +44,19 @@ namespace Microsoft.CodeAnalysis.Options
                     return false;
                 }
 
-                var storageLocation = (IEditorConfigStorageLocation)option.StorageLocations.Single();
-                var optionKey = new OptionKey(option, option.IsPerLanguage ? _language : null);
-                value = storageLocation.GetEditorConfigStringValue(optionKey, _optionSet);
+                Contract.ThrowIfNull(option.StorageLocation);
+
+                if (option.PublicOption is null)
+                {
+                    // values of non-public options are not stored in the OptionSet:
+                    value = option.StorageLocation.GetEditorConfigStringValue(option.DefaultValue);
+                }
+                else
+                {
+                    var optionKey = new OptionKey(option.PublicOption, option.IsPerLanguage ? _language : null);
+                    value = option.StorageLocation.GetEditorConfigStringValue(optionKey, _optionSet);
+                }
+
                 return true;
             }
 

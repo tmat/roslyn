@@ -71,7 +71,8 @@ namespace Microsoft.CodeAnalysis.Options
                 return false;
             }
 
-            if (optionKey.Option is not IOption2 internallyDefinedOption)
+            // All editorconfig options are defined internally.
+            if (optionKey.Option is not IPublicOption { InternalOption: not null and var internallyDefinedOption })
             {
                 value = null;
                 return false;
@@ -80,14 +81,16 @@ namespace Microsoft.CodeAnalysis.Options
             // Naming style option is not public. We should not call this API internally.
             Contract.ThrowIfTrue(internallyDefinedOption.Type == typeof(NamingStylePreferences));
 
-            if (!_configOptions.TryGetValue(internallyDefinedOption.OptionDefinition.ConfigName, out var stringValue))
+            if (!_configOptions.TryGetValue(internallyDefinedOption.ConfigName, out var stringValue))
             {
                 value = null;
                 return false;
             }
 
             // The option is in _configOptions so it must have editorconfig storage location:
-            var storage = (IEditorConfigStorageLocation)internallyDefinedOption.StorageLocations.Single();
+            var storage = internallyDefinedOption.StorageLocation;
+            Contract.ThrowIfNull(storage);
+
             if (!storage.TryParseValue(stringValue, out var internalValue))
             {
                 value = null;

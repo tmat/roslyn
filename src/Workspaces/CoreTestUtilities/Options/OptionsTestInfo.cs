@@ -51,7 +51,7 @@ internal readonly record struct OptionsTestInfo(IOption2 Option, string? Contain
                             var accessor = type.FullName + "." + unmangledName;
                             var isPublic = type.IsPublic && (isBackingField ? type.GetProperty(unmangledName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetMethod!.IsPublic : field.IsPublic);
 
-                            var configName = option.OptionDefinition.ConfigName;
+                            var configName = option.ConfigName;
                             if (result.TryGetValue(configName, out var optionInfo))
                             {
                                 optionInfo.Accessors.Add(accessor);

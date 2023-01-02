@@ -8,25 +8,22 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Options
 {
     /// <inheritdoc cref="Option2{T}"/>
-    public class Option<T> : ISingleValuedOption<T>
+    public class Option<T> : IPublicOption, IEquatable<IOption?>
     {
         private readonly OptionDefinition _optionDefinition;
-
         public string Feature { get; }
-
-        internal OptionGroup Group => _optionDefinition.Group;
-
         public string Name { get; }
-
-        public T DefaultValue => (T)_optionDefinition.DefaultValue!;
-
-        public Type Type => _optionDefinition.Type;
-
         public ImmutableArray<OptionStorageLocation> StorageLocations { get; }
+
+        /// <summary>
+        /// Set once when the corresponding internal option is created.
+        /// </summary>
+        internal IOption2? InternalOption { get; private set; }
 
         [Obsolete("Use a constructor that specifies an explicit default value.")]
         public Option(string feature, string name)
@@ -70,33 +67,35 @@ namespace Microsoft.CodeAnalysis.Options
             StorageLocations = storageLocations;
         }
 
-        IEditorConfigStorageLocation? IOption2.StorageLocation
-            => StorageLocations is [IEditorConfigStorageLocation location] ? location : null;
+        internal void InitializeInternalOption(IOption2 option)
+        {
+            Contract.ThrowIfFalse(InternalOption is null);
+            Contract.ThrowIfTrue(option.IsPerLanguage);
+
+            InternalOption = option;
+        }
+
+        internal OptionGroup Group => _optionDefinition.Group;
+
+        public T DefaultValue => (T)_optionDefinition.DefaultValue!;
+
+        public Type Type => _optionDefinition.Type;
+
+        IOption2? IPublicOption.InternalOption => InternalOption;
 
         object? IOption.DefaultValue => this.DefaultValue;
 
         bool IOption.IsPerLanguage => false;
 
-        OptionDefinition IOption2.OptionDefinition => _optionDefinition;
-
-        string? ISingleValuedOption.LanguageName
-        {
-            get
-            {
-                Debug.Fail("It's not expected that we access LanguageName property for Option<T>. The options we use should be Option2<T>.");
-                return null;
-            }
-        }
-
-        bool IEquatable<IOption2?>.Equals(IOption2? other) => Equals(other);
+        bool IEquatable<IOption?>.Equals(IOption? other) => Equals(other);
 
         public override string ToString() => this.PublicOptionDefinitionToString();
 
         public override int GetHashCode() => _optionDefinition.GetHashCode();
 
-        public override bool Equals(object? obj) => Equals(obj as IOption2);
+        public override bool Equals(object? obj) => Equals(obj as IOption);
 
-        private bool Equals(IOption2? other)
+        private bool Equals(IOption? other)
         {
             if (ReferenceEquals(this, other))
             {

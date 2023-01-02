@@ -11,6 +11,8 @@ using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Options;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.Test.Utilities;
+using System.Linq;
+using Xunit;
 
 #if !NETCOREAPP
 using System;
@@ -75,7 +77,11 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions
 
 #if !CODE_STYLE
         public OptionSet ToOptionSet()
-            => new TestOptionSet(_options.ToImmutableDictionary(entry => new OptionKey(entry.Key.Option, entry.Key.Language), entry => entry.Value));
+        {
+            // only public options can be stored in OptionSet:
+            Assert.True(_options.Keys.All(key => key.Option.PublicOption is IOption));
+            return new TestOptionSet(_options.ToImmutableDictionary(entry => new OptionKey((IOption)entry.Key.Option.PublicOption!, entry.Key.Language), entry => entry.Value));
+        }
 
         public AnalyzerConfigOptions ToAnalyzerConfigOptions(LanguageServices languageServices)
         {

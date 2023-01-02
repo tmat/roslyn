@@ -34,7 +34,7 @@ namespace Microsoft.CodeAnalysis
 
             Contract.ThrowIfNull(option.StorageLocation);
 
-            if (analyzerConfigOptions.TryGetValue(option.OptionDefinition.ConfigName, out var stringValue) &&
+            if (analyzerConfigOptions.TryGetValue(option.ConfigName, out var stringValue) &&
                ((EditorConfigStorageLocation<T>)option.StorageLocation).TryParseValue(stringValue, out value!))
             {
                 return true;

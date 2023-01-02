@@ -60,7 +60,7 @@ namespace Microsoft.CodeAnalysis.Options
                     var provider = lazyProviderAndMetadata.Value;
                     foreach (var option in provider.Options)
                     {
-                        builder.Add(option.OptionDefinition.ConfigName, option);
+                        builder.Add(option.ConfigName, option);
                     }
                 }
 

@@ -52,14 +52,14 @@ namespace Microsoft.CodeAnalysis.Options
             editorconfig.AppendLine($"#### {feature} ####");
             editorconfig.AppendLine();
 
-            foreach (var optionGrouping in options.GroupBy(o => o.OptionDefinition.Group).OrderBy(g => g.Key.Priority))
+            foreach (var optionGrouping in options.GroupBy(o => o.Group).OrderBy(g => g.Key.Priority))
             {
                 editorconfig.AppendLine($"# {optionGrouping.Key.Description}");
 
                 var uniqueEntries = new SortedSet<string>();
                 foreach (var option in optionGrouping)
                 {
-                    var configName = option.OptionDefinition.ConfigName;
+                    var configName = option.ConfigName;
                     if (configOptions.TryGetValue(configName, out var configValue))
                     {
                         uniqueEntries.Add($"{configName} = {configValue}");

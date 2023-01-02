@@ -108,9 +108,10 @@ namespace Microsoft.CodeAnalysis.CodeFixes.Configuration.ConfigureCodeStyle
                 using var _ = ArrayBuilder<CodeAction>.GetInstance(out var nestedActions);
 
                 // Try to get the parsed editorconfig string representation of the new code style option value
-                var editorConfigLocation = (IEditorConfigStorageLocation)option.StorageLocations.Single();
-                var optionName = option.OptionDefinition.ConfigName;
+                var editorConfigLocation = option.StorageLocation;
+                var optionName = option.ConfigName;
                 var defaultValue = (ICodeStyleOption?)option.DefaultValue;
+                Contract.ThrowIfNull(editorConfigLocation);
                 Contract.ThrowIfNull(defaultValue);
 
                 if (defaultValue.Value is bool)

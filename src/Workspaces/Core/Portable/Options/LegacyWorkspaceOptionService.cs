@@ -47,9 +47,9 @@ internal sealed class LegacyGlobalOptionService : ILegacyGlobalOptionService
 
     public object? GetOption(OptionKey key)
     {
-        if (key.Option is IOption2 internallyDefinedOption)
+        if (key.Option is IPublicOption { InternalOption: not null and var internalOption })
         {
-            return GlobalOptions.GetOption<object?>(new OptionKey2(internallyDefinedOption, key.Language));
+            return GlobalOptions.GetOption<object?>(new OptionKey2(internalOption, key.Language));
         }
 
         if (_currentExternallyDefinedOptionValues.TryGetValue(key, out var value))

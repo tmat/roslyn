@@ -91,8 +91,14 @@ namespace Microsoft.CodeAnalysis.Options
 
         internal (ImmutableArray<KeyValuePair<OptionKey2, object?>> internallyDefined, ImmutableArray<KeyValuePair<OptionKey, object?>> externallyDefined) GetChangedOptions()
         {
-            var internallyDefined = _changedOptionKeys.Where(key => key.Option is IOption2).SelectAsArray(key => KeyValuePairUtil.Create(new OptionKey2((IOption2)key.Option, key.Language), GetOption(key)));
-            var externallyDefined = _changedOptionKeys.Where(key => key.Option is not IOption2).SelectAsArray(key => KeyValuePairUtil.Create(key, GetOption(key)));
+            var internallyDefined = _changedOptionKeys
+                .Where(key => key.Option is IPublicOption { InternalOption: { } })
+                .SelectAsArray(key => KeyValuePairUtil.Create(new OptionKey2(((IPublicOption)key.Option).InternalOption!, key.Language), GetOption(key)));
+
+            var externallyDefined = _changedOptionKeys
+                .Where(key => key.Option is not IPublicOption { InternalOption: { } })
+                .SelectAsArray(key => KeyValuePairUtil.Create(key, GetOption(key)));
+
             return (internallyDefined, externallyDefined);
         }
 
@@ -113,5 +119,8 @@ namespace Microsoft.CodeAnalysis.Options
                 }
             }
         }
+
+        private protected override AnalyzerConfigOptions CreateAnalyzerConfigOptions(IEditorConfigOptionMapping mapping, string language)
+            => new AnalyzerConfigOptionsImpl(this, mapping, language);
     }
 }

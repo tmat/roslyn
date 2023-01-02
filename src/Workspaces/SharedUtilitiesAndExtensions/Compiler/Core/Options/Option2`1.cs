@@ -36,21 +36,10 @@ namespace Microsoft.CodeAnalysis.Options
     internal partial class Option2<T> : ISingleValuedOption<T>
     {
         public OptionDefinition OptionDefinition { get; }
-
-        /// <inheritdoc cref="OptionDefinition.Group"/>
-        internal OptionGroup Group => OptionDefinition.Group;
-
-        /// <inheritdoc cref="OptionDefinition.DefaultValue"/>
-        public T DefaultValue => (T)OptionDefinition.DefaultValue!;
-
-        /// <inheritdoc cref="OptionDefinition.Type"/>
-        public Type Type => OptionDefinition.Type;
-
         public EditorConfigStorageLocation<T>? StorageLocation { get; }
+        public IPublicOption? PublicOption { get; }
 
-        public object? PublicOption { get; }
-
-        internal Option2(OptionDefinition definition, EditorConfigStorageLocation<T>? storageLocation, string? languageName, object? publicOption)
+        internal Option2(OptionDefinition definition, EditorConfigStorageLocation<T>? storageLocation, string? languageName, IPublicOption? publicOption)
         {
             OptionDefinition = definition;
             StorageLocation = storageLocation;
@@ -73,27 +62,21 @@ namespace Microsoft.CodeAnalysis.Options
                 return;
             }
 
-            Debug.Assert(LanguageName is null == (OptionDefinition.ConfigName.StartsWith("dotnet_", StringComparison.Ordinal) ||
-                OptionDefinition.ConfigName is "file_header_template" or "insert_final_newline"));
-            Debug.Assert(LanguageName is LanguageNames.CSharp == OptionDefinition.ConfigName.StartsWith(OptionDefinition.CSharpConfigNamePrefix, StringComparison.Ordinal));
-            Debug.Assert(LanguageName is LanguageNames.VisualBasic == OptionDefinition.ConfigName.StartsWith(OptionDefinition.VisualBasicConfigNamePrefix, StringComparison.Ordinal));
+            Debug.Assert(LanguageName is null == (ConfigName.StartsWith("dotnet_", StringComparison.Ordinal) ||
+                ConfigName is "file_header_template" or "insert_final_newline"));
+            Debug.Assert(LanguageName is LanguageNames.CSharp == ConfigName.StartsWith(OptionDefinition.CSharpConfigNamePrefix, StringComparison.Ordinal));
+            Debug.Assert(LanguageName is LanguageNames.VisualBasic == ConfigName.StartsWith(OptionDefinition.VisualBasicConfigNamePrefix, StringComparison.Ordinal));
         }
 
         IEditorConfigStorageLocation? IOption2.StorageLocation => StorageLocation;
+        object? IOption2.DefaultValue => OptionDefinition.DefaultValue;
 
-#if CODE_STYLE
-        bool IOption2.IsPerLanguage => false;
-#else
-        string IOption.Feature => "config";
-        string IOption.Name => OptionDefinition.ConfigName;
-        object? IOption.DefaultValue => this.DefaultValue;
-        bool IOption.IsPerLanguage => false;
+        public OptionGroup Group => OptionDefinition.Group;
+        public T DefaultValue => (T)OptionDefinition.DefaultValue!;
+        public Type Type => OptionDefinition.Type;
+        public string ConfigName => OptionDefinition.ConfigName;
 
-        ImmutableArray<OptionStorageLocation> IOption.StorageLocations
-            => (StorageLocation != null) ? ImmutableArray.Create((OptionStorageLocation)StorageLocation) : ImmutableArray<OptionStorageLocation>.Empty;
-#endif
-
-        OptionDefinition IOption2.OptionDefinition => OptionDefinition;
+        public bool IsPerLanguage => false;
 
         public string? LanguageName { get; }
 

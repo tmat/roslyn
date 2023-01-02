@@ -30,21 +30,10 @@ namespace Microsoft.CodeAnalysis.Options
     internal partial class PerLanguageOption2<T> : IPerLanguageValuedOption<T>
     {
         public OptionDefinition OptionDefinition { get; }
-
-        /// <inheritdoc cref="OptionDefinition.Group"/>
-        internal OptionGroup Group => OptionDefinition.Group;
-
-        /// <inheritdoc cref="OptionDefinition.Type"/>
-        public Type Type => OptionDefinition.Type;
-
-        /// <inheritdoc cref="OptionDefinition.DefaultValue"/>
-        public T DefaultValue => (T)OptionDefinition.DefaultValue!;
-
         public EditorConfigStorageLocation<T>? StorageLocation { get; }
+        public IPublicOption? PublicOption { get; }
 
-        public object? PublicOption { get; }
-
-        internal PerLanguageOption2(OptionDefinition optionDefinition, EditorConfigStorageLocation<T>? storageLocation, object? publicOption)
+        internal PerLanguageOption2(OptionDefinition optionDefinition, EditorConfigStorageLocation<T>? storageLocation, IPublicOption? publicOption)
         {
             OptionDefinition = optionDefinition;
             StorageLocation = storageLocation;
@@ -67,24 +56,20 @@ namespace Microsoft.CodeAnalysis.Options
             }
 
             // options with per-language values shouldn't have language-specific prefix
-            Debug.Assert(!OptionDefinition.ConfigName.StartsWith(OptionDefinition.CSharpConfigNamePrefix, StringComparison.Ordinal));
-            Debug.Assert(!OptionDefinition.ConfigName.StartsWith(OptionDefinition.VisualBasicConfigNamePrefix, StringComparison.Ordinal));
+            Debug.Assert(!ConfigName.StartsWith(OptionDefinition.CSharpConfigNamePrefix, StringComparison.Ordinal));
+            Debug.Assert(!ConfigName.StartsWith(OptionDefinition.VisualBasicConfigNamePrefix, StringComparison.Ordinal));
         }
 
-        OptionDefinition IOption2.OptionDefinition => OptionDefinition;
         IEditorConfigStorageLocation? IOption2.StorageLocation => StorageLocation;
+        object? IOption2.DefaultValue => OptionDefinition.DefaultValue;
 
-#if CODE_STYLE
-        bool IOption2.IsPerLanguage => true;
-#else
-        string IOption.Feature => "config";
-        string IOption.Name => OptionDefinition.ConfigName;
-        object? IOption.DefaultValue => this.DefaultValue;
-        bool IOption.IsPerLanguage => true;
+        public OptionGroup Group => OptionDefinition.Group;
+        public Type Type => OptionDefinition.Type;
+        public T DefaultValue => (T)OptionDefinition.DefaultValue!;
+        public string ConfigName => OptionDefinition.ConfigName;
 
-        ImmutableArray<OptionStorageLocation> IOption.StorageLocations
-            => (StorageLocation != null) ? ImmutableArray.Create((OptionStorageLocation)StorageLocation) : ImmutableArray<OptionStorageLocation>.Empty;
-#endif
+        public bool IsPerLanguage => true;
+
         public override string ToString() => OptionDefinition.ToString();
 
         public override int GetHashCode() => OptionDefinition.GetHashCode();

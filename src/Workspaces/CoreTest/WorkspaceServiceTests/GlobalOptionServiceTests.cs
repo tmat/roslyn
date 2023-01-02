@@ -59,8 +59,8 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
             var optionService = GetLegacyGlobalOptionService(workspace1.Services);
             var optionSet = new SolutionOptionSet(optionService);
 
-            var option = subclass ? (IOption)new TestOption<int>() : new TestOption();
-            var perLanguageOption = subclass ? (IOption)new PerLanguageTestOption<int>() : new TestOption() { IsPerLanguage = true };
+            var option = subclass ? (IOption)new TestOption<int>(defaultValue: 1) : new TestOption() { DefaultValue = 1 };
+            var perLanguageOption = subclass ? (IOption)new PerLanguageTestOption<int>(defaultValue: 1) : new TestOption() { IsPerLanguage = true, DefaultValue = 1 };
 
             var optionKey = new OptionKey(option);
             var perLanguageOptionKey = new OptionKey(perLanguageOption, "lang");
@@ -190,7 +190,7 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
             {
                 "test_option1=5",
                 "test_option2=6",
-            }, changedOptions.Select(e => $"{e.Option.OptionDefinition.ConfigName}={e.Value}"));
+            }, changedOptions.Select(e => $"{e.Option.ConfigName}={e.Value}"));
 
             values = globalOptions.GetOptions(ImmutableArray.Create(new OptionKey2(option1), new OptionKey2(option2), new OptionKey2(option3)));
             Assert.Equal(5, values[0]);
@@ -298,24 +298,18 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
         public void TestPerLanguageCodeStyleOptions()
         {
             using var workspace = new AdhocWorkspace();
-            var perLanguageOption2 = new PerLanguageOption2<CodeStyleOption2<bool>>("test", new CodeStyleOption2<bool>(false, NotificationOption2.Warning)).WithPublicOption("test", "test");
-            var perLanguageOption = perLanguageOption2.ToPublicOption();
-            var newValueCodeStyleOption2 = new CodeStyleOption2<bool>(!perLanguageOption2.DefaultValue.Value, perLanguageOption2.DefaultValue.Notification);
+            var option = new PerLanguageOption2<CodeStyleOption2<bool>>("test", new CodeStyleOption2<bool>(false, NotificationOption2.Warning)).WithPublicOption("test", "test");
+            var publicOption = option.ToPublicOption();
+            var newValueCodeStyleOption2 = new CodeStyleOption2<bool>(!option.DefaultValue.Value, option.DefaultValue.Notification);
             var newValueCodeStyleOption = (CodeStyleOption<bool>)newValueCodeStyleOption2!;
 
             // Test "OptionKey" based overloads for get/set options on OptionSet and OptionService using different public and internal type combinations.
 
             //  1. { PerLanguageOption, CodeStyleOption }
-            TestCodeStyleOptionsCommon(workspace, perLanguageOption, LanguageNames.CSharp, newValueCodeStyleOption);
+            TestCodeStyleOptionsCommon(workspace, publicOption, LanguageNames.CSharp, newValueCodeStyleOption);
 
-            //  2. { PerLanguageOption2, CodeStyleOption }
-            TestCodeStyleOptionsCommon(workspace, perLanguageOption2, LanguageNames.CSharp, newValueCodeStyleOption);
-
-            //  3. { PerLanguageOption, CodeStyleOption2 }
-            TestCodeStyleOptionsCommon(workspace, perLanguageOption, LanguageNames.CSharp, newValueCodeStyleOption2);
-
-            //  4. { PerLanguageOption2, CodeStyleOption2 }
-            TestCodeStyleOptionsCommon(workspace, perLanguageOption2, LanguageNames.CSharp, newValueCodeStyleOption2);
+            //  2. { PerLanguageOption, CodeStyleOption2 }
+            TestCodeStyleOptionsCommon(workspace, publicOption, LanguageNames.CSharp, newValueCodeStyleOption2);
 
             var optionService = GetLegacyGlobalOptionService(workspace.Services);
             var originalOptionSet = new SolutionOptionSet(optionService);
@@ -325,27 +319,21 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
         public void TestLanguageSpecificCodeStyleOptions()
         {
             using var workspace = new AdhocWorkspace();
-            var option2 = new Option2<CodeStyleOption2<bool>>("test", new CodeStyleOption2<bool>(false, NotificationOption2.Warning)).WithPublicOption("test", "test");
-            var option = option2.ToPublicOption();
-            var newValueCodeStyleOption2 = new CodeStyleOption2<bool>(!option2.DefaultValue.Value, option2.DefaultValue.Notification);
+            var option = new Option2<CodeStyleOption2<bool>>("test", new CodeStyleOption2<bool>(false, NotificationOption2.Warning)).WithPublicOption("test", "test");
+            var publicOption = option.ToPublicOption();
+            var newValueCodeStyleOption2 = new CodeStyleOption2<bool>(!option.DefaultValue.Value, option.DefaultValue.Notification);
             var newValueCodeStyleOption = (CodeStyleOption<bool>)newValueCodeStyleOption2!;
 
             // Test "OptionKey" based overloads for get/set options on OptionSet and OptionService using different public and internal type combinations.
 
             //  1. { Option, CodeStyleOption }
-            TestCodeStyleOptionsCommon(workspace, option, language: null, newValueCodeStyleOption);
+            TestCodeStyleOptionsCommon(workspace, publicOption, language: null, newValueCodeStyleOption);
 
-            //  2. { Option2, CodeStyleOption }
-            TestCodeStyleOptionsCommon(workspace, option2, language: null, newValueCodeStyleOption);
-
-            //  3. { Option, CodeStyleOption2 }
-            TestCodeStyleOptionsCommon(workspace, option, language: null, newValueCodeStyleOption2);
-
-            //  4. { Option2, CodeStyleOption2 }
-            TestCodeStyleOptionsCommon(workspace, option2, language: null, newValueCodeStyleOption2);
+            //  2. { Option, CodeStyleOption2 }
+            TestCodeStyleOptionsCommon(workspace, publicOption, language: null, newValueCodeStyleOption2);
         }
 
-        private static void TestCodeStyleOptionsCommon<TCodeStyleOption>(Workspace workspace, IOption2 option, string? language, TCodeStyleOption newValue)
+        private static void TestCodeStyleOptionsCommon<TCodeStyleOption>(Workspace workspace, IOption option, string? language, TCodeStyleOption newValue)
             where TCodeStyleOption : ICodeStyleOption
         {
             var optionService = GetLegacyGlobalOptionService(workspace.Services);

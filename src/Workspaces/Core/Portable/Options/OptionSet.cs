@@ -70,12 +70,6 @@ namespace Microsoft.CodeAnalysis.Options
         /// </summary>
         public abstract OptionSet WithChangedOption(OptionKey optionAndLanguage, object? value);
 
-        /// <summary>
-        /// Creates a new <see cref="OptionSet" /> that contains the changed value.
-        /// </summary>
-        internal OptionSet WithChangedOption<T>(PerLanguageOption2<T> option, string? language, T value)
-            => WithChangedOption(new OptionKey(option, language), value);
-
         internal AnalyzerConfigOptions AsAnalyzerConfigOptions(IEditorConfigOptionMapping mapping, string language)
         {
             return ImmutableInterlocked.GetOrAdd(
