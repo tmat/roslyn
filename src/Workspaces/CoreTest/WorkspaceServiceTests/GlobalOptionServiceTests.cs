@@ -50,16 +50,20 @@ namespace Microsoft.CodeAnalysis.UnitTests.WorkspaceServices
             Assert.Equal(3, optionService.GetOption(optionKey));
         }
 
-        [Fact]
-        public void ExternallyDefinedOption()
+        [Theory]
+        [CombinatorialData]
+        public void ExternallyDefinedOption(bool subclass)
         {
             using var workspace1 = new AdhocWorkspace();
             using var workspace2 = new AdhocWorkspace();
             var optionService = GetLegacyGlobalOptionService(workspace1.Services);
             var optionSet = new SolutionOptionSet(optionService);
 
-            var optionKey = new OptionKey(new TestOption());
-            var perLanguageOptionKey = new OptionKey(new TestOption() { IsPerLanguage = true }, "lang");
+            var option = subclass ? (IOption)new TestOption<int>() : new TestOption();
+            var perLanguageOption = subclass ? (IOption)new PerLanguageTestOption<int>() : new TestOption() { IsPerLanguage = true };
+
+            var optionKey = new OptionKey(option);
+            var perLanguageOptionKey = new OptionKey(perLanguageOption, "lang");
 
             Assert.Equal(optionKey.Option.DefaultValue, optionSet.GetOption<int>(optionKey));
             Assert.Equal(perLanguageOptionKey.Option.DefaultValue, optionSet.GetOption<int>(perLanguageOptionKey));
