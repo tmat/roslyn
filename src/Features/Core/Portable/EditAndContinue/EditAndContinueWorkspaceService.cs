@@ -26,7 +26,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
     [ExportWorkspaceService(typeof(IEditAndContinueWorkspaceService)), Shared]
     internal sealed class EditAndContinueWorkspaceService : IEditAndContinueWorkspaceService
     {
-        internal static readonly TraceLog Log = new(2048, "EnC", GetLogDirectory());
+        internal static readonly TraceLog Log;
 
         private Func<Project, CompilationOutputs> _compilationOutputsProvider;
 
@@ -41,6 +41,16 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         public EditAndContinueWorkspaceService()
         {
             _compilationOutputsProvider = GetCompilationOutputs;
+        }
+
+        static EditAndContinueWorkspaceService()
+        {
+            Log = new(2048, "EnC");
+            var logDir = GetLogDirectory();
+            if (logDir != null)
+            {
+                Log.SetLogDirectory(logDir);
+            }
         }
 
         private static string? GetLogDirectory()
@@ -60,6 +70,11 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             {
                 return null;
             }
+        }
+
+        public void SetFileLoggingDirectory(string? logDirectory)
+        {
+            Log.SetLogDirectory(logDirectory ?? GetLogDirectory());
         }
 
         private static CompilationOutputs GetCompilationOutputs(Project project)

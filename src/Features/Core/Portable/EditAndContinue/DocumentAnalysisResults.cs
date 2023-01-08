@@ -13,7 +13,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 {
     internal sealed class DocumentAnalysisResults
     {
-        internal static readonly TraceLog Log = new(256, "EnC", logDirectory: null);
+        internal static readonly TraceLog Log = new(256, "EnC");
 
         /// <summary>
         /// The state of the document the results are calculated for.
