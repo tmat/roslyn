@@ -43,15 +43,7 @@ internal sealed class EditAndContinueFeedbackDiagnosticFileProvider : IFeedbackD
     private readonly DateTime _vsProcessStartTime;
     private readonly string _tempDir;
 
-    /// <summary>
-    /// Initialized to a unique temp directory we use to collect logs for this session when VS Feedback collection starts.
-    /// </summary>
-    private string? _feedbackDirectory;
-
-    /// <summary>
-    /// Set to <see cref="_feedbackDirectory"/> when recording starts, cleared when it finishes.
-    /// </summary>
-    private string? _activeFeedbackDirectory;
+    private volatile int _isLogCollectionInProgress;
 
     private readonly EditAndContinueLanguageService _encService;
 
@@ -83,40 +75,37 @@ internal sealed class EditAndContinueFeedbackDiagnosticFileProvider : IFeedbackD
         _vsFeedbackSemaphoreFileWatcher.EnableRaisingEvents = true;
     }
 
-    private static string GetLogDirectory(string feedbackDirectory)
-        => Path.Combine(Path.Combine(feedbackDirectory, "Log"));
+    private string GetLogDirectory()
+        => Path.Combine(Path.Combine(_tempDir, $"EnC_{_vsProcessId}", "Log"));
 
-    private static string GetZipFilePath(string feedbackDirectory)
-        => Path.Combine(Path.Combine(feedbackDirectory, ZipFileName));
+    private string GetZipFilePath()
+        => Path.Combine(Path.Combine(_tempDir, $"EnC_{_vsProcessId}", ZipFileName));
 
     public IReadOnlyCollection<string> GetFiles()
     {
-        // Create a directory unique for this session. 
-        // Returns the same value if called multiple times before the recording starts.
-
-        var dir = Path.Combine(_tempDir, $"EnC_{Guid.NewGuid()}");
-        return new[] { GetZipFilePath(Interlocked.CompareExchange(ref _feedbackDirectory, dir, null) ?? dir) };
+        var x = Path.Combine(Path.Combine(_tempDir, $"EnC_{_vsProcessId}", ZipFileName + "2"));
+        Directory.CreateDirectory(Path.Combine(_tempDir, $"EnC_{_vsProcessId}"));
+        File.WriteAllText(x, "xxx");
+        return new[] { GetZipFilePath(), x };
     }
 
     private void OnFeedbackSemaphoreCreatedOrChanged()
     {
-        var feedbackDirectory = _feedbackDirectory;
-        if (feedbackDirectory is null || !IsLoggingEnabledForCurrentVisualStudioInstance(_vsFeedbackSemaphoreFullPath))
+        if (!IsLoggingEnabledForCurrentVisualStudioInstance(_vsFeedbackSemaphoreFullPath))
         {
             // The semaphore file was created for another VS instance.
             return;
         }
 
-        if (Interlocked.CompareExchange(ref _activeFeedbackDirectory, feedbackDirectory, null) == null)
+        if (Interlocked.CompareExchange(ref _isLogCollectionInProgress, 1, 0) == 0)
         {
-            _encService.SetFileLoggingDirectory(GetLogDirectory(feedbackDirectory));
+            _encService.SetFileLoggingDirectory(GetLogDirectory());
         }
     }
 
     private void OnFeedbackSemaphoreDeleted()
     {
-        var activeFeedbackDirectory = Interlocked.Exchange(ref _activeFeedbackDirectory, null);
-        if (activeFeedbackDirectory != null)
+        if (Interlocked.Exchange(ref _isLogCollectionInProgress, 0) == 1)
         {
             _encService.SetFileLoggingDirectory(logDirectory: null);
 
@@ -126,15 +115,13 @@ internal sealed class EditAndContinueFeedbackDiagnosticFileProvider : IFeedbackD
             {
                 try
                 {
-                    ZipFile.CreateFromDirectory(GetLogDirectory(activeFeedbackDirectory), GetZipFilePath(activeFeedbackDirectory));
+                    ZipFile.CreateFromDirectory(GetLogDirectory(), GetZipFilePath());
                 }
                 catch
                 {
                 }
             });
         }
-
-        Interlocked.Exchange(ref _feedbackDirectory, null);
     }
 
     private bool IsLoggingEnabledForCurrentVisualStudioInstance(string semaphoreFilePath)
