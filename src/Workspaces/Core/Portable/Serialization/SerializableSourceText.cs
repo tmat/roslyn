@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -66,7 +67,6 @@ namespace Microsoft.CodeAnalysis.Serialization
         /// Returns the strongly referenced SourceText if we have it, or tries to retrieve it from the weak reference if
         /// it's still being held there.
         /// </summary>
-        /// <returns></returns>
         private SourceText? TryGetText()
             => _text ?? _computedText.GetTarget();
 
