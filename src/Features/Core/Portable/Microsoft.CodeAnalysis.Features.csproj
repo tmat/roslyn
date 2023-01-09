@@ -145,8 +145,8 @@
   </ItemGroup>
   <Import Project="..\..\..\Compilers\Core\AnalyzerDriver\AnalyzerDriver.projitems" Label="Shared" />
   <Import Project="..\..\..\Dependencies\CodeAnalysis.Debugging\Microsoft.CodeAnalysis.Debugging.projitems" Label="Shared" />
-  <Import Project="..\..\..\Analyzers\Core\Analyzers\Analyzers.projitems" Label="Shared" />
-  <Import Project="..\..\..\Analyzers\Core\CodeFixes\CodeFixes.projitems" Label="Shared" />
+  <Import Project="..\..\..\Analyzers\Core\Analyzers\Analyzers.props" Label="Shared" />
+  <Import Project="..\..\..\Analyzers\Core\CodeFixes\CodeFixes.props" Label="Shared" />
 
   <Target Name="GenerateRulesMissingDocumentation">
     <PropertyGroup>

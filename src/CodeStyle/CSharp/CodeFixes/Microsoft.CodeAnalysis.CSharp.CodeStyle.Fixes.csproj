@@ -66,5 +66,5 @@
     <None Include="build\Microsoft.CodeAnalysis.CSharp.CodeStyle.props" />
   </ItemGroup>
   <Import Project="..\..\..\Workspaces\SharedUtilitiesAndExtensions\Workspace\CSharp\CSharpWorkspaceExtensions.projitems" Label="Shared" />
-  <Import Project="..\..\..\Analyzers\CSharp\CodeFixes\CSharpCodeFixes.projitems" Label="Shared" />
+  <Import Project="..\..\..\Analyzers\CSharp\CodeFixes\CSharpCodeFixes.props" Label="Shared" />
 </Project>

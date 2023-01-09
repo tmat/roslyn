@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)**\*.resx" GenerateSource="true" Link="Analyzers\%(RecursiveDir)%(FileName)%(Extension)" />
+    <Compile Include="$(MSBuildThisFileDirectory)**\*.cs" Link="Analyzers\%(RecursiveDir)%(FileName)%(Extension)" />
+
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Compilers\Core\Portable\DiagnosticAnalyzer\SuppressMessageAttributeState.TargetScope.cs" Link="RemoveUnnecessarySuppressions\SuppressMessageAttributeState.TargetScope.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Compilers\Core\Portable\DiagnosticAnalyzer\SuppressMessageAttributeState.TargetSymbolResolver.cs" Link="RemoveUnnecessarySuppressions\SuppressMessageAttributeState.TargetSymbolResolver.cs" />
+  </ItemGroup>
+</Project>

@@ -418,14 +418,6 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "VisualBasicWorkspaceExtensi
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "VisualBasicAnalyzers.UnitTests", "src\Analyzers\VisualBasic\Tests\VisualBasicAnalyzers.UnitTests.shproj", "{7B7F4153-AE93-4908-B8F0-430871589F83}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Analyzers", "src\Analyzers\Core\Analyzers\Analyzers.shproj", "{76E96966-4780-4040-8197-BDE2879516F4}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "CodeFixes", "src\Analyzers\Core\CodeFixes\CodeFixes.shproj", "{1B6C4A1A-413B-41FB-9F85-5C09118E541B}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "CSharpAnalyzers", "src\Analyzers\CSharp\Analyzers\CSharpAnalyzers.shproj", "{EAFFCA55-335B-4860-BB99-EFCEAD123199}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "CSharpCodeFixes", "src\Analyzers\CSharp\CodeFixes\CSharpCodeFixes.shproj", "{DA973826-C985-4128-9948-0B445E638BDB}"
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "VisualBasicAnalyzers", "src\Analyzers\VisualBasic\Analyzers\VisualBasicAnalyzers.shproj", "{94FAF461-2E74-4DBB-9813-6B2CDE6F1880}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "VisualBasicCodeFixes", "src\Analyzers\VisualBasic\CodeFixes\VisualBasicCodeFixes.shproj", "{9F9CCC78-7487-4127-9D46-DB23E501F001}"
@@ -1458,10 +1450,6 @@ Global
 		{CEC0DCE7-8D52-45C3-9295-FC7B16BD2451} = {7A69EA65-4411-4CD0-B439-035E720C1BD3}
 		{E9DBFA41-7A9C-49BE-BD36-FD71B31AA9FE} = {9C1BE25C-5926-4E56-84AE-D2242CB0627E}
 		{7B7F4153-AE93-4908-B8F0-430871589F83} = {4A49D526-1644-4819-AA4F-95B348D447D4}
-		{76E96966-4780-4040-8197-BDE2879516F4} = {4A49D526-1644-4819-AA4F-95B348D447D4}
-		{1B6C4A1A-413B-41FB-9F85-5C09118E541B} = {4A49D526-1644-4819-AA4F-95B348D447D4}
-		{EAFFCA55-335B-4860-BB99-EFCEAD123199} = {4A49D526-1644-4819-AA4F-95B348D447D4}
-		{DA973826-C985-4128-9948-0B445E638BDB} = {4A49D526-1644-4819-AA4F-95B348D447D4}
 		{94FAF461-2E74-4DBB-9813-6B2CDE6F1880} = {4A49D526-1644-4819-AA4F-95B348D447D4}
 		{9F9CCC78-7487-4127-9D46-DB23E501F001} = {4A49D526-1644-4819-AA4F-95B348D447D4}
 		{DF17AF27-AA02-482B-8946-5CA8A50D5A2B} = {55A62CFA-1155-46F1-ADF3-BEEE51B58AB5}
@@ -1517,7 +1505,6 @@ Global
 		src\Workspaces\SharedUtilitiesAndExtensions\Workspace\VisualBasic\VisualBasicWorkspaceExtensions.projitems*{0141285d-8f6c-42c7-baf3-3c0ccd61c716}*SharedItemsImports = 5
 		src\Compilers\CSharp\csc\CscCommandLine.projitems*{0161e25c-918a-4dc8-9648-30fdcc8e31e9}*SharedItemsImports = 5
 		src\Analyzers\VisualBasic\Tests\VisualBasicAnalyzers.UnitTests.projitems*{0be66736-cdaa-4989-88b1-b3f46ebdca4a}*SharedItemsImports = 5
-		src\Analyzers\Core\CodeFixes\CodeFixes.projitems*{1b6c4a1a-413b-41fb-9f85-5c09118e541b}*SharedItemsImports = 13
 		src\Compilers\Core\AnalyzerDriver\AnalyzerDriver.projitems*{1ee8cad3-55f9-4d91-96b2-084641da9a6c}*SharedItemsImports = 5
 		src\Dependencies\CodeAnalysis.Debugging\Microsoft.CodeAnalysis.Debugging.projitems*{1ee8cad3-55f9-4d91-96b2-084641da9a6c}*SharedItemsImports = 5
 		src\Dependencies\Collections\Microsoft.CodeAnalysis.Collections.projitems*{1ee8cad3-55f9-4d91-96b2-084641da9a6c}*SharedItemsImports = 5
@@ -1527,7 +1514,6 @@ Global
 		src\Compilers\VisualBasic\BasicAnalyzerDriver\BasicAnalyzerDriver.projitems*{2523d0e6-df32-4a3e-8ae0-a19bffae2ef6}*SharedItemsImports = 5
 		src\Analyzers\VisualBasic\Analyzers\VisualBasicAnalyzers.projitems*{2531a8c4-97dd-47bc-a79c-b7846051e137}*SharedItemsImports = 5
 		src\Workspaces\SharedUtilitiesAndExtensions\Compiler\VisualBasic\VisualBasicCompilerExtensions.projitems*{2531a8c4-97dd-47bc-a79c-b7846051e137}*SharedItemsImports = 5
-		src\Analyzers\Core\Analyzers\Analyzers.projitems*{275812ee-dedb-4232-9439-91c9757d2ae4}*SharedItemsImports = 5
 		src\Dependencies\Collections\Microsoft.CodeAnalysis.Collections.projitems*{275812ee-dedb-4232-9439-91c9757d2ae4}*SharedItemsImports = 5
 		src\Dependencies\PooledObjects\Microsoft.CodeAnalysis.PooledObjects.projitems*{275812ee-dedb-4232-9439-91c9757d2ae4}*SharedItemsImports = 5
 		src\Workspaces\SharedUtilitiesAndExtensions\Compiler\Core\CompilerExtensions.projitems*{275812ee-dedb-4232-9439-91c9757d2ae4}*SharedItemsImports = 5
@@ -1552,7 +1538,6 @@ Global
 		src\ExpressionEvaluator\CSharp\Source\ResultProvider\CSharpResultProvider.projitems*{60db272a-21c9-4e8d-9803-ff4e132392c8}*SharedItemsImports = 5
 		src\Workspaces\SharedUtilitiesAndExtensions\Compiler\CSharp\CSharpCompilerExtensions.projitems*{699fea05-aea7-403d-827e-53cf4e826955}*SharedItemsImports = 13
 		src\ExpressionEvaluator\VisualBasic\Source\ResultProvider\BasicResultProvider.projitems*{76242a2d-2600-49dd-8c15-fea07ecb1843}*SharedItemsImports = 5
-		src\Analyzers\Core\Analyzers\Analyzers.projitems*{76e96966-4780-4040-8197-bde2879516f4}*SharedItemsImports = 13
 		src\Analyzers\VisualBasic\Tests\VisualBasicAnalyzers.UnitTests.projitems*{7b7f4153-ae93-4908-b8f0-430871589f83}*SharedItemsImports = 13
 		src\Compilers\VisualBasic\vbc\VbcCommandLine.projitems*{810b02ad-2ea5-4422-88ac-b71b8ab0df0b}*SharedItemsImports = 13
 		src\Analyzers\VisualBasic\Analyzers\VisualBasicAnalyzers.projitems*{94faf461-2e74-4dbb-9813-6b2cde6f1880}*SharedItemsImports = 13
@@ -1579,14 +1564,12 @@ Global
 		src\Compilers\Core\AnalyzerDriver\AnalyzerDriver.projitems*{d0bc9be7-24f6-40ca-8dc6-fcb93bd44b34}*SharedItemsImports = 13
 		src\Dependencies\CodeAnalysis.Debugging\Microsoft.CodeAnalysis.Debugging.projitems*{d73adf7d-2c1c-42ae-b2ab-edc9497e4b71}*SharedItemsImports = 13
 		src\Compilers\Server\VBCSCompiler\VBCSCompilerCommandLine.projitems*{d8ef0777-9d65-4849-a7d6-ac81e58e2317}*SharedItemsImports = 13
-		src\Analyzers\CSharp\CodeFixes\CSharpCodeFixes.projitems*{da973826-c985-4128-9948-0b445e638bdb}*SharedItemsImports = 13
 		src\Compilers\Server\VBCSCompiler\VBCSCompilerCommandLine.projitems*{dc8c78cc-b6fe-47bf-93b1-b65a1c67c08d}*SharedItemsImports = 5
 		src\Analyzers\VisualBasic\Tests\VisualBasicAnalyzers.UnitTests.projitems*{e512c6c1-f085-4ad7-b0d9-e8f1a0a2a510}*SharedItemsImports = 5
 		src\Compilers\VisualBasic\vbc\VbcCommandLine.projitems*{e58ee9d7-1239-4961-a0c1-f9ec3952c4c1}*SharedItemsImports = 5
 		src\Compilers\VisualBasic\BasicAnalyzerDriver\BasicAnalyzerDriver.projitems*{e8f0baa5-7327-43d1-9a51-644e81ae55f1}*SharedItemsImports = 13
 		src\Dependencies\Collections\Microsoft.CodeAnalysis.Collections.projitems*{e919dd77-34f8-4f57-8058-4d3ff4c2b241}*SharedItemsImports = 13
 		src\Workspaces\SharedUtilitiesAndExtensions\Workspace\VisualBasic\VisualBasicWorkspaceExtensions.projitems*{e9dbfa41-7a9c-49be-bd36-fd71b31aa9fe}*SharedItemsImports = 13
-		src\Analyzers\CSharp\Analyzers\CSharpAnalyzers.projitems*{eaffca55-335b-4860-bb99-efcead123199}*SharedItemsImports = 13
 		src\Workspaces\SharedUtilitiesAndExtensions\Compiler\Core\CompilerExtensions.projitems*{ec946164-1e17-410b-b7d9-7de7e6268d63}*SharedItemsImports = 13
 		src\Analyzers\Core\Analyzers\Analyzers.projitems*{edc68a0e-c68d-4a74-91b7-bf38ec909888}*SharedItemsImports = 5
 		src\Analyzers\Core\CodeFixes\CodeFixes.projitems*{edc68a0e-c68d-4a74-91b7-bf38ec909888}*SharedItemsImports = 5
