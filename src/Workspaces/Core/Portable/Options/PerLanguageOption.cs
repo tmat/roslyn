@@ -71,23 +71,19 @@ namespace Microsoft.CodeAnalysis.Options
             StorageLocations = storageLocations;
         }
 
-        OptionDefinition IOption2.Definition => _optionDefinition;
-
         object? IOption.DefaultValue => this.DefaultValue;
-
-        IPublicOption? IOption2.PublicOption => null;
 
         bool IOption.IsPerLanguage => true;
 
-        bool IEquatable<IOption2?>.Equals(IOption2? other) => Equals(other);
+        bool IEquatable<IOption?>.Equals(IOption? other) => Equals(other);
 
         public override string ToString() => this.PublicOptionDefinitionToString();
 
         public override int GetHashCode() => _optionDefinition.GetHashCode();
 
-        public override bool Equals(object? obj) => Equals(obj as IOption2);
+        public override bool Equals(object? obj) => Equals(obj as IOption);
 
-        private bool Equals(IOption2? other)
+        private bool Equals(IOption? other)
         {
             if (ReferenceEquals(this, other))
             {

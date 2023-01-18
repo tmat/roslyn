@@ -124,12 +124,12 @@ internal static class PublicOptionFactory
     // Public options can be instantiated with non-unique config name and thus we need to include default value in the equality
     // to avoid collisions among them.
 
-    public static string PublicOptionDefinitionToString(this IOption2 option)
+    public static string PublicOptionDefinitionToString(this IOption option)
         => $"{option.Feature} - {option.Name}";
 
-    public static bool PublicOptionDefinitionEquals(this IOption2 x, IOption2 y)
+    public static bool PublicOptionDefinitionEquals(this IOption x, IOption y)
     {
-        var equals = x.Definition.ConfigName == y.Definition.ConfigName && x.Definition.Group == y.Definition.Group;
+        var equals = x.Name == y.Name && x.Feature == y.Feature;
 
         // DefaultValue and Type can differ between different but equivalent implementations of "ICodeStyleOption".
         // So, we skip these fields for equality checks of code style options.

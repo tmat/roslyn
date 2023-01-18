@@ -83,11 +83,7 @@ namespace Microsoft.CodeAnalysis.Options
 
         bool IOption.IsPerLanguage => false;
 
-        IPublicOption? IOption2.PublicOption => null;
-
-        OptionDefinition IOption2.Definition => _optionDefinition;
-
-        bool IEquatable<IOption2?>.Equals(IOption2? other) => Equals(other);
+        bool IEquatable<IOption?>.Equals(IOption? other) => Equals(other);
 
         public override string ToString() => this.PublicOptionDefinitionToString();
 
@@ -95,7 +91,7 @@ namespace Microsoft.CodeAnalysis.Options
 
         public override bool Equals(object? obj) => Equals(obj as IOption2);
 
-        private bool Equals(IOption2? other)
+        private bool Equals(IOption? other)
         {
             if (ReferenceEquals(this, other))
             {

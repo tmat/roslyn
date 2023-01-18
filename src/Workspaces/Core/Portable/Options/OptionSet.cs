@@ -17,21 +17,28 @@ namespace Microsoft.CodeAnalysis.Options
         {
         }
 
-        internal abstract object? GetInternalOptionValue(OptionKey optionKey);
+        internal abstract object? GetExternallyDefinedOptionValue(OptionKey optionKey);
+
+        internal abstract object? GetInternalOptionValue(OptionKey2 optionKey);
 
         /// <summary>
         /// Gets the value of the option, or the default value if not otherwise set.
         /// </summary>
         public object? GetOption(OptionKey optionKey)
         {
-            if (optionKey.Option is IOption2 { Definition.StorageMapping: { } mapping })
+            if (optionKey.Option is IOption2 internallyDefinedOption)
             {
-                return mapping.ToPublicOptionValue(GetInternalOptionValue(new OptionKey(mapping.InternalOption, optionKey.Language)));
+                if (internallyDefinedOption.Definition.StorageMapping is { } mapping)
+                {
+                    return mapping.ToPublicOptionValue(GetInternalOptionValue(new OptionKey2(mapping.InternalOption, optionKey.Language)));
+                }
+
+                var result = GetInternalOptionValue(new OptionKey2(internallyDefinedOption, optionKey.Language));
+                Debug.Assert(IsPublicOptionValue(result));
+                return result;
             }
 
-            var result = GetInternalOptionValue(optionKey);
-            Debug.Assert(IsPublicOptionValue(result));
-            return result;
+            return GetExternallyDefinedOptionValue(optionKey);
         }
 
         /// <summary>

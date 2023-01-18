@@ -76,16 +76,7 @@ namespace Microsoft.CodeAnalysis.Options
         public T DefaultValue => Definition.DefaultValue;
         OptionDefinition IOption2.Definition => Definition;
 
-#if CODE_STYLE
-        bool IOption2.IsPerLanguage => false;
-#else
-        string IOption.Feature => "config";
-        string IOption.Name => Definition.ConfigName;
-        object? IOption.DefaultValue => Definition.DefaultValue;
-        bool IOption.IsPerLanguage => false;
-        Type IOption.Type => Definition.Type;
-        ImmutableArray<OptionStorageLocation> IOption.StorageLocations => ImmutableArray<OptionStorageLocation>.Empty;
-#endif
+        public bool IsPerLanguage => false;
 
         public override string ToString() => Definition.ToString();
 

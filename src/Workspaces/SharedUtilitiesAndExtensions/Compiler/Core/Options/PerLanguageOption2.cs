@@ -64,16 +64,7 @@ namespace Microsoft.CodeAnalysis.Options
         OptionDefinition IOption2.Definition => Definition;
         public T DefaultValue => Definition.DefaultValue;
 
-#if CODE_STYLE
-        bool IOption2.IsPerLanguage => true;
-#else
-        string IOption.Feature => "config";
-        string IOption.Name => Definition.ConfigName;
-        object? IOption.DefaultValue => Definition.DefaultValue;
-        bool IOption.IsPerLanguage => true;
-        Type IOption.Type => Definition.Type;
-        ImmutableArray<OptionStorageLocation> IOption.StorageLocations => ImmutableArray<OptionStorageLocation>.Empty;
-#endif
+        public bool IsPerLanguage => true;
         public override string ToString() => Definition.ToString();
 
         public override int GetHashCode() => Definition.GetHashCode();

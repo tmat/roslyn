@@ -31,7 +31,12 @@ namespace Microsoft.CodeAnalysis.Options
         /// <summary>
         /// Cached internal values read from <see cref="_configOptions"/> or <see cref="_underlyingOptions"/>.
         /// </summary>
-        private ImmutableDictionary<OptionKey, object?> _values;
+        private ImmutableDictionary<OptionKey2, object?> _internallyDefinedOptionValues;
+
+        /// <summary>
+        /// Cached values of externally defined options read from <see cref="_configOptions"/> or <see cref="_underlyingOptions"/>.
+        /// </summary>
+        private ImmutableDictionary<OptionKey, object?> _externallyDefinedOptionValues;
 
         internal DocumentOptionSet(StructuredAnalyzerConfigOptions? configOptions, OptionSet underlyingOptions, string language)
             : this(configOptions, underlyingOptions, language, ImmutableDictionary<OptionKey, object?>.Empty)
@@ -49,7 +54,7 @@ namespace Microsoft.CodeAnalysis.Options
         internal string Language => _language;
 
         [PerformanceSensitive("https://github.com/dotnet/roslyn/issues/30819", AllowLocks = false)]
-        internal override object? GetInternalOptionValue(OptionKey optionKey)
+        internal override object? GetInternalOptionValue(OptionKey2 optionKey)
         {
             // If we already know the document specific value, we're done
             if (_values.TryGetValue(optionKey, out var value))
