@@ -119,6 +119,13 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
             var block = this.GetCurrentBlock();
 
+            if (label is ILocalStoreTrackerLabel localTrackerLabel)
+            {
+                // at most one local state tracking label per method:
+                Debug.Assert(_lazyLocalTrackerLabel == null);
+                _lazyLocalTrackerLabel = localTrackerLabel;
+            }
+
             //1.7.5 Backward branch constraints
             //It shall be possible, with a single forward-pass through the CIL instruction stream for any method, to infer the
             //exact state of the evaluation stack at every instruction (where by "state" we mean the number and type of each

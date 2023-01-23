@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection.Metadata;
 using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.PooledObjects;
@@ -86,6 +88,9 @@ namespace Microsoft.CodeAnalysis.CodeGen
             }
         }
 
+        public IEnumerable<LocalDefinition> GetAllLocalDefinitions()
+            => _lazyAllLocals.OfType<LocalDefinition>();
+
         private Dictionary<ILocalSymbolInternal, LocalDefinition> LocalMap
         {
             get
@@ -146,6 +151,12 @@ namespace Microsoft.CodeAnalysis.CodeGen
         {
             return LocalMap[symbol];
         }
+
+        /// <summary>
+        /// Retrieve a local slot by its symbol.
+        /// </summary>
+        internal bool TryGetLocal(ILocalSymbolInternal symbol, [NotNullWhen(true)] out LocalDefinition? definition)
+            => LocalMap.TryGetValue(symbol, out definition);
 
         /// <summary>
         /// Release a local slot by its symbol.

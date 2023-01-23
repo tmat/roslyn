@@ -590,7 +590,20 @@ oneMoreTime:
 
         private void EmitLabelStatement(BoundLabelStatement boundLabelStatement)
         {
-            _builder.MarkLabel(boundLabelStatement.Label);
+            var label = boundLabelStatement.Label;
+            if (label is LocalTrackerLabelSymbol trackerLabel)
+            {
+                trackerLabel.LoggerTokens = trackerLabel.UserLocalsWithWritableAddress.ToImmutableDictionary(
+                    keySelector: local => (ILocalSymbolInternal)local,
+                    elementSelector: local =>
+                    {
+                        var logger = trackerLabel.GenericLogger.Construct(local.Type);
+                        var methodRef = _module.Translate(logger, boundLabelStatement.Syntax, _diagnostics.DiagnosticBag);
+                        return _module.GetFakeSymbolTokenForIL((Cci.ISignature)methodRef, boundLabelStatement.Syntax, _diagnostics.DiagnosticBag);
+                    });
+            }
+
+            _builder.MarkLabel(label);
         }
 
         private void EmitGotoStatement(BoundGotoStatement boundGotoStatement)

@@ -5,9 +5,11 @@
 #nullable disable
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using Microsoft.CodeAnalysis.Debugging;
 using Microsoft.CodeAnalysis.PooledObjects;
@@ -34,6 +36,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         private BasicBlock _currentBlock;
 
         private SyntaxTree _lastSeqPointTree;
+        private ILocalStoreTrackerLabel _lazyLocalTrackerLabel;
 
         private readonly SmallDictionary<object, LabelInfo> _labelInfos;
         private readonly bool _areLocalsZeroed;
@@ -738,6 +741,7 @@ tryAgain:
                         current.SetBranch(null, ILOpCode.Nop);
                     }
                 }
+
                 current = current.NextBlock;
             }
 
@@ -759,6 +763,23 @@ tryAgain:
             // Should branch back to itself.
             Debug.Assert(block.BranchBlock == block);
             return true;
+        }
+
+        private void RewriteLocalTrackerPrologueBlock()
+        {
+            if (_lazyLocalTrackerLabel == null)
+            {
+                return;
+            }
+
+            var block = _labelInfos[_lazyLocalTrackerLabel].bb;
+            var injectedBuilder = Cci.PooledBlobBuilder.GetInstance();
+            _lazyLocalTrackerLabel.Emit(LocalSlotManager, injectedBuilder);
+
+            // injected builder will be automatically freed when the block builder is freed:
+            block.Writer.LinkPrefix(injectedBuilder);
+
+            _lazyLocalTrackerLabel = null;
         }
 
         private void RewriteBranchesAcrossExceptionHandlers()
@@ -846,6 +867,7 @@ tryAgain:
             // it is easier to just remove dead code than make sure it is all valid
             MarkReachableBlocks();
             RewriteSpecialBlocks();
+            RewriteLocalTrackerPrologueBlock();
             DropUnreachableBlocks();
 
             if (_optimizations == OptimizationLevel.Release && OptimizeLabels())
