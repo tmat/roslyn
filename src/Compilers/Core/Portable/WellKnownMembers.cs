@@ -16,6 +16,13 @@ namespace Microsoft.CodeAnalysis
         {
             byte[] initializationBytes = new byte[]
             {
+                // System_Object__ToString
+                (byte)(MemberFlags.Method | MemberFlags.Virtual),                                                                                   // Flags
+                (byte)SpecialType.System_Object,                                                                            // DeclaringTypeId
+                0,                                                                                                          // Arity
+                    0,                                                                                                      // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_String, // Return Type
+
                 // System_Math__RoundDouble
                 (byte)(MemberFlags.Method | MemberFlags.Static),                                                            // Flags
                 (byte)WellKnownType.System_Math,                                                                            // DeclaringTypeId
@@ -2947,6 +2954,203 @@ namespace Microsoft.CodeAnalysis
                     (byte)SignatureTypeCode.ByReference, (byte)SignatureTypeCode.SZArray, (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Boolean,
                     (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,
 
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogMethodEntry
+                (byte)(MemberFlags.Method | MemberFlags.Static),                                                                                         // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),     // DeclaringTypeId
+                0,                                                                                                                                       // Arity
+                    1,                                                                                                                                   // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),    // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,      // Method id
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogMethodEntry
+                (byte)(MemberFlags.Method | MemberFlags.Static),                                                                                         // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),     // DeclaringTypeId
+                0,                                                                                                                                       // Arity
+                    2,                                                                                                                                   // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),    // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,      // Method id
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Int32,      // Address count
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreBoolean
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,    // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Boolean, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16,  // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreByte
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,  // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Byte,  // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt16
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt32
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt32, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt64
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt64, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreString
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_String, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreObject
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Object, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreAddress
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.ByReference, (byte)SignatureTypeCode.GenericMethodParameter, 0, // Local address
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16,                    // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUnmanaged
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                1,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,                      // Return Type
+                    (byte)SignatureTypeCode.ByReference, (byte)SignatureTypeCode.GenericMethodParameter, 0, // Address
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16,                    // Local index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalLoadAddress
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                1,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,                      // Return Type
+                    (byte)SignatureTypeCode.ByReference, (byte)SignatureTypeCode.GenericMethodParameter, 0, // Local address
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16,                    // Local index
+                    
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreBoolean
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Boolean,// Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreByte
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Byte,  // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt16
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16,  // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt32
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt32,  // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt64
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt64,  // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreString
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_String, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreObject
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                0,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,   // Return Type
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Object, // Value
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16, // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUnmanaged
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                1,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,                       // Return Type
+                    (byte)SignatureTypeCode.ByReference, (byte)SignatureTypeCode.GenericMethodParameter, 0,  // Address
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16,                     // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreAddress
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                1,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,                       // Return Type
+                    (byte)SignatureTypeCode.ByReference, (byte)SignatureTypeCode.GenericMethodParameter, 0,  // Local address
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16,                     // Parameter index
+
+                // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterLoadAddress
+                (byte)MemberFlags.Method,                                                                                                             // Flags
+                (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker - WellKnownType.ExtSentinel),  // DeclaringTypeId
+                1,                                                                                                                                    // Arity
+                    2,                                                                                                                                // Method Signature
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_Void,                                                                // Return Type
+                    (byte)SignatureTypeCode.ByReference, (byte)SignatureTypeCode.GenericMethodParameter, 0,  // Local address
+                    (byte)SignatureTypeCode.TypeHandle, (byte)SpecialType.System_UInt16,                     // Parameter index
+
                 // System_Runtime_CompilerServices_NullableAttribute__ctorByte
                 (byte)MemberFlags.Constructor,                                                                              // Flags
                 (byte)WellKnownType.ExtSentinel, (byte)(WellKnownType.System_Runtime_CompilerServices_NullableAttribute - WellKnownType.ExtSentinel),                                       // DeclaringTypeId
@@ -3683,6 +3887,7 @@ namespace Microsoft.CodeAnalysis
 
             string[] allNames = new string[(int)WellKnownMember.Count]
             {
+                "ToString",                                 // System_Object__ToString
                 "Round",                                    // System_Math__RoundDouble
                 "Pow",                                      // System_Math__PowDoubleDouble
                 "get_Length",                               // System_Array__get_Length
@@ -4045,6 +4250,29 @@ namespace Microsoft.CodeAnalysis
 
                 "CreatePayload",                            // Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningSingleFile
                 "CreatePayload",                            // Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningMultipleFiles
+
+                "LogMethodEntry",                           // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogMethodEntry
+                "LogMethodEntry",                           // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogMethodEntry
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreBoolean
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreByte
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt16
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt32
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt64
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreString
+                "LogLocalStore",                            // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreObject
+                "LogLocalStoreUnmanaged",                   // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUnmanaged
+                "LogLocalStoreAddress",                     // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreAddress
+                "LogLocalLoadAddress",                      // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalLoadAddress
+                "LogParameterStore",                        // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreBoolean
+                "LogParameterStore",                        // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreByte
+                "LogParameterStore",                        // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt16
+                "LogParameterStore",                        // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt32
+                "LogParameterStore",                        // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt64
+                "LogParameterStore",                        // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreString
+                "LogParameterStore",                        // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreObject
+                "LogParameterStoreUnmanaged",               // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUnmanaged
+                "LogParameterStoreAddress",                 // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreAddress
+                "LogParameterLoadAddress",                  // Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterLoadAddress
 
                 ".ctor",                                    // System_Runtime_CompilerServices_NullableAttribute__ctorByte
                 ".ctor",                                    // System_Runtime_CompilerServices_NullableAttribute__ctorTransformFlags

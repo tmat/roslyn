@@ -7,6 +7,8 @@ namespace Microsoft.CodeAnalysis
     // Members of well known types
     internal enum WellKnownMember
     {
+        System_Object__ToString,
+
         System_Math__RoundDouble,
         System_Math__PowDoubleDouble,
 
@@ -425,6 +427,29 @@ namespace Microsoft.CodeAnalysis
 
         Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningSingleFile,
         Microsoft_CodeAnalysis_Runtime_Instrumentation__CreatePayloadForMethodsSpanningMultipleFiles,
+
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogMethodEntry,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogMethodEntryWithAddresses,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreBoolean,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreByte,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt16,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt32,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUInt64,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreString,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreObject,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreUnmanaged,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalStoreAddress,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogLocalLoadAddress,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreBoolean,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreByte,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt16,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt32,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUInt64,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreString,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreObject,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreUnmanaged,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterStoreAddress,
+        Microsoft_CodeAnalysis_Runtime_LocalStoreTracker__LogParameterLoadAddress,
 
         System_Runtime_CompilerServices_NullableAttribute__ctorByte,
         System_Runtime_CompilerServices_NullableAttribute__ctorTransformFlags,
