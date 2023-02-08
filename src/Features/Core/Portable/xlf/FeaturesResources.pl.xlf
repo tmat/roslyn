@@ -990,6 +990,11 @@ Pamiętaj, aby nie używać specyfikatora „tt” dla wszystkich języków, w k
         <target state="translated">Wstawiona zmienna tymczasowa</target>
         <note />
       </trans-unit>
+      <trans-unit id="InstrumentationBlockedByUncommittedChanges">
+        <source>Instrumentation blocked by uncommitted changes in document '{0}'</source>
+        <target state="new">Instrumentation blocked by uncommitted changes in document '{0}'</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Insufficient_hexadecimal_digits">
         <source>Insufficient hexadecimal digits</source>
         <target state="translated">Zbyt mało cyfr szesnastkowych</target>

@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
@@ -544,10 +545,6 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                     Debug.Assert(!diagnostics.HasAnyErrors());
                     Debug.Assert(!body.HasErrors);
 
-                    bool sawLambdas;
-                    bool sawLocalFunctions;
-                    bool sawAwaitInExceptionHandler;
-                    ImmutableArray<SourceSpan> dynamicAnalysisSpans = ImmutableArray<SourceSpan>.Empty;
                     body = LocalRewriter.Rewrite(
                         compilation: this.DeclaringCompilation,
                         method: this,
@@ -557,16 +554,16 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                         compilationState: compilationState,
                         previousSubmissionFields: null,
                         allowOmissionOfConditionalCalls: false,
-                        instrumentForDynamicAnalysis: false,
+                        instrumentations: MethodInstrumentation.Empty,
                         debugDocumentProvider: null,
-                        dynamicAnalysisSpans: ref dynamicAnalysisSpans,
                         diagnostics: diagnostics,
-                        sawLambdas: out sawLambdas,
-                        sawLocalFunctions: out sawLocalFunctions,
-                        sawAwaitInExceptionHandler: out sawAwaitInExceptionHandler);
+                        codeCoverageSpans: out ImmutableArray<SourceSpan> codeCoverageSpans,
+                        sawLambdas: out bool sawLambdas,
+                        sawLocalFunctions: out bool sawLocalFunctions,
+                        sawAwaitInExceptionHandler: out bool sawAwaitInExceptionHandler);
 
                     Debug.Assert(!sawAwaitInExceptionHandler);
-                    Debug.Assert(dynamicAnalysisSpans.Length == 0);
+                    Debug.Assert(codeCoverageSpans.IsDefault);
 
                     if (body.HasErrors)
                     {

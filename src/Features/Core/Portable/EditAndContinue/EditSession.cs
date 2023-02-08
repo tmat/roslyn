@@ -21,11 +21,18 @@ using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.EditAndContinue.Contracts;
 using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.ExtractMethod;
+using Microsoft.CodeAnalysis.ChangeSignature;
+using System.Linq.Expressions;
+using System.Text;
 
 namespace Microsoft.CodeAnalysis.EditAndContinue
 {
     internal sealed class EditSession
     {
+        private static readonly ImmutableArray<InstrumentationKind> s_lacalStateTracingInstrumentation = ImmutableArray.Create(InstrumentationKind.LocalStateTracing);
+
         internal readonly DebuggingSession DebuggingSession;
         internal readonly EditSessionTelemetry Telemetry;
 
@@ -802,8 +809,8 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
                 using var _1 = ArrayBuilder<ModuleUpdate>.GetInstance(out var deltas);
                 using var _2 = ArrayBuilder<(Guid ModuleId, ImmutableArray<(ManagedModuleMethodId Method, NonRemappableRegion Region)>)>.GetInstance(out var nonRemappableRegions);
-                using var _3 = ArrayBuilder<(ProjectId, EmitBaseline)>.GetInstance(out var emitBaselines);
-                using var _4 = ArrayBuilder<(ProjectId, ImmutableArray<Diagnostic>)>.GetInstance(out var diagnostics);
+                using var _3 = ArrayBuilder<ProjectBaseline>.GetInstance(out var newProjectBaselines);
+                using var _4 = ArrayBuilder<ProjectDiagnostics>.GetInstance(out var diagnostics);
                 using var _5 = ArrayBuilder<Document>.GetInstance(out var changedOrAddedDocuments);
                 using var _6 = ArrayBuilder<(DocumentId, ImmutableArray<RudeEditDiagnostic>)>.GetInstance(out var documentsWithRudeEdits);
                 Diagnostic? syntaxError = null;
@@ -847,7 +854,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         // The error hasn't been reported by GetDocumentDiagnosticsAsync since it might have been intermittent.
                         // The MVID is required for emit so we consider the error permanent and report it here.
                         // Bail before analyzing documents as the analysis needs to read the PDB which will likely fail if we can't even read the MVID.
-                        diagnostics.Add((newProject.Id, ImmutableArray.Create(mvidReadError)));
+                        diagnostics.Add(new(newProject.Id, ImmutableArray.Create(mvidReadError)));
 
                         Telemetry.LogProjectAnalysisSummary(ProjectAnalysisSummary.ValidChanges, newProject.State.ProjectInfo.Attributes.TelemetryId, ImmutableArray.Create(mvidReadError.Descriptor.Id));
                         isBlocked = true;
@@ -882,7 +889,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         // before the changes are attempted to be applied. If we still have any out-of-sync documents we report warnings and ignore changes in them.
                         // If in future the file is updated so that its content matches the PDB checksum, the document transitions to a matching state,
                         // and we consider any further changes to it for application.
-                        diagnostics.Add((newProject.Id, documentDiagnostics));
+                        diagnostics.Add(new(newProject.Id, documentDiagnostics));
                     }
 
                     var projectSummary = GetProjectAnalysisSummary(changedDocumentAnalyses);
@@ -908,7 +915,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     var isModuleEncBlocked = isModuleLoaded && !moduleDiagnostics.IsEmpty;
                     if (isModuleEncBlocked)
                     {
-                        diagnostics.Add((newProject.Id, moduleDiagnostics));
+                        diagnostics.Add(new(newProject.Id, moduleDiagnostics));
                         isBlocked = true;
                     }
 
@@ -940,13 +947,13 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         continue;
                     }
 
-                    if (!DebuggingSession.TryGetOrCreateEmitBaseline(newProject, out var createBaselineDiagnostics, out var baseline, out var baselineGeneration, out var baselineAccessLock))
+                    if (!DebuggingSession.TryGetOrCreateEmitBaseline(newProject, out var createBaselineDiagnostics, out var projectBaseline, out var baselineAccessLock))
                     {
                         Debug.Assert(!createBaselineDiagnostics.IsEmpty);
 
                         // Report diagnosics even when the module is never going to be loaded (e.g. in multi-targeting scenario, where only one framework being debugged).
                         // This is consistent with reporting compilation errors - the IDE reports them for all TFMs regardless of what framework the app is running on.
-                        diagnostics.Add((newProject.Id, createBaselineDiagnostics));
+                        diagnostics.Add(new(newProject.Id, createBaselineDiagnostics));
                         Telemetry.LogProjectAnalysisSummary(projectSummary, newProject.State.ProjectInfo.Attributes.TelemetryId, createBaselineDiagnostics);
                         isBlocked = true;
 
@@ -954,7 +961,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         continue;
                     }
 
-                    await LogDocumentChangesAsync(baselineGeneration + 1, cancellationToken).ConfigureAwait(false);
+                    await LogDocumentChangesAsync(projectBaseline.Generation + 1, cancellationToken).ConfigureAwait(false);
 
                     async ValueTask LogDocumentChangesAsync(int? generation, CancellationToken cancellationToken)
                     {
@@ -999,7 +1006,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         DebuggingSession.ThrowIfDisposed();
 
                         emitResult = newCompilation.EmitDifference(
-                            baseline,
+                            projectBaseline.EmitBaseline,
                             projectChanges.SemanticEdits,
                             projectChanges.AddedSymbols.Contains,
                             metadataStream,
@@ -1015,7 +1022,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                         var unsupportedChangesDiagnostic = await GetUnsupportedChangesDiagnosticAsync(emitResult, cancellationToken).ConfigureAwait(false);
                         if (unsupportedChangesDiagnostic is not null)
                         {
-                            diagnostics.Add((newProject.Id, ImmutableArray.Create(unsupportedChangesDiagnostic)));
+                            diagnostics.Add(new(newProject.Id, ImmutableArray.Create(unsupportedChangesDiagnostic)));
                             isBlocked = true;
                         }
                         else
@@ -1049,12 +1056,12 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                             deltas.Add(delta);
 
                             nonRemappableRegions.Add((mvid, moduleNonRemappableRegions));
-                            emitBaselines.Add((newProject.Id, emitResult.Baseline));
+                            newProjectBaselines.Add(new ProjectBaseline(projectBaseline.ProjectId, emitResult.Baseline, projectBaseline.Generation + 1, projectBaseline.LocalStateTrackerSourceTree));
 
                             var fileLog = log.FileLog;
                             if (fileLog != null)
                             {
-                                await LogDeltaFilesAsync(fileLog, delta, baselineGeneration, oldProject, newProject, cancellationToken).ConfigureAwait(false);
+                                await LogDeltaFilesAsync(fileLog, delta, projectBaseline.Generation, oldProject, newProject, cancellationToken).ConfigureAwait(false);
                             }
                         }
                     }
@@ -1073,7 +1080,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     // method bodies to have errors.
                     if (!emitResult.Diagnostics.IsEmpty)
                     {
-                        diagnostics.Add((newProject.Id, emitResult.Diagnostics));
+                        diagnostics.Add(new(newProject.Id, emitResult.Diagnostics));
                     }
 
                     Telemetry.LogProjectAnalysisSummary(projectSummary, newProject.State.ProjectInfo.Attributes.TelemetryId, emitResult.Diagnostics);
@@ -1092,7 +1099,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                             (deltas.Count > 0) ? ModuleUpdateStatus.Ready : ModuleUpdateStatus.None,
                             deltas.ToImmutable()),
                         nonRemappableRegions.ToImmutable(),
-                        emitBaselines.ToImmutable(),
+                        newProjectBaselines.ToImmutable(),
                         diagnostics.ToImmutable(),
                         documentsWithRudeEdits.ToImmutable(),
                         syntaxError);
@@ -1300,6 +1307,518 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     r.Method,
                     -r.Region.OldSpan.Span.GetLineDelta(r.Region.NewSpan.Span),
                     r.Region.NewSpan.Span.ToSourceSpan()));
+        }
+
+        public async ValueTask<InstrumentationUpdate> EmitInstrumentationUpdateAsync(Solution solution, ManagedHotReloadInstrumentation instrumentation, UpdateId updateId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var log = EditAndContinueWorkspaceService.Log;
+                log.Write("EmitInstrumentationUpdate {0}.{1}: '{2}'", updateId.SessionId.Ordinal, updateId.Ordinal, solution.FilePath);
+
+                using var _diagnostics = ArrayBuilder<ProjectDiagnostics>.GetInstance(out var diagnostics);
+
+                if (await ReportUncommittedSourceChangesAsync(solution, diagnostics, cancellationToken).ConfigureAwait(false))
+                {
+                    Debug.Assert(!diagnostics.IsEmpty());
+
+                    return new InstrumentationUpdate()
+                    {
+                        ModuleUpdates = new ModuleUpdates(ModuleUpdateStatus.Blocked, ImmutableArray<ModuleUpdate>.Empty),
+                        ProjectBaselines = ImmutableArray<ProjectBaseline>.Empty,
+                        Diagnostics = diagnostics.ToImmutable(),
+                        Results = null,
+                    };
+                }
+
+                using var _statuses = ArrayBuilder<MethodBodySourceLocationStatus>.GetInstance(out var statuses);
+
+                void SetStatus(ArrayBuilder<int> ordinals, MethodBodySourceLocationStatus status)
+                {
+                    foreach (var ordinal in ordinals)
+                    {
+                        statuses[ordinal] = status;
+                    }
+                }
+
+                // Information neded for each project to emit deltas.
+                using var _methodInstrumentationsByProject = PooledDictionary<Project,
+                    (PooledDictionary<IMethodSymbol, (int kinds, ArrayBuilder<ConditionalExpressionInstrumentation> expressions)> map, int kinds, bool hasExpressions, ArrayBuilder<int> ordinals)>.GetInstance(out var methodInstrumentationsByProject);
+
+                void AddMethodInstrumentation(int ordinal, Project project, IMethodSymbol method, ImmutableArray<InstrumentationKind> kinds, ConditionalExpressionInstrumentation? expression)
+                {
+                    var kindFlags = GetFlags(kinds);
+
+                    if (!methodInstrumentationsByProject.TryGetValue(project, out var methodInstrumentations))
+                    {
+                        methodInstrumentations = (PooledDictionary<IMethodSymbol, (int, ArrayBuilder<ConditionalExpressionInstrumentation>)>.GetInstance(), kinds: 0, hasExpressions: false, ArrayBuilder<int>.GetInstance());
+                    }
+
+                    methodInstrumentationsByProject[project] = (methodInstrumentations.map, methodInstrumentations.kinds | kindFlags, methodInstrumentations.hasExpressions || expression.HasValue, methodInstrumentations.ordinals);
+
+                    methodInstrumentations.ordinals.Add(ordinal);
+
+                    if (!methodInstrumentations.map.TryGetValue(method, out var methodInstrumentation))
+                    {
+                        methodInstrumentation = (0, ArrayBuilder<ConditionalExpressionInstrumentation>.GetInstance());
+                    }
+
+                    if (expression.HasValue)
+                    {
+                        methodInstrumentation.expressions.Add(expression.Value);
+                    }
+
+                    methodInstrumentations.map[method] = (methodInstrumentation.kinds | kindFlags, methodInstrumentation.expressions);
+                }
+
+                var oldSolution = DebuggingSession.LastCommittedSolution;
+                if (instrumentation is ManagedHotReloadConditionalExpressionInstrumentation expressionInstrumentation)
+                {
+                    for (var ordinal = 0; ordinal < expressionInstrumentation.Expressions.Length; ordinal++)
+                    {
+                        var expressionSource = expressionInstrumentation.Expressions[ordinal];
+
+                        // TODO: map from method token, or from PDB location
+#if TRUE
+                        Project? newProject;
+                        if (!DebuggingSession.TryGetProjectId(expressionSource.Method.Module, out var projectId) ||
+                            (newProject = solution.GetProject(projectId)) == null)
+                        {
+                            newProject = await GetProjectByModuleNameAsync(solution, expressionSource.ModuleName, expressionSource.Method.Module, cancellationToken).ConfigureAwait(false);
+                            if (newProject == null)
+                            {
+                                // TODO: report diags
+                                continue;
+                            }
+                        }
+
+                        if (oldSolution.GetProject(newProject.Id) == null)
+                        {
+                            // old project not loaded
+                            // TODO: report
+                            continue;
+                        }
+
+                        // TODO:
+                        // map token in baseline -> current compilation
+                        IMethodSymbol method = null!;
+
+                        // Not user defined method:
+                        var syntaxReferences = (method.PartialImplementationPart ?? method).DeclaringSyntaxReferences;
+                        if (syntaxReferences.IsEmpty)
+                        {
+                            continue;
+                        }
+#else
+                        using var _1 = ArrayBuilder<ConditionalExpressionInstrumentation>.GetInstance(out var conditionalExpressions);
+
+                        var containingMappedDocumentIds = solution.GetDocumentIdsWithFilePath(expressionSource.Position.FilePath);
+                        if (!containingMappedDocumentIds.IsEmpty)
+                        {
+                            foreach (var mappedDocumentId in containingMappedDocumentIds)
+                            {
+                                var mappedDocument = solution.GetRequiredTextDocument(mappedDocumentId);
+                                if (!string.Equals(mappedDocument.Project.AssemblyName, expressionSource.Position.ModuleName, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                // TODO: reverse map #line
+                                //foreach (var document in mappedDocument.Project.Documents)
+                                //{
+                                //    var tree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+                                //    if (tree != null)
+                                //    {
+                                //        var lineMapping = tree.GetLineMappings(cancellationToken);
+                                //        if (lineMapping.Any(m => m.MappedSpan.Path))
+                                //        {
+                                //        }
+                                //    }
+                                //}
+                                var document = (Document)mappedDocument;
+                            }
+                        }
+                        else if (projectsByAssemblyName.TryGetValue(expressionSource.Position.ModuleName, out var containingProjects))
+                        {
+                            // source-generated documents won't be found by GetDocumentIdsWithFilePath, use module name:
+                            foreach (var containingProject in containingProjects)
+                            {
+                                var generatedDocuments = await containingProject.GetSourceGeneratedDocumentsAsync(cancellationToken).ConfigureAwait(false);
+                                // documentsWithChanges.AddRange(generatedDocuments.Where(d => string.Equals(d.FilePath, expressionSource.Position.FilePath, StringComparison.OrdinalIgnoreCase)));
+                            }
+                        }
+                        else
+                        {
+                            // TODO: error
+                        }
+#endif
+                        var syntax = syntaxReferences[0];
+                        var tree = syntax.SyntaxTree;
+                        var treeFactory = newProject.GetRequiredLanguageService<ISyntaxTreeFactoryService>();
+
+                        // var tree = await document.GetRequiredSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+
+                        var conditionSyntax = treeFactory.ParseExpression(expressionSource.Condition, offset: 0, tree.Options, consumeFullText: true);
+
+                        // TODO: report diagnostics
+                        Debug.Assert(!conditionSyntax.HasDiagnostics());
+
+                        var actionSyntax = treeFactory.ParseExpression(expressionSource.Action, offset: 0, tree.Options, consumeFullText: true);
+
+                        // TODO: report diagnostics
+                        Debug.Assert(!actionSyntax.HasDiagnostics());
+
+                        var text = await tree.GetTextAsync(cancellationToken).ConfigureAwait(false);
+
+                        // TODO: check range, #line mapping
+                        var span = text.Lines.GetTextSpan(expressionSource.Span.Span);
+
+                        AddMethodInstrumentation(ordinal, newProject, method, ImmutableArray<InstrumentationKind>.Empty, new ConditionalExpressionInstrumentation
+                        {
+                            Span = span,
+                            Condition = conditionSyntax,
+                            Action = actionSyntax
+                        });
+                    }
+                }
+                else if (instrumentation is MethodBodyInstrumentation bodyInstrumentation)
+                {
+                    for (var ordinal = 0; ordinal < bodyInstrumentation.SourceLocations.Length; ordinal++)
+                    {
+                        var (documentId, position) = bodyInstrumentation.SourceLocations[ordinal];
+
+                        var document = await solution.GetDocumentAsync(documentId, includeSourceGenerated: true, cancellationToken).ConfigureAwait(false);
+                        if (document == null)
+                        {
+                            statuses.Add(MethodBodySourceLocationStatus.DocumentNotFound);
+                            continue;
+                        }
+
+                        var newProject = document.Project;
+                        var treeFactory = newProject.GetLanguageService<IMethodBodyInstrumentationSyntaxTreeFactory>();
+                        if (treeFactory == null)
+                        {
+                            statuses.Add(MethodBodySourceLocationStatus.ProjectLanguageNotSupported);
+                            continue;
+                        }
+
+                        var oldProject = oldSolution.GetProject(newProject.Id);
+                        if (oldProject == null)
+                        {
+                            statuses.Add(MethodBodySourceLocationStatus.ProjectNotLoaded);
+                            continue;
+                        }
+
+                        var compilation = await newProject.GetRequiredCompilationAsync(cancellationToken).ConfigureAwait(false);
+                        var tree = await document.GetRequiredSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+                        var model = compilation.GetSemanticModel(tree);
+                        var method = model.GetEnclosingSymbol<IMethodSymbol>(position, cancellationToken); // TODO: local function?
+                        if (method is null)
+                        {
+                            statuses.Add(MethodBodySourceLocationStatus.MethodNotFound);
+                            continue;
+                        }
+
+                        AddMethodInstrumentation(ordinal, newProject, method, bodyInstrumentation.Kinds, expression: null);
+                        statuses.Add(MethodBodySourceLocationStatus.Success);
+                    }
+
+                    Debug.Assert(bodyInstrumentation.SourceLocations.Length == statuses.Count);
+                }
+                else
+                {
+                    return new InstrumentationUpdate
+                    {
+                        ModuleUpdates = new ModuleUpdates(ModuleUpdateStatus.None, ImmutableArray<ModuleUpdate>.Empty),
+                        ProjectBaselines = ImmutableArray<ProjectBaseline>.Empty,
+                        Diagnostics = diagnostics.ToImmutable(),
+                        Results = null
+                    };
+                }
+
+                var lazyLocalStateTrackerSourceTreeByLanguage = ImmutableDictionary<string, SyntaxTree>.Empty;
+
+                var requiredCapabilities = EditAndContinueCapabilities.Baseline;
+                using var _deltas = ArrayBuilder<ModuleUpdate>.GetInstance(out var deltas);
+                using var _newBaselines = ArrayBuilder<ProjectBaseline>.GetInstance(out var newBaselines);
+
+                foreach (var (newProject, (methodInstrumentations, projectKinds, projectHasExpressions, ordinals)) in methodInstrumentationsByProject)
+                {
+                    var (mvid, mvidReadError) = await DebuggingSession.GetProjectModuleIdAsync(newProject, cancellationToken).ConfigureAwait(false);
+                    if (mvidReadError != null)
+                    {
+                        diagnostics.Add(new(newProject.Id, ImmutableArray.Create(mvidReadError)));
+                        SetStatus(ordinals, MethodBodySourceLocationStatus.ErrorReadingCompilationOutputs);
+                        continue;
+                    }
+
+                    if (mvid == Guid.Empty)
+                    {
+                        SetStatus(ordinals, MethodBodySourceLocationStatus.ProjectNotBuilt);
+                        continue;
+                    }
+
+                    if (!DebuggingSession.TryGetOrCreateEmitBaseline(newProject, out var createBaselineDiagnostics, out var projectBaseline, out var baselineAccessLock))
+                    {
+                        Debug.Assert(!createBaselineDiagnostics.IsEmpty);
+                        diagnostics.Add(new(newProject.Id, createBaselineDiagnostics));
+                        SetStatus(ordinals, MethodBodySourceLocationStatus.ErrorReadingCompilationOutputs);
+                        continue;
+                    }
+
+                    var baselineLocalStateTrackerSourceTree = projectBaseline.LocalStateTrackerSourceTree;
+                    if (baselineLocalStateTrackerSourceTree != null)
+                    {
+                        lazyLocalStateTrackerSourceTreeByLanguage = lazyLocalStateTrackerSourceTreeByLanguage.SetItem(newProject.Language, baselineLocalStateTrackerSourceTree);
+                    }
+
+                    var oldProject = oldSolution.GetRequiredProject(newProject.Id);
+                    var oldCompilation = await oldProject.GetRequiredCompilationAsync(cancellationToken).ConfigureAwait(false);
+                    var newCompilation = await newProject.GetRequiredCompilationAsync(cancellationToken).ConfigureAwait(false);
+
+                    // true if we had to update the compilation (inject helpers)
+                    var newCompilationUpdated = false;
+
+                    using var _semanticEdits = ArrayBuilder<SemanticEdit>.GetInstance(out var semanticEdits);
+
+                    if (HasKind(projectKinds, InstrumentationKind.LocalStateTracing))
+                    {
+                        // Insert instrumentation helpers if they haven't been inserted yet.
+                        // The first time the debugging session we insert these we need to issue a semantic edit and
+                        // include the syntax tree in the compilation. Subsequently, we only need to insert the tree
+                        // into the compilation.
+
+                        // TODO: Consider injecting metadata reference instead. Inserting source avoids cost of rebinding metadata references in the compiler.
+                        // However, it has a couple of drawbacks:
+                        // - The code won't be optimized.
+                        // - The tracker can't be implemented in VB.
+                        // 
+                        // To avoid rebinding the metadata references, we can perhaps cache bound reference manager on the baseline.
+
+                        var treeFactory = newProject.GetRequiredLanguageService<IMethodBodyInstrumentationSyntaxTreeFactory>();
+
+                        if (!lazyLocalStateTrackerSourceTreeByLanguage.TryGetValue(newProject.Language, out var tree))
+                        {
+                            tree = treeFactory.GetLocalStoreTrackerSourceTree(cancellationToken);
+                            lazyLocalStateTrackerSourceTreeByLanguage = lazyLocalStateTrackerSourceTreeByLanguage.SetItem(newProject.Language, tree);
+                        }
+
+                        newCompilation = newCompilation.AddSyntaxTrees(new[] { tree }).WithOptions(treeFactory.UpdateCompilationOptions(newCompilation.Options));
+
+                        if (baselineLocalStateTrackerSourceTree == null)
+                        {
+                            var addedType = newCompilation.GetTypeByMetadataName("Microsoft.CodeAnalysis.Runtime.LocalStoreTracker");
+                            Contract.ThrowIfNull(addedType);
+
+                            semanticEdits.Add(new SemanticEdit(SemanticEditKind.Insert, oldSymbol: null, newSymbol: addedType));
+                            requiredCapabilities |= EditAndContinueCapabilities.NewTypeDefinition;
+
+                            baselineLocalStateTrackerSourceTree = tree;
+                        }
+                    }
+
+                    foreach (var (newMethod, (kinds, expressions)) in methodInstrumentations)
+                    {
+                        var methodInstrumentation = new MethodInstrumentation
+                        {
+                            Kinds = GetKinds(kinds),
+                            ConditionalExpressions = expressions.ToImmutableAndFree()
+                        };
+
+                        var methodKey = SymbolKey.Create(newMethod, cancellationToken);
+                        var oldMethod = methodKey.Resolve(oldCompilation, ignoreAssemblyKey: true, cancellationToken).Symbol;
+                        var newMethodAfterUpdate = newCompilationUpdated ? methodKey.Resolve(newCompilation, ignoreAssemblyKey: true, cancellationToken).Symbol : newMethod;
+
+                        semanticEdits.Add(new SemanticEdit(SemanticEditKind.Update, oldMethod, newMethodAfterUpdate, syntaxMap: null, methodInstrumentation, preserveLocalVariables: false));
+                    }
+
+                    methodInstrumentations.Free();
+
+                    using var pdbStream = SerializableBytes.CreateWritableStream();
+                    using var metadataStream = SerializableBytes.CreateWritableStream();
+                    using var ilStream = SerializableBytes.CreateWritableStream();
+
+                    EmitDifferenceResult emitResult;
+
+                    // The lock protects underlying baseline readers from being disposed while emitting delta.
+                    // If the lock is disposed at this point the session has been incorrectly disposed while operations on it are in progress.
+                    using (baselineAccessLock.DisposableRead())
+                    {
+                        DebuggingSession.ThrowIfDisposed();
+
+                        emitResult = newCompilation.EmitDifference(
+                            projectBaseline.EmitBaseline,
+                            semanticEdits,
+                            isAddedSymbol: symbol => semanticEdits.Any(e => e.Kind == SemanticEditKind.Insert && e.NewSymbol == symbol), // TODO: what is this used for?
+                            metadataStream,
+                            ilStream,
+                            pdbStream,
+                            cancellationToken);
+                    }
+
+                    if (!emitResult.Diagnostics.IsEmpty)
+                    {
+                        diagnostics.Add(new(newProject.Id, emitResult.Diagnostics));
+                    }
+
+                    if (!emitResult.Success)
+                    {
+                        SetStatus(ordinals, MethodBodySourceLocationStatus.CompilationErrors);
+                        continue;
+                    }
+
+                    Contract.ThrowIfNull(emitResult.Baseline);
+
+                    var unsupportedChangesDiagnostic = await GetUnsupportedChangesDiagnosticAsync(emitResult, cancellationToken).ConfigureAwait(false);
+                    if (unsupportedChangesDiagnostic is not null)
+                    {
+                        diagnostics.Add(new(newProject.Id, ImmutableArray.Create(unsupportedChangesDiagnostic)));
+                        SetStatus(ordinals, MethodBodySourceLocationStatus.RuntimeUnsupportedChanges);
+                        continue;
+                    }
+
+                    var updatedMethodTokens = emitResult.UpdatedMethods.SelectAsArray(h => MetadataTokens.GetToken(h));
+                    var changedTypeTokens = emitResult.ChangedTypes.SelectAsArray(h => MetadataTokens.GetToken(h));
+
+                    var delta = new ModuleUpdate(
+                        mvid,
+                        ilStream.ToImmutableArray(),
+                        metadataStream.ToImmutableArray(),
+                        pdbStream.ToImmutableArray(),
+                        ImmutableArray<SequencePointUpdates>.Empty,
+                        updatedMethodTokens,
+                        changedTypeTokens,
+                        ImmutableArray<ManagedActiveStatementUpdate>.Empty,
+                        ImmutableArray<ManagedExceptionRegionUpdate>.Empty,
+                        requiredCapabilities);
+
+                    deltas.Add(delta);
+
+                    newBaselines.Add(new ProjectBaseline(
+                        projectBaseline.ProjectId,
+                        emitResult.Baseline,
+                        projectBaseline.Generation + 1,
+                        baselineLocalStateTrackerSourceTree));
+
+                    var fileLog = log.FileLog;
+                    if (fileLog != null)
+                    {
+                        await LogDeltaFilesAsync(fileLog, delta, projectBaseline.Generation, oldProject, newProject, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
+                Telemetry.LogRuntimeCapabilities(await Capabilities.GetValueAsync(cancellationToken).ConfigureAwait(false));
+
+                return new InstrumentationUpdate
+                {
+                    ModuleUpdates = new ModuleUpdates((deltas.Count > 0) ? ModuleUpdateStatus.Ready : ModuleUpdateStatus.None, deltas.ToImmutable()),
+                    ProjectBaselines = newBaselines.ToImmutable(),
+                    Diagnostics = diagnostics.ToImmutable(),
+                    Results = instrumentation switch
+                    {
+                        ManagedHotReloadConditionalExpressionInstrumentation => new ManagedHotReloadConditionalExpressionInstrumentationResults(),
+                        MethodBodyInstrumentation => new MethodBodyInstrumentationResults() { SourceLocationStatus = statuses.ToImmutable() },
+                        _ => throw ExceptionUtilities.UnexpectedValue(instrumentation),
+                    }
+                };
+            }
+            catch (Exception e) when (FatalError.ReportAndPropagateUnlessCanceled(e, cancellationToken))
+            {
+                throw ExceptionUtilities.Unreachable();
+            }
+        }
+
+        private static bool HasKind(int kinds, InstrumentationKind kind)
+            => (kinds & (int)kind) == (int)kind;
+
+        private static int GetFlags(ImmutableArray<InstrumentationKind> kinds)
+            => kinds.Aggregate(0, static (result, kind) => result | (1 << ((int)kind - 1)));
+
+        private static ImmutableArray<InstrumentationKind> GetKinds(int flags)
+        {
+            // fast paths:
+            if (flags == 0)
+            {
+                return ImmutableArray<InstrumentationKind>.Empty;
+            }
+
+            if (flags == 1 << ((int)InstrumentationKind.LocalStateTracing - 1))
+            {
+                return s_lacalStateTracingInstrumentation;
+            }
+
+            using var _ = ArrayBuilder<InstrumentationKind>.GetInstance(out var builder);
+
+            for (int mask = 1, kind = 1; mask <= flags; mask <<= 1, kind++)
+            {
+                if ((flags & mask) == mask)
+                {
+                    builder.Add((InstrumentationKind)kind);
+                }
+            }
+
+            return builder.ToImmutable();
+        }
+
+        private async ValueTask<bool> ReportUncommittedSourceChangesAsync(Solution solution, ArrayBuilder<ProjectDiagnostics> diagnostics, CancellationToken cancellationToken)
+        {
+            var oldSolution = DebuggingSession.LastCommittedSolution;
+
+            using var _ = ArrayBuilder<Document>.GetInstance(out var changedOrAddedDocuments);
+            var hasUncommitedChanges = false;
+
+            foreach (var newProject in solution.Projects)
+            {
+                var oldProject = oldSolution.GetProject(newProject.Id);
+                if (oldProject == null)
+                {
+                    // project not loaded
+                    continue;
+                }
+
+                await PopulateChangedAndAddedDocumentsAsync(oldProject, newProject, changedOrAddedDocuments, cancellationToken).ConfigureAwait(false);
+                if (!changedOrAddedDocuments.IsEmpty())
+                {
+                    var descriptor = EditAndContinueDiagnosticDescriptors.GetDescriptor(EditAndContinueErrorCode.InstrumentationBlockedByUncommittedChanges);
+                    diagnostics.Add(new(newProject.Id, changedOrAddedDocuments.SelectAsArray(d => Diagnostic.Create(descriptor, Location.None, new[] { d.FilePath }))));
+                    hasUncommitedChanges = true;
+                }
+            }
+
+            return hasUncommitedChanges;
+        }
+
+        private async ValueTask<Project?> GetProjectByModuleNameAsync(Solution solution, string moduleName, Guid moduleId, CancellationToken cancellationToken)
+        {
+            using var _ = ArrayBuilder<(ProjectId, Diagnostic)>.GetInstance(out var diagnostics);
+
+            foreach (var project in solution.Projects)
+            {
+                if (!project.SupportsEditAndContinue())
+                {
+                    continue;
+                }
+
+                if (!string.Equals(project.AssemblyName, moduleName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var (mvid, mvidReadError) = await DebuggingSession.GetProjectModuleIdAsync(project, cancellationToken).ConfigureAwait(false);
+                if (mvidReadError != null)
+                {
+                    diagnostics.Add((project.Id, mvidReadError));
+                    continue;
+                }
+
+                if (mvid == moduleId)
+                {
+                    return project;
+                }
+            }
+
+            // TODO: report diagnostics
+            return null;
         }
     }
 }

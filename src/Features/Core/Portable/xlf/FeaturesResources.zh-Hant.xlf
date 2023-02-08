@@ -990,6 +990,11 @@ Make sure to use the "tt" specifier for languages for which it's necessary to ma
         <target state="translated">內嵌暫存變數</target>
         <note />
       </trans-unit>
+      <trans-unit id="InstrumentationBlockedByUncommittedChanges">
+        <source>Instrumentation blocked by uncommitted changes in document '{0}'</source>
+        <target state="new">Instrumentation blocked by uncommitted changes in document '{0}'</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Insufficient_hexadecimal_digits">
         <source>Insufficient hexadecimal digits</source>
         <target state="translated">十六進位數位不足</target>

@@ -38,12 +38,14 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 RudeEditKind,
                 ModuleUpdateStatus,
                 EditAndContinueCapabilities,
+                MethodBodySourceLocationStatus
             }
 
             private static readonly StrongBox<EnumType> s_ProjectAnalysisSummary = new(EnumType.ProjectAnalysisSummary);
             private static readonly StrongBox<EnumType> s_RudeEditKind = new(EnumType.RudeEditKind);
             private static readonly StrongBox<EnumType> s_ModuleUpdateStatus = new(EnumType.ModuleUpdateStatus);
             private static readonly StrongBox<EnumType> s_EditAndContinueCapabilities = new(EnumType.EditAndContinueCapabilities);
+            private static readonly StrongBox<EnumType> s_MethodBodySourceLocationStatus = new(EnumType.MethodBodySourceLocationStatus);
 
             public readonly object? Object;
             public readonly int Int32;
@@ -79,6 +81,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                        EnumType.RudeEditKind => (RudeEditKind)Int32,
                        EnumType.ModuleUpdateStatus => (ModuleUpdateStatus)Int32,
                        EnumType.EditAndContinueCapabilities => (EditAndContinueCapabilities)Int32,
+                       EnumType.MethodBodySourceLocationStatus => (MethodBodySourceLocationStatus)Int32,
                        _ => throw ExceptionUtilities.UnexpectedValue(enumType)
                    } :
                    Object;
@@ -93,8 +96,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             public static implicit operator Arg(RudeEditKind value) => new((int)value, s_RudeEditKind);
             public static implicit operator Arg(ModuleUpdateStatus value) => new((int)value, s_ModuleUpdateStatus);
             public static implicit operator Arg(EditAndContinueCapabilities value) => new((int)value, s_EditAndContinueCapabilities);
+            public static implicit operator Arg(MethodBodySourceLocationStatus value) => new((int)value, s_EditAndContinueCapabilities);
             public static implicit operator Arg(ImmutableArray<int> tokens) => new(tokens);
-        }
+        }   
 
         [DebuggerDisplay("{GetDebuggerDisplay(),nq}")]
         internal readonly struct Entry

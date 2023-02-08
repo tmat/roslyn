@@ -3218,4 +3218,7 @@ Zero-width positive lookbehind assertions are typically used at the beginning of
   <data name="_0_references_unquoted" xml:space="preserve">
     <value>{0} references</value>
   </data>
+  <data name="InstrumentationBlockedByUncommittedChanges" xml:space="preserve">
+    <value>Instrumentation blocked by uncommitted changes in document '{0}'</value>
+  </data>
 </root>

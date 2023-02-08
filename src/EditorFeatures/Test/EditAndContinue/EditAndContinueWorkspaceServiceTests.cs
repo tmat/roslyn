@@ -54,7 +54,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
         private static readonly ActiveStatementSpanProvider s_noActiveSpans =
             (_, _, _) => new(ImmutableArray<ActiveStatementSpan>.Empty);
 
-        private const TargetFramework DefaultTargetFramework = TargetFramework.NetStandard20;
+        private const TargetFramework DefaultTargetFramework = TargetFramework.Net70;
 
         private Func<Project, CompilationOutputs> _mockCompilationOutputsProvider;
         private readonly List<string> _telemetryLog = new();
@@ -122,7 +122,14 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             var projectId = ProjectId.CreateNewId();
 
             var project = solution.
-                AddProject(ProjectInfo.Create(projectId, VersionStamp.Create(), "proj", "proj", LanguageNames.CSharp, parseOptions: CSharpParseOptions.Default.WithNoRefSafetyRulesAttribute()).WithTelemetryId(s_defaultProjectTelemetryId)).GetProject(projectId).
+                AddProject(ProjectInfo.Create(
+                    projectId,
+                    VersionStamp.Create(),
+                    name: "proj",
+                    assemblyName: "proj",
+                    LanguageNames.CSharp,
+                    parseOptions: CSharpParseOptions.Default,
+                    compilationOptions: TestOptions.DebugDll.WithAllowUnsafe(true)).WithTelemetryId(s_defaultProjectTelemetryId)).GetProject(projectId).
                 WithMetadataReferences(TargetFrameworkUtil.GetReferences(DefaultTargetFramework));
 
             solution = project.Solution;
@@ -241,7 +248,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             ActiveStatementSpanProvider activeStatementSpanProvider = null)
         {
             var result = await session.EmitSolutionUpdateAsync(solution, activeStatementSpanProvider ?? s_noActiveSpans, CancellationToken.None);
-            return (result.ModuleUpdates, result.GetDiagnosticData(solution));
+            return (result.ModuleUpdates, result.Diagnostics.ToDiagnosticData(solution));
         }
 
         internal static void SetDocumentsState(DebuggingSession session, Solution solution, CommittedSolution.DocumentState state)
@@ -2733,10 +2740,10 @@ class G
 
             // the update should be stored on the service:
             var pendingUpdate = debuggingSession.GetTestAccessor().GetPendingSolutionUpdate();
-            var (baselineProjectId, newBaseline) = pendingUpdate.EmitBaselines.Single();
+            var newBaseline = pendingUpdate.ProjectBaselines.Single();
             AssertEx.Equal(updates.Updates, pendingUpdate.Deltas);
-            Assert.Equal(document2.Project.Id, baselineProjectId);
-            Assert.Equal(moduleId, newBaseline.OriginalMetadata.GetModuleVersionId());
+            Assert.Equal(document2.Project.Id, newBaseline.ProjectId);
+            Assert.Equal(moduleId, newBaseline.EmitBaseline.OriginalMetadata.GetModuleVersionId());
 
             var readers = debuggingSession.GetTestAccessor().GetBaselineModuleReaders();
             Assert.Equal(2, readers.Length);
@@ -2868,15 +2875,15 @@ class G
 
             // the update should be stored on the service:
             var pendingUpdate = debuggingSession.GetTestAccessor().GetPendingSolutionUpdate();
-            var (baselineProjectId, newBaseline) = pendingUpdate.EmitBaselines.Single();
+            var newBaseline = pendingUpdate.ProjectBaselines.Single();
 
             var readers = debuggingSession.GetTestAccessor().GetBaselineModuleReaders();
             Assert.Equal(2, readers.Length);
             Assert.NotNull(readers[0]);
             Assert.NotNull(readers[1]);
 
-            Assert.Equal(document2.Project.Id, baselineProjectId);
-            Assert.Equal(moduleId, newBaseline.OriginalMetadata.GetModuleVersionId());
+            Assert.Equal(document2.Project.Id, newBaseline.ProjectId);
+            Assert.Equal(moduleId, newBaseline.EmitBaseline.OriginalMetadata.GetModuleVersionId());
 
             if (commitUpdate)
             {
@@ -3375,8 +3382,8 @@ class C { int Y => 1; }
 
             // the update should be stored on the service:
             var pendingUpdate = debuggingSession.GetTestAccessor().GetPendingSolutionUpdate();
-            var (_, newBaselineA1) = pendingUpdate.EmitBaselines.Single(b => b.ProjectId == projectA.Id);
-            var (_, newBaselineB1) = pendingUpdate.EmitBaselines.Single(b => b.ProjectId == projectB.Id);
+            var newBaselineA1 = pendingUpdate.ProjectBaselines.Single(b => b.ProjectId == projectA.Id).EmitBaseline;
+            var newBaselineB1 = pendingUpdate.ProjectBaselines.Single(b => b.ProjectId == projectB.Id).EmitBaseline;
 
             var baselineA0 = newBaselineA1.GetInitialEmitBaseline();
             var baselineB0 = newBaselineB1.GetInitialEmitBaseline();
@@ -3423,8 +3430,8 @@ class C { int Y => 1; }
 
             // the update should be stored on the service:
             pendingUpdate = debuggingSession.GetTestAccessor().GetPendingSolutionUpdate();
-            var (_, newBaselineA2) = pendingUpdate.EmitBaselines.Single(b => b.ProjectId == projectA.Id);
-            var (_, newBaselineB2) = pendingUpdate.EmitBaselines.Single(b => b.ProjectId == projectB.Id);
+            var newBaselineA2 = pendingUpdate.ProjectBaselines.Single(b => b.ProjectId == projectA.Id).EmitBaseline;
+            var newBaselineB2 = pendingUpdate.ProjectBaselines.Single(b => b.ProjectId == projectB.Id).EmitBaseline;
 
             Assert.NotSame(newBaselineA1, newBaselineA2);
             Assert.NotSame(newBaselineB1, newBaselineB2);
@@ -4453,6 +4460,62 @@ class C
             }, spans);
 
             ExitBreakState(debuggingSession);
+        }
+
+        [Fact]
+        public async Task Instrumentation_LocalStoreTracking()
+        {
+            var source =
+@"class Test
+{
+    static void F()
+    {
+        int a = 1;
+    }
+}";
+
+            var moduleId = EmitAndLoadLibraryToDebuggee(source);
+
+            using var _1 = CreateWorkspace(out var solution, out var service);
+            (solution, var document) = AddDefaultTestProject(solution, source);
+            var documentId = document.Id;
+
+            var debuggingSession = await StartDebuggingSessionAsync(service, solution);
+
+            // instrument method F
+            var instrumentation = new MethodBodyInstrumentation
+            {
+                SourceLocations = ImmutableArray.Create(new DocumentPosition(documentId, source.IndexOf("int a = 1;"))),
+                Kinds = ImmutableArray.Create(InstrumentationKind.LocalStateTracing)
+            };
+
+            var result = await debuggingSession.EmitInstrumentationUpdateAsync(solution, instrumentation, CancellationToken.None);
+
+            Assert.Equal(ModuleUpdateStatus.Ready, result.ModuleUpdates.Status);
+
+            var delta = result.ModuleUpdates.Updates.Single();
+            Assert.Empty(delta.ActiveStatements);
+            Assert.NotEmpty(delta.ILDelta);
+            Assert.NotEmpty(delta.MetadataDelta);
+            Assert.NotEmpty(delta.PdbDelta);
+            Assert.Equal(0x06000001, delta.UpdatedMethods.Single());
+            Assert.Equal(4, delta.UpdatedTypes.Length); // Test, Instrumentation, EmbeddedAttribute, RefSafetyAttribute
+            Assert.Equal(moduleId, delta.Module);
+            Assert.Empty(delta.ExceptionRegions);
+            Assert.Empty(delta.SequencePoints);
+
+            debuggingSession.CommitSolutionUpdate(out _);
+
+            // TODO:
+            // 1) record methods that have already been instrumented and avoid instrumenting them again (test UpdatedMethods)
+            // 2) test interleaving source updates with instrumentations updates (source updates need to apply existing instrumentations)
+            // 3) add reference?
+            //    We can create unique project number - int valid for the session, tied to ProjectId and use it in the helpers instead of MVID (large).
+            //    Would the compiler rebind dependency graph?
+            //    Benefit: language agnostic, simpler API.
+            // 4) If not add ref -> make sure syntax trees passed to each compilation
+
+            EndDebuggingSession(debuggingSession);
         }
 
         [Fact]
