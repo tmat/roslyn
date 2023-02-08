@@ -5,6 +5,8 @@
 using Microsoft.CodeAnalysis.Symbols;
 using Roslyn.Utilities;
 using System;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.CodeAnalysis.Emit
 {
@@ -49,6 +51,13 @@ namespace Microsoft.CodeAnalysis.Emit
         public bool PreserveLocalVariables { get; }
 
         /// <summary>
+        /// Instrumentation update to be applied to a method.
+        /// <see cref="OldSymbol"/> and <see cref="NewSymbol"/> must be non-null <see cref="IMethodSymbol"/>s.
+        /// <see cref="Kind"/> must be <see cref="SemanticEditKind.Update"/>.
+        /// </summary>
+        public MethodInstrumentation Instrumentation { get; }
+
+        /// <summary>
         /// Initializes an instance of <see cref="SemanticEdit"/>.
         /// </summary>
         /// <param name="kind">The type of edit.</param>
@@ -72,7 +81,7 @@ namespace Microsoft.CodeAnalysis.Emit
         /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="kind"/> is not a valid kind.
         /// </exception>
-        public SemanticEdit(SemanticEditKind kind, ISymbol? oldSymbol, ISymbol? newSymbol, Func<SyntaxNode, SyntaxNode?>? syntaxMap = null, bool preserveLocalVariables = false)
+        public SemanticEdit(SemanticEditKind kind, ISymbol? oldSymbol, ISymbol? newSymbol, Func<SyntaxNode, SyntaxNode?>? syntaxMap = null, MethodInstrumentation instrumentation = default, bool preserveLocalVariables = false)
         {
             if (oldSymbol == null && kind is not (SemanticEditKind.Insert or SemanticEditKind.Replace))
             {
@@ -89,15 +98,34 @@ namespace Microsoft.CodeAnalysis.Emit
                 throw new ArgumentOutOfRangeException(nameof(kind));
             }
 
+            if (!instrumentation.IsDefaultOrEmpty)
+            {
+                if (kind != SemanticEditKind.Update)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(kind));
+                }
+
+                if (oldSymbol is not IMethodSymbol)
+                {
+                    throw new ArgumentException("Method symbol expected", nameof(oldSymbol));
+                }
+
+                if (newSymbol is not IMethodSymbol)
+                {
+                    throw new ArgumentException("Method symbol expected", nameof(newSymbol));
+                }
+            }
+
             Kind = kind;
             OldSymbol = oldSymbol;
             NewSymbol = newSymbol;
             PreserveLocalVariables = preserveLocalVariables;
             SyntaxMap = syntaxMap;
+            Instrumentation = instrumentation;
         }
 
         internal static SemanticEdit Create(SemanticEditKind kind, ISymbolInternal oldSymbol, ISymbolInternal newSymbol, Func<SyntaxNode, SyntaxNode>? syntaxMap = null, bool preserveLocalVariables = false)
-            => new SemanticEdit(kind, oldSymbol?.GetISymbol(), newSymbol?.GetISymbol(), syntaxMap, preserveLocalVariables);
+            => new SemanticEdit(kind, oldSymbol?.GetISymbol(), newSymbol?.GetISymbol(), syntaxMap, instrumentation: default, preserveLocalVariables);
 
         public override int GetHashCode()
             => Hash.Combine(OldSymbol, Hash.Combine(NewSymbol, (int)Kind));

@@ -57,8 +57,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return GeneratedNames.ThisProxyFieldName();
             }
 
-            var local = variable as LocalSymbol;
-            if ((object)local != null)
+            if (variable is LocalSymbol local)
             {
                 if (local.SynthesizedKind == SynthesizedLocalKind.LambdaDisplayClass)
                 {
@@ -73,6 +72,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                 if (local.SynthesizedKind == SynthesizedLocalKind.InstrumentationPayload)
                 {
                     return GeneratedNames.MakeSynthesizedInstrumentationPayloadLocalFieldName(uniqueId++);
+                }
+
+                if (local.SynthesizedKind == SynthesizedLocalKind.LocalStoreTracker)
+                {
+                    return GeneratedNames.MakeSynthesizedLocalStoreTrackerLocalFieldName(uniqueId++);
                 }
 
                 if (local.SynthesizedKind == SynthesizedLocalKind.UserDefined &&

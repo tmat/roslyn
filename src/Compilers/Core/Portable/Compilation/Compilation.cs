@@ -2432,8 +2432,6 @@ namespace Microsoft.CodeAnalysis
         internal abstract bool CompileMethods(
             CommonPEModuleBuilder moduleBuilder,
             bool emittingPdb,
-            bool emitMetadataOnly,
-            bool emitTestCoverageData,
             DiagnosticBag diagnostics,
             Predicate<ISymbolInternal>? filterOpt,
             CancellationToken cancellationToken);
@@ -2568,8 +2566,6 @@ namespace Microsoft.CodeAnalysis
                 return CompileMethods(
                     moduleBuilder,
                     emittingPdb,
-                    emitMetadataOnly: false,
-                    emitTestCoverageData: false,
                     diagnostics: diagnostics,
                     filterOpt: filterOpt,
                     cancellationToken: cancellationToken);
@@ -2919,8 +2915,6 @@ namespace Microsoft.CodeAnalysis
                     success = CompileMethods(
                         moduleBeingBuilt,
                         emittingPdb: pdbStream != null || embedPdb,
-                        emitMetadataOnly: options.EmitMetadataOnly,
-                        emitTestCoverageData: options.EmitTestCoverageData,
                         diagnostics: diagnostics,
                         filterOpt: null,
                         cancellationToken: cancellationToken);
@@ -3019,7 +3013,7 @@ namespace Microsoft.CodeAnalysis
             Stream ilStream,
             Stream pdbStream,
             ICollection<MethodDefinitionHandle> updatedMethods,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             var diff = EmitDifference(baseline, edits, isAddedSymbol, metadataStream, ilStream, pdbStream, cancellationToken);
 
@@ -3039,13 +3033,13 @@ namespace Microsoft.CodeAnalysis
         /// subsequent Edit and Continue.
         /// </summary>
         public EmitDifferenceResult EmitDifference(
-            EmitBaseline baseline,
-            IEnumerable<SemanticEdit> edits,
-            Func<ISymbol, bool> isAddedSymbol,
-            Stream metadataStream,
-            Stream ilStream,
-            Stream pdbStream,
-            CancellationToken cancellationToken = default(CancellationToken))
+           EmitBaseline baseline,
+           IEnumerable<SemanticEdit> edits,
+           Func<ISymbol, bool> isAddedSymbol,
+           Stream metadataStream,
+           Stream ilStream,
+           Stream pdbStream,
+           CancellationToken cancellationToken)
         {
             if (baseline == null)
             {
@@ -3080,7 +3074,7 @@ namespace Microsoft.CodeAnalysis
                 throw new ArgumentNullException(nameof(pdbStream));
             }
 
-            return this.EmitDifference(baseline, edits, isAddedSymbol, metadataStream, ilStream, pdbStream, testData: null, cancellationToken);
+            return EmitDifference(baseline, edits, isAddedSymbol, metadataStream, ilStream, pdbStream, testData: null, cancellationToken: cancellationToken);
         }
 #pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
 
@@ -3239,7 +3233,7 @@ namespace Microsoft.CodeAnalysis
                         emitOptions.EmitMetadataOnly,
                         emitOptions.IncludePrivateMembers,
                         deterministic,
-                        emitOptions.EmitTestCoverageData,
+                        emitOptions.InstrumentationKinds.Contains(InstrumentationKind.TestCoverage),
                         privateKeyOpt,
                         cancellationToken))
                     {

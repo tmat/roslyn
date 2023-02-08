@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -55,7 +53,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// of rewritten return expressions. The return-handling code then uses <c>SetResult</c> on the async method builder
         /// to make the result available to the caller.
         /// </summary>
-        private readonly LocalSymbol _exprRetValue;
+        private readonly LocalSymbol? _exprRetValue;
 
         private readonly LoweredDynamicOperationFactory _dynamicFactory;
 
@@ -71,14 +69,15 @@ namespace Microsoft.CodeAnalysis.CSharp
             SyntheticBoundNodeFactory F,
             FieldSymbol state,
             FieldSymbol builder,
+            FieldSymbol? instanceIdField,
             Roslyn.Utilities.IReadOnlySet<Symbol> hoistedVariables,
             IReadOnlyDictionary<Symbol, CapturedSymbolReplacement> nonReusableLocalProxies,
             SynthesizedLocalOrdinalsDispenser synthesizedLocalOrdinals,
             ArrayBuilder<StateMachineStateDebugInfo> stateMachineStateDebugInfoBuilder,
-            VariableSlotAllocator slotAllocatorOpt,
+            VariableSlotAllocator? slotAllocatorOpt,
             int nextFreeHoistedLocalSlot,
             BindingDiagnosticBag diagnostics)
-            : base(F, method, state, hoistedVariables, nonReusableLocalProxies, synthesizedLocalOrdinals, stateMachineStateDebugInfoBuilder, slotAllocatorOpt, nextFreeHoistedLocalSlot, diagnostics)
+            : base(F, method, state, instanceIdField, hoistedVariables, nonReusableLocalProxies, synthesizedLocalOrdinals, stateMachineStateDebugInfoBuilder, slotAllocatorOpt, nextFreeHoistedLocalSlot, diagnostics)
         {
             _method = method;
             _asyncMethodBuilderMemberCollection = asyncMethodBuilderMemberCollection;
@@ -96,6 +95,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             _placeholderMap = new Dictionary<BoundValuePlaceholderBase, BoundExpression>();
         }
+
+#nullable disable
 
         private FieldSymbol GetAwaiterField(TypeSymbol awaiterType)
         {
@@ -133,16 +134,17 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal void GenerateMoveNext(BoundStatement body, MethodSymbol moveNextMethod)
         {
             F.CurrentFunction = moveNextMethod;
-            BoundStatement rewrittenBody = VisitBody(body);
-
-            ImmutableArray<StateMachineFieldSymbol> rootScopeHoistedLocals;
-            TryUnwrapBoundStateMachineScope(ref rewrittenBody, out rootScopeHoistedLocals);
 
             var bodyBuilder = ArrayBuilder<BoundStatement>.GetInstance();
 
             bodyBuilder.Add(F.HiddenSequencePoint());
             bodyBuilder.Add(F.Assignment(F.Local(cachedState), F.Field(F.This(), stateField)));
             bodyBuilder.Add(CacheThisIfNeeded());
+
+            BoundStatement rewrittenBody = VisitBody(body);
+
+            ImmutableArray<StateMachineFieldSymbol> rootScopeHoistedLocals;
+            TryUnwrapBoundStateMachineScope(ref rewrittenBody, out rootScopeHoistedLocals);
 
             var exceptionLocal = F.SynthesizedLocal(F.WellKnownType(WellKnownType.System_Exception));
             bodyBuilder.Add(
@@ -154,8 +156,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                         // [body]
                         rewrittenBody
                     ),
-                    F.CatchBlocks(GenerateExceptionHandling(exceptionLocal, rootScopeHoistedLocals)))
-                );
+                    F.CatchBlocks(GenerateExceptionHandling(exceptionLocal, rootScopeHoistedLocals))
+                ));
 
             // ReturnLabel (for the rewritten return expressions in the user's method body)
             bodyBuilder.Add(F.Label(_exprReturnLabel));
@@ -187,8 +189,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             var locals = ArrayBuilder<LocalSymbol>.GetInstance();
             locals.Add(cachedState);
-            if ((object)cachedThis != null) locals.Add(cachedThis);
-            if ((object)_exprRetValue != null) locals.Add(_exprRetValue);
+            if (cachedThis is { }) locals.Add(cachedThis);
+            if (_exprRetValue is { }) locals.Add(_exprRetValue);
 
             var newBody =
                 F.SequencePoint(
@@ -200,6 +202,14 @@ namespace Microsoft.CodeAnalysis.CSharp
             if (rootScopeHoistedLocals.Length > 0)
             {
                 newBody = MakeStateMachineScope(rootScopeHoistedLocals, newBody);
+            }
+
+            if (_instrumentation != null)
+            {
+                newBody = F.Block(
+                    ImmutableArray.Create(_instrumentation.Local),
+                    _instrumentation.Prologue,
+                    F.Try(F.Block(newBody), ImmutableArray<BoundCatchBlock>.Empty, F.Block(_instrumentation.Epilogue)));
             }
 
             F.CloseMethod(newBody);

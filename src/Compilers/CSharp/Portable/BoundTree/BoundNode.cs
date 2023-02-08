@@ -498,6 +498,15 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             public override BoundNode? VisitBlock(BoundBlock node)
             {
+                if (node.Instrumentation is BoundBlockInstrumentation instrumentation)
+                {
+                    var added = DeclaredLocals.Add(instrumentation.Local);
+                    Debug.Assert(added);
+
+                    _ = Visit(instrumentation.Prologue);
+                    _ = Visit(instrumentation.Epilogue);
+                }
+
                 AddAll(node.Locals);
                 base.VisitBlock(node);
                 RemoveAll(node.Locals);

@@ -4,6 +4,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Microsoft.Cci;
 using Microsoft.CodeAnalysis.CodeGen;
 using Roslyn.Utilities;
 
@@ -11,6 +12,7 @@ namespace Microsoft.CodeAnalysis.Emit
 {
     internal readonly struct AddedOrChangedMethodInfo
     {
+        public readonly IMethodDefinition Definition;
         public readonly DebugId MethodId;
 
         // locals:
@@ -26,7 +28,11 @@ namespace Microsoft.CodeAnalysis.Emit
         public readonly ImmutableArray<Cci.ITypeReference?> StateMachineAwaiterSlotsOpt;
         public readonly StateMachineStatesDebugInfo StateMachineStates;
 
+        // current instrumentations:
+        public readonly MethodInstrumentation Instrumentations;
+
         public AddedOrChangedMethodInfo(
+            IMethodDefinition definition,
             DebugId methodId,
             ImmutableArray<EncLocalInfo> locals,
             ImmutableArray<LambdaDebugInfo> lambdaDebugInfo,
@@ -46,6 +52,7 @@ namespace Microsoft.CodeAnalysis.Emit
             // a state machine might not have hoisted variables:
             Debug.Assert(stateMachineHoistedLocalSlotsOpt.IsDefault || stateMachineTypeName is not null);
 
+            Definition = definition;
             MethodId = methodId;
             Locals = locals;
             LambdaDebugInfo = lambdaDebugInfo;
@@ -66,7 +73,7 @@ namespace Microsoft.CodeAnalysis.Emit
             var mappedAwaiterSlots = StateMachineAwaiterSlotsOpt.IsDefault ? default :
                 ImmutableArray.CreateRange(StateMachineAwaiterSlotsOpt, static (typeRef, map) => (typeRef is null) ? null : map.MapReference(typeRef), map);
 
-            return new AddedOrChangedMethodInfo(MethodId, mappedLocals, LambdaDebugInfo, ClosureDebugInfo, StateMachineTypeName, mappedHoistedLocalSlots, mappedAwaiterSlots, StateMachineStates);
+            return new AddedOrChangedMethodInfo(Definition, MethodId, mappedLocals, LambdaDebugInfo, ClosureDebugInfo, StateMachineTypeName, mappedHoistedLocalSlots, mappedAwaiterSlots, StateMachineStates);
         }
 
         private static EncLocalInfo MapLocalInfo(EncLocalInfo info, SymbolMatcher map)

@@ -26,12 +26,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private ReadOnly _compilation As VisualBasicCompilation
         Private ReadOnly _cancellationToken As CancellationToken
         Private ReadOnly _emittingPdb As Boolean
-        Private ReadOnly _emitTestCoverageData As Boolean
         Private ReadOnly _diagnostics As BindingDiagnosticBag
         Private ReadOnly _hasDeclarationErrors As Boolean
         Private ReadOnly _moduleBeingBuiltOpt As PEModuleBuilder ' Nothing if compiling for diagnostics
         Private ReadOnly _filterOpt As Predicate(Of Symbol)      ' If not Nothing, limit analysis to specific symbols
-        Private ReadOnly _debugDocumentProvider As DebugDocumentProvider
 
         ' GetDiagnostics only needs to Bind. If we need to go further, _doEmitPhase needs to be set.
         ' It normally happens during actual compile, but also happens when getting emit diagnostics for
@@ -54,6 +52,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ' Stack is used so that the wait would observe the most recently added task and have
         ' more chances to do inlined execution.
         Private ReadOnly _compilerTasks As ConcurrentStack(Of Task)
+
+        Private _lazyDebugDocumentProvider As DebugDocumentProvider
 
         ' Tracks whether any method body has hasErrors set, and used to avoid
         ' emitting if there are errors without corresponding diagnostics.
@@ -84,7 +84,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Sub New(compilation As VisualBasicCompilation,
                        moduleBeingBuiltOpt As PEModuleBuilder,
                        emittingPdb As Boolean,
-                       emitTestCoverageData As Boolean,
                        doLoweringPhase As Boolean,
                        doEmitPhase As Boolean,
                        hasDeclarationErrors As Boolean,
@@ -104,17 +103,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _doLoweringPhase = doEmitPhase OrElse doLoweringPhase
             _doEmitPhase = doEmitPhase
             _emittingPdb = emittingPdb
-            _emitTestCoverageData = emitTestCoverageData
             _filterOpt = filter
-
-            If emittingPdb OrElse emitTestCoverageData Then
-                _debugDocumentProvider = Function(path As String, basePath As String) moduleBeingBuiltOpt.DebugDocumentsBuilder.GetOrAddDebugDocument(path, basePath, AddressOf CreateDebugDocumentForFile)
-            End If
 
             If compilation.Options.ConcurrentBuild Then
                 _compilerTasks = New ConcurrentStack(Of Task)()
             End If
         End Sub
+
+        Private Function GetDebugDocumentProvider(instrumentations As MethodInstrumentation) As DebugDocumentProvider
+            If _emittingPdb OrElse instrumentations.Kinds.Contains(InstrumentationKind.TestCoverage) Then
+                Debug.Assert(_moduleBeingBuiltOpt IsNot Nothing)
+                _lazyDebugDocumentProvider = Function(path As String, basePath As String) _moduleBeingBuiltOpt.DebugDocumentsBuilder.GetOrAddDebugDocument(path, basePath, AddressOf CreateDebugDocumentForFile)
+            End If
+
+            Return _lazyDebugDocumentProvider
+        End Function
 
         Private Shared Function IsDefinedOrImplementedInSourceTree(symbol As Symbol, tree As SyntaxTree, span As TextSpan?) As Boolean
             If symbol.IsDefinedInSourceTree(tree, span) Then
@@ -179,7 +182,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                                                      cancellationToken:=cancellationToken), PEModuleBuilder),
                                                                       Nothing),
                                               emittingPdb:=False,
-                                              emitTestCoverageData:=False,
                                               doLoweringPhase:=doLoweringPhase,
                                               doEmitPhase:=False,
                                               hasDeclarationErrors:=hasDeclarationErrors,
@@ -213,7 +215,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Shared Sub CompileMethodBodies(compilation As VisualBasicCompilation,
                                               moduleBeingBuiltOpt As PEModuleBuilder,
                                               emittingPdb As Boolean,
-                                              emitTestCoverageData As Boolean,
                                               hasDeclarationErrors As Boolean,
                                               filter As Predicate(Of Symbol),
                                               diagnostics As BindingDiagnosticBag,
@@ -238,7 +239,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim compiler = New MethodCompiler(compilation,
                                               moduleBeingBuiltOpt,
                                               emittingPdb,
-                                              emitTestCoverageData,
                                               doLoweringPhase:=True,
                                               doEmitPhase:=True,
                                               hasDeclarationErrors:=hasDeclarationErrors,
@@ -308,6 +308,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Not diagnostics.HasAnyErrors Then
                 Dim compilationState = New TypeCompilationState(compilation, moduleBeingBuilt, initializeComponentOpt:=Nothing)
                 Dim body = synthesizedEntryPoint.CreateBody()
+                Dim methodInstrumentations = moduleBeingBuilt.GetMethodBodyInstrumentations(synthesizedEntryPoint)
 
                 Dim emittedBody = GenerateMethodBody(moduleBeingBuilt,
                                              synthesizedEntryPoint,
@@ -318,10 +319,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                              stateMachineStateDebugInfos:=ImmutableArray(Of StateMachineStateDebugInfo).Empty,
                                              stateMachineTypeOpt:=Nothing,
                                              variableSlotAllocatorOpt:=Nothing,
-                                             debugDocumentProvider:=Nothing,
                                              diagnostics:=diagnostics,
+                                             debugDocumentProvider:=Nothing,
                                              emittingPdb:=False,
-                                             emitTestCoverageData:=False,
+                                             instrumentations:=methodInstrumentations,
                                              dynamicAnalysisSpans:=ImmutableArray(Of SourceSpan).Empty)
                 moduleBeingBuilt.SetMethodBody(synthesizedEntryPoint, emittedBody)
             End If
@@ -877,6 +878,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim method = DirectCast(methodDef.GetInternalSymbol(), MethodSymbol)
                 Dim diagnosticsThisMethod = BindingDiagnosticBag.GetInstance(_diagnostics)
 
+                Dim methodInstrumentations = _moduleBeingBuiltOpt.GetMethodBodyInstrumentations(method)
                 Dim boundBody = method.GetBoundMethodBody(compilationState, diagnosticsThisMethod)
 
                 If DoEmitPhase AndAlso Not diagnosticsThisMethod.HasAnyErrors Then
@@ -889,10 +891,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                          stateMachineStateDebugInfos:=ImmutableArray(Of StateMachineStateDebugInfo).Empty,
                                                          stateMachineTypeOpt:=Nothing,
                                                          variableSlotAllocatorOpt:=Nothing,
-                                                         debugDocumentProvider:=If(_emitTestCoverageData, _debugDocumentProvider, Nothing),
+                                                         debugDocumentProvider:=GetDebugDocumentProvider(methodInstrumentations),
                                                          diagnostics:=diagnosticsThisMethod,
                                                          emittingPdb:=False,
-                                                         emitTestCoverageData:=_emitTestCoverageData,
+                                                         instrumentations:=methodInstrumentations,
                                                          dynamicAnalysisSpans:=ImmutableArray(Of SourceSpan).Empty)
 
                     ' error while generating IL
@@ -937,6 +939,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                         Dim delegateRelaxationIdDispenser = 0
                         Dim dynamicAnalysisSpans As ImmutableArray(Of SourceSpan) = ImmutableArray(Of SourceSpan).Empty
+                        Dim methodInstrumentations = _moduleBeingBuiltOpt.GetMethodBodyInstrumentations(method)
 
                         Dim rewrittenBody = Rewriter.LowerBodyOrInitializer(
                             method,
@@ -944,9 +947,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             boundBody,
                             previousSubmissionFields:=Nothing,
                             compilationState:=compilationState,
-                            instrumentForDynamicAnalysis:=False,
+                            instrumentations:=methodInstrumentations,
                             dynamicAnalysisSpans:=dynamicAnalysisSpans,
-                            debugDocumentProvider:=_debugDocumentProvider,
+                            debugDocumentProvider:=GetDebugDocumentProvider(methodInstrumentations),
                             diagnostics:=diagnosticsThisMethod,
                             lazyVariableSlotAllocator:=lazyVariableSlotAllocator,
                             lambdaDebugInfoBuilder:=lambdaDebugInfoBuilder,
@@ -972,7 +975,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                              debugDocumentProvider:=Nothing,
                                                              diagnostics:=diagnosticsThisMethod,
                                                              emittingPdb:=False,
-                                                             emitTestCoverageData:=False,
+                                                             instrumentations:=methodInstrumentations,
                                                              dynamicAnalysisSpans:=dynamicAnalysisSpans)
                         End If
                     End If
@@ -1018,6 +1021,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If Not methodWithBody.Body.HasErrors Then
                     Dim method = methodWithBody.Method
                     Dim diagnosticsThisMethod = BindingDiagnosticBag.GetInstance(_diagnostics)
+                    Dim methodInstrumentations = _moduleBeingBuiltOpt.GetMethodBodyInstrumentations(method)
 
                     Dim emittedBody = GenerateMethodBody(_moduleBeingBuiltOpt,
                                                          method,
@@ -1028,10 +1032,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                          stateMachineStateDebugInfos:=methodWithBody.StateMachineStatesDebugInfo,
                                                          stateMachineTypeOpt:=methodWithBody.StateMachineType,
                                                          variableSlotAllocatorOpt:=Nothing,
-                                                         debugDocumentProvider:=_debugDocumentProvider,
+                                                         debugDocumentProvider:=GetDebugDocumentProvider(methodInstrumentations),
                                                          diagnostics:=diagnosticsThisMethod,
                                                          emittingPdb:=_emittingPdb,
-                                                         emitTestCoverageData:=_emitTestCoverageData,
+                                                         instrumentations:=methodInstrumentations,
                                                          dynamicAnalysisSpans:=ImmutableArray(Of SourceSpan).Empty)
 
                     _diagnostics.AddRange(diagnosticsThisMethod)
@@ -1370,15 +1374,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim lambdaDebugInfoBuilder = ArrayBuilder(Of LambdaDebugInfo).GetInstance()
                 Dim closureDebugInfoBuilder = ArrayBuilder(Of ClosureDebugInfo).GetInstance()
                 Dim stateMachineStateDebugInfoBuilder = ArrayBuilder(Of StateMachineStateDebugInfo).GetInstance()
+                Dim methodInstrumentations = _moduleBeingBuiltOpt.GetMethodBodyInstrumentations(setter)
 
                 setterBody = Rewriter.LowerBodyOrInitializer(setter,
                                                              withEventPropertyIdDispenser,
                                                              setterBody,
                                                              previousSubmissionFields,
                                                              compilationState,
-                                                             instrumentForDynamicAnalysis:=False,
+                                                             instrumentations:=methodInstrumentations,
                                                              dynamicAnalysisSpans:=ImmutableArray(Of SourceSpan).Empty,
-                                                             debugDocumentProvider:=_debugDocumentProvider,
+                                                             debugDocumentProvider:=GetDebugDocumentProvider(methodInstrumentations),
                                                              diagnostics:=diagnostics,
                                                              lazyVariableSlotAllocator:=Nothing,
                                                              lambdaDebugInfoBuilder:=lambdaDebugInfoBuilder,
@@ -1483,15 +1488,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim closureDebugInfoBuilder = ArrayBuilder(Of ClosureDebugInfo).GetInstance()
             Dim stateMachineStateDebugInfoBuilder = ArrayBuilder(Of StateMachineStateDebugInfo).GetInstance()
             Dim dynamicAnalysisSpans As ImmutableArray(Of SourceSpan) = ImmutableArray(Of SourceSpan).Empty
+            Dim methodInstrumentations = If(_moduleBeingBuiltOpt IsNot Nothing, _moduleBeingBuiltOpt.GetMethodBodyInstrumentations(method), Nothing)
 
             body = Rewriter.LowerBodyOrInitializer(method,
                                                    methodOrdinal,
                                                    body,
                                                    previousSubmissionFields,
                                                    compilationState,
-                                                   _emitTestCoverageData,
+                                                   methodInstrumentations,
                                                    dynamicAnalysisSpans,
-                                                   _debugDocumentProvider,
+                                                   GetDebugDocumentProvider(methodInstrumentations),
                                                    diagnostics,
                                                    lazyVariableSlotAllocator,
                                                    lambdaDebugInfoBuilder,
@@ -1540,10 +1546,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                               stateMachineStateDebugInfoBuilder.ToImmutable(),
                                                               stateMachineTypeOpt,
                                                               lazyVariableSlotAllocator,
-                                                              _debugDocumentProvider,
+                                                              GetDebugDocumentProvider(methodInstrumentations),
                                                               diagnostics,
                                                               emittingPdb:=_emittingPdb,
-                                                              emitTestCoverageData:=_emitTestCoverageData,
+                                                              instrumentations:=methodInstrumentations,
                                                               dynamicAnalysisSpans:=dynamicAnalysisSpans)
 
                 _moduleBeingBuiltOpt.SetMethodBody(If(method.PartialDefinitionPart, method), methodBody)
@@ -1571,7 +1577,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                   debugDocumentProvider As DebugDocumentProvider,
                                                   diagnostics As BindingDiagnosticBag,
                                                   emittingPdb As Boolean,
-                                                  emitTestCoverageData As Boolean,
+                                                  instrumentations As MethodInstrumentation,
                                                   dynamicAnalysisSpans As ImmutableArray(Of SourceSpan)) As MethodBody
             Debug.Assert(diagnostics.AccumulatesDiagnostics)
 
@@ -1671,7 +1677,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim localScopes = builder.GetAllScopes()
 
                 Dim dynamicAnalysisDataOpt As DynamicAnalysisMethodBodyData = Nothing
-                If emitTestCoverageData Then
+                If instrumentations.Kinds.Contains(InstrumentationKind.TestCoverage) Then
                     Debug.Assert(debugDocumentProvider IsNot Nothing)
                     dynamicAnalysisDataOpt = New DynamicAnalysisMethodBodyData(dynamicAnalysisSpans)
                 End If
@@ -1697,7 +1703,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                       stateMachineAwaiterSlots:=stateMachineAwaiterSlots,
                                       stateMachineStatesDebugInfo:=StateMachineStatesDebugInfo.Create(variableSlotAllocatorOpt, stateMachineStateDebugInfos),
                                       stateMachineMoveNextDebugInfoOpt:=moveNextBodyDebugInfoOpt,
-                                      dynamicAnalysisDataOpt:=dynamicAnalysisDataOpt)
+                                      dynamicAnalysisDataOpt:=dynamicAnalysisDataOpt,
+                                      instrumentations)
             Finally
                 ' Free resources used by the basic blocks in the builder.
                 builder.FreeBasicBlocks()

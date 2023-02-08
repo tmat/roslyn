@@ -843,6 +843,7 @@ namespace Microsoft.CodeAnalysis.Emit
             }
 
             var info = new AddedOrChangedMethodInfo(
+                body.MethodDefinition,
                 body.MethodId,
                 encInfos.ToImmutable(),
                 body.LambdaDebugInfo,

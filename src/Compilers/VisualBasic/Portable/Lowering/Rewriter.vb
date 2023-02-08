@@ -6,6 +6,7 @@ Imports System.Collections.Immutable
 Imports System.Diagnostics.CodeAnalysis
 Imports System.Runtime.InteropServices
 Imports Microsoft.CodeAnalysis.CodeGen
+Imports Microsoft.CodeAnalysis.Emit
 Imports Microsoft.CodeAnalysis.PooledObjects
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 
@@ -19,7 +20,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             body As BoundBlock,
             previousSubmissionFields As SynthesizedSubmissionFields,
             compilationState As TypeCompilationState,
-            instrumentForDynamicAnalysis As Boolean,
+            instrumentations As MethodInstrumentation,
             <Out> ByRef dynamicAnalysisSpans As ImmutableArray(Of SourceSpan),
             debugDocumentProvider As DebugDocumentProvider,
             diagnostics As BindingDiagnosticBag,
@@ -46,9 +47,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             dynamicAnalysisSpans = ImmutableArray(Of SourceSpan).Empty
 
             Try
-                Dim dynamicInstrumenter As CodeCoverageInstrumenter =
-                    If(instrumentForDynamicAnalysis,
-                        CodeCoverageInstrumenter.TryCreate(method, body, New SyntheticBoundNodeFactory(method, method, body.Syntax, compilationState, diagnostics), diagnostics, debugDocumentProvider, Instrumenter.NoOp),
+                Dim dynamicInstrumenter As DynamicAnalysisInjector =
+                    If(Not isBodySynthesized AndAlso instrumentations.Kinds.Contains(InstrumentationKind.TestCoverage),
+                        DynamicAnalysisInjector.TryCreate(method, body, New SyntheticBoundNodeFactory(method, method, body.Syntax, compilationState, diagnostics), diagnostics, debugDocumentProvider, Instrumenter.NoOp),
                         Nothing)
 
                 ' We don't want IL to differ based upon whether we write the PDB to a file/stream or not.

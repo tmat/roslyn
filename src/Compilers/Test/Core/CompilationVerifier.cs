@@ -345,6 +345,11 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
 
             if (!actualSuccess && verification.ILVerifyMessage != null && !IsEnglishLocal.Instance.ShouldSkip)
             {
+                if (!verification.IncludeTokensAndModuleIds)
+                {
+                    actualMessage = Regex.Replace(actualMessage, @"\[[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\]", "");
+                }
+
                 AssertEx.AssertEqualToleratingWhitespaceDifferences(verification.ILVerifyMessage, actualMessage);
             }
 

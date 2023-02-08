@@ -219,8 +219,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' </summary>
         ''' <param name="text">The input string</param>
         ''' <param name="offset">The starting offset in the string</param>
-        Public Shared Function ParseExpression(text As String, Optional offset As Integer = 0, Optional consumeFullText As Boolean = True) As ExpressionSyntax
-            Using p = New InternalSyntax.Parser(MakeSourceText(text, offset), VisualBasicParseOptions.Default)
+        Public Shared Function ParseExpression(text As String, offset As Integer, consumeFullText As Boolean) As ExpressionSyntax
+            Return ParseExpression(text, offset, options:=Nothing, consumeFullText)
+        End Function
+
+        ''' <summary>
+        ''' Parse an expression.
+        ''' </summary>
+        ''' <param name="text">The input string</param>
+        ''' <param name="offset">The starting offset in the string</param>
+        Public Shared Function ParseExpression(text As String, Optional offset As Integer = 0, Optional options As VisualBasicParseOptions = Nothing, Optional consumeFullText As Boolean = True) As ExpressionSyntax
+            Using p = New InternalSyntax.Parser(MakeSourceText(text, offset), If(options, VisualBasicParseOptions.Default))
                 p.GetNextToken()
                 Dim node = p.ParseExpression()
                 Return DirectCast(If(consumeFullText, p.ConsumeUnexpectedTokens(node), node).CreateRed(Nothing, 0), ExpressionSyntax)

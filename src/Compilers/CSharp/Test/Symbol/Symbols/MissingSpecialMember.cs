@@ -636,6 +636,7 @@ namespace System
                         // Not yet in the platform.
                         continue;
                     case WellKnownType.Microsoft_CodeAnalysis_Runtime_Instrumentation:
+                    case WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker:
                     case WellKnownType.System_Runtime_CompilerServices_ITuple:
                     case WellKnownType.System_Runtime_CompilerServices_NonNullTypesAttribute:
                     case WellKnownType.Microsoft_CodeAnalysis_EmbeddedAttribute:

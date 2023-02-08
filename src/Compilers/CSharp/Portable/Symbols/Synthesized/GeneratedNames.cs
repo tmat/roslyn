@@ -269,6 +269,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return GeneratedNameConstants.SynthesizedLocalNamePrefix + "InstrumentationPayload" + StringExtensions.GetNumeral(uniqueId);
         }
 
+        internal static string MakeSynthesizedLocalStoreTrackerLocalFieldName(int uniqueId)
+        {
+            return GeneratedNameConstants.SynthesizedLocalNamePrefix + "LocalStoreTracker" + StringExtensions.GetNumeral(uniqueId);
+        }
+
         internal static string MakeLambdaDisplayLocalName(int uniqueId)
         {
             Debug.Assert((char)GeneratedNameKind.DisplayClassLocalOrField == '8');
@@ -317,6 +322,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             Debug.Assert((char)GeneratedNameKind.IteratorCurrentThreadIdField == 'l');
             return "<>l__initialThreadId";
+        }
+
+        internal static string MakeStateMachineStateIdFieldName()
+        {
+            Debug.Assert((char)GeneratedNameKind.StateMachineStateIdField == 'I');
+            return "<>I";
         }
 
         internal static string ThisProxyFieldName()

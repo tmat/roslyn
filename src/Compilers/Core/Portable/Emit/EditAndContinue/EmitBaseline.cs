@@ -685,5 +685,18 @@ namespace Microsoft.CodeAnalysis.Emit
 
             return nextIndex;
         }
+
+        public bool TryGetAddedMethod(int rowId, [NotNullWhen(true)] out IMethodSymbol? symbol)
+        {
+            // method was added:
+            if (AddedOrChangedMethods.TryGetValue(rowId, out var addedOrChangedMethod))
+            {
+                symbol = (IMethodSymbol?)addedOrChangedMethod.Definition.GetInternalSymbol()?.GetISymbol();
+                return symbol is not null;
+            }
+
+            symbol = null;
+            return false;
+        }
     }
 }

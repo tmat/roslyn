@@ -562,6 +562,7 @@ End Namespace
                         ' Not a real type
                         Continue For
                     Case WellKnownType.Microsoft_CodeAnalysis_Runtime_Instrumentation,
+                         WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker,
                          WellKnownType.System_Runtime_CompilerServices_IsReadOnlyAttribute,
                          WellKnownType.System_Runtime_CompilerServices_IsByRefLikeAttribute,
                          WellKnownType.System_Runtime_CompilerServices_IsUnmanagedAttribute,
@@ -636,6 +637,7 @@ End Namespace
                         ' Not a real type
                         Continue For
                     Case WellKnownType.Microsoft_CodeAnalysis_Runtime_Instrumentation,
+                         WellKnownType.Microsoft_CodeAnalysis_Runtime_LocalStoreTracker,
                          WellKnownType.System_Runtime_CompilerServices_IsReadOnlyAttribute,
                          WellKnownType.System_Runtime_CompilerServices_IsByRefLikeAttribute,
                          WellKnownType.System_Runtime_CompilerServices_IsUnmanagedAttribute,
