@@ -985,6 +985,11 @@ Veillez à utiliser le spécificateur "tt" pour les langues où il est nécessai
         <target state="translated">Variable temporaire inline</target>
         <note />
       </trans-unit>
+      <trans-unit id="InstrumentationBlockedByUncommittedChanges">
+        <source>Instrumentation blocked by uncommitted changes in document '{0}'</source>
+        <target state="new">Instrumentation blocked by uncommitted changes in document '{0}'</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Insufficient_hexadecimal_digits">
         <source>Insufficient hexadecimal digits</source>
         <target state="translated">Chiffres hexadécimaux insuffisants</target>

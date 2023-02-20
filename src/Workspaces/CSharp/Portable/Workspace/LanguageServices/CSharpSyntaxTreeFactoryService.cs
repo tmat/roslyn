@@ -2,21 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Collections.Generic;
 using System.Composition;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
-using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Text;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -60,16 +54,13 @@ namespace Microsoft.CodeAnalysis.CSharp
             return csharpOptions1.WithPreprocessorSymbols(csharpOptions2.PreprocessorSymbolNames) == csharpOptions2;
         }
 
-        public override SyntaxTree CreateSyntaxTree(string filePath, ParseOptions options, Encoding encoding, SourceHashAlgorithm checksumAlgorithm, SyntaxNode root)
-        {
-            options ??= GetDefaultParseOptions();
-            return new ParsedSyntaxTree(lazyText: null, (CSharpSyntaxNode)root, (CSharpParseOptions)options, filePath, encoding, checksumAlgorithm);
-        }
+        public override SyntaxTree CreateSyntaxTree(string? filePath, ParseOptions? options, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, SyntaxNode root)
+            => new ParsedSyntaxTree(lazyText: null, (CSharpSyntaxNode)root, (CSharpParseOptions)(options ?? GetDefaultParseOptions()), filePath ?? "", encoding, checksumAlgorithm);
 
-        public override SyntaxTree ParseSyntaxTree(string filePath, ParseOptions options, SourceText text, CancellationToken cancellationToken)
-        {
-            options ??= GetDefaultParseOptions();
-            return SyntaxFactory.ParseSyntaxTree(text, options, filePath, cancellationToken: cancellationToken);
-        }
+        public override SyntaxTree ParseSyntaxTree(string? filePath, ParseOptions? options, SourceText text, CancellationToken cancellationToken)
+            => SyntaxFactory.ParseSyntaxTree(text, options ?? GetDefaultParseOptions(), filePath ?? "", cancellationToken: cancellationToken);
+
+        public override SyntaxNode ParseExpression(string text, int offset, ParseOptions? options, bool consumeFullText)
+            => SyntaxFactory.ParseExpression(text, offset, options ?? GetDefaultParseOptions(), consumeFullText);
     }
 }

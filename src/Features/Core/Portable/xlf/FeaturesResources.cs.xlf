@@ -985,6 +985,11 @@ Ujistěte se, že specifikátor tt použijete pro jazyky, pro které je nezbytn�
         <target state="translated">Dočasná vložená proměnná</target>
         <note />
       </trans-unit>
+      <trans-unit id="InstrumentationBlockedByUncommittedChanges">
+        <source>Instrumentation blocked by uncommitted changes in document '{0}'</source>
+        <target state="new">Instrumentation blocked by uncommitted changes in document '{0}'</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Insufficient_hexadecimal_digits">
         <source>Insufficient hexadecimal digits</source>
         <target state="translated">Nedostatek šestnáctkových číslic</target>

@@ -8,10 +8,12 @@ using System.Composition;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.VisualStudio.Debugger.Contracts.EditAndContinue;
 using Microsoft.VisualStudio.Debugger.Contracts.HotReload;
 using Roslyn.Utilities;
@@ -132,6 +134,8 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                     captureAllMatchingDocuments: false,
                     reportDiagnostics: true,
                     cancellationToken).ConfigureAwait(false);
+
+                _instrumentationApplied = false;
             }
             catch (Exception e) when (FatalError.ReportAndCatchUnlessCanceled(e, cancellationToken))
             {
@@ -320,6 +324,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             }
         }
 
+        // TODO: remove
+        private bool _instrumentationApplied;
+
         public async ValueTask<ManagedHotReloadUpdates> GetUpdatesAsync(CancellationToken cancellationToken)
         {
             if (_disabled)
@@ -330,6 +337,27 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             var workspace = WorkspaceProvider.Value.Workspace;
             var designTimeSolution = workspace.CurrentSolution;
             var solution = GetCurrentCompileTimeSolution(designTimeSolution);
+
+            // TODO: remove
+            if (!_instrumentationApplied)
+            {
+                var document = solution.Projects.Single().Documents.Single(d => d.Name.Contains("Program"));
+                var documentText = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+
+                var instrumentation = new MethodBodyInstrumentation
+                {
+                    SourceLocations = ImmutableArray.Create(new DocumentPosition(document.Id, documentText.IndexOf("/*!*/", 0, caseSensitive: false))),
+                    Kinds = ImmutableArray.Create(InstrumentationKind.LocalStateTracing)
+                };
+
+                var instrUpdates = await GetInstrumentationUpdatesAsync(instrumentation, cancellationToken).ConfigureAwait(false);
+
+                _instrumentationApplied = true;
+                _pendingUpdatedDesignTimeSolution = designTimeSolution;
+
+                return instrUpdates;
+            }
+
             var activeStatementSpanProvider = GetActiveStatementSpanProvider(solution);
             var (moduleUpdates, diagnosticData, rudeEdits, syntaxError) = await GetDebuggingSession().EmitSolutionUpdateAsync(solution, activeStatementSpanProvider, _diagnosticService, _diagnosticUpdateSource, cancellationToken).ConfigureAwait(false);
 
@@ -341,6 +369,27 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
             var diagnostics = await EmitSolutionUpdateResults.GetHotReloadDiagnosticsAsync(solution, diagnosticData, rudeEdits, syntaxError, moduleUpdates.Status, cancellationToken).ConfigureAwait(false);
             return new ManagedHotReloadUpdates(moduleUpdates.Updates.FromContract(), diagnostics.FromContract());
+        }
+
+        /// <summary>
+        /// Returns module updates for a specified <paramref name="instrumentation"/>, or null if the current solution has any unapplied source changes --
+        /// the instrumentation can only be performed after these changes are applied.
+        /// </summary>
+        public async ValueTask<ManagedHotReloadUpdates> GetInstrumentationUpdatesAsync(Contracts.ManagedHotReloadInstrumentation instrumentation, CancellationToken cancellationToken)
+        {
+            if (_disabled)
+            {
+                return new ManagedHotReloadUpdates(ImmutableArray<ManagedHotReloadUpdate>.Empty, ImmutableArray<ManagedHotReloadDiagnostic>.Empty);
+            }
+
+            var workspace = WorkspaceProvider.Value.Workspace;
+            var designTimeSolution = workspace.CurrentSolution;
+            var solution = GetCurrentCompileTimeSolution(designTimeSolution);
+            var (moduleUpdates, diagnosticData) = await GetDebuggingSession().EmitInstrumentationUpdateAsync(solution, instrumentation, cancellationToken).ConfigureAwait(false);
+
+            return new ManagedHotReloadUpdates(
+                moduleUpdates.Updates.FromContract(),
+                diagnosticData.SelectAsArray(data => data.ToHotReloadDiagnostic(moduleUpdates.Status).FromContract()));
         }
 
         public async ValueTask<SourceSpan?> GetCurrentActiveStatementPositionAsync(ManagedInstructionId instruction, CancellationToken cancellationToken)

@@ -29,9 +29,11 @@ namespace Microsoft.CodeAnalysis.Host
         bool OptionsDifferOnlyByPreprocessorDirectives(ParseOptions options1, ParseOptions options2);
 
         // new tree from root node
-        SyntaxTree CreateSyntaxTree(string? filePath, ParseOptions options, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, SyntaxNode root);
+        SyntaxTree CreateSyntaxTree(string? filePath, ParseOptions? options, Encoding? encoding, SourceHashAlgorithm checksumAlgorithm, SyntaxNode root);
 
         // new tree from text
-        SyntaxTree ParseSyntaxTree(string? filePath, ParseOptions options, SourceText text, CancellationToken cancellationToken);
+        SyntaxTree ParseSyntaxTree(string? filePath, ParseOptions? options, SourceText text, CancellationToken cancellationToken);
+
+        SyntaxNode ParseExpression(string text, int offset, ParseOptions? options, bool consumeFullText);
     }
 }

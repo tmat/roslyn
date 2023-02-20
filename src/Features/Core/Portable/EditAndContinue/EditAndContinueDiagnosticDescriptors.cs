@@ -176,6 +176,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             AddGeneralDiagnostic(EditAndContinueErrorCode.DocumentIsOutOfSyncWithDebuggee, nameof(FeaturesResources.DocumentIsOutOfSyncWithDebuggee), DiagnosticSeverity.Warning);
             AddGeneralDiagnostic(EditAndContinueErrorCode.UnableToReadSourceFileOrPdb, nameof(FeaturesResources.UnableToReadSourceFileOrPdb), DiagnosticSeverity.Warning);
             AddGeneralDiagnostic(EditAndContinueErrorCode.AddingTypeRuntimeCapabilityRequired, nameof(FeaturesResources.ChangesRequiredSynthesizedType));
+            AddGeneralDiagnostic(EditAndContinueErrorCode.InstrumentationBlockedByUncommittedChanges, nameof(FeaturesResources.InstrumentationBlockedByUncommittedChanges));
 
             s_descriptors = builder.ToImmutable();
         }
