@@ -19,6 +19,7 @@ using Microsoft.CodeAnalysis.EditAndContinue.UnitTests;
 using Microsoft.CodeAnalysis.Editor.UnitTests;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Diagnostics;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Remote;
 using Microsoft.CodeAnalysis.Remote.Testing;
@@ -222,10 +223,16 @@ namespace Roslyn.VisualStudio.Next.UnitTests.EditAndContinue
                 var syntaxError = Diagnostic.Create(diagnosticDescriptor1, Location.Create(syntaxTree, TextSpan.FromBounds(1, 2)), new[] { "doc", "syntax error" });
 
                 var updates = new ModuleUpdates(ModuleUpdateStatus.Ready, deltas);
-                var diagnostics = ImmutableArray.Create((project.Id, ImmutableArray.Create(documentDiagnostic, projectDiagnostic)));
+                var diagnostics = ImmutableArray.Create(new ProjectDiagnostics(project.Id, ImmutableArray.Create(documentDiagnostic, projectDiagnostic)));
                 var documentsWithRudeEdits = ImmutableArray.Create((documentId, ImmutableArray<RudeEditDiagnostic>.Empty));
 
-                return new(updates, diagnostics, documentsWithRudeEdits, syntaxError);
+                return new()
+                {
+                    ModuleUpdates = updates,
+                    Diagnostics = diagnostics,
+                    RudeEdits = documentsWithRudeEdits,
+                    SyntaxError = syntaxError
+                };
             };
 
             var (updates, _, _, syntaxErrorData) = await sessionProxy.EmitSolutionUpdateAsync(localWorkspace.CurrentSolution, activeStatementSpanProvider, mockDiagnosticService, diagnosticUpdateSource, CancellationToken.None);
@@ -280,6 +287,67 @@ namespace Roslyn.VisualStudio.Next.UnitTests.EditAndContinue
             mockEncService.DiscardSolutionUpdateImpl = () => called = true;
             await sessionProxy.DiscardSolutionUpdateAsync(CancellationToken.None);
             Assert.True(called);
+
+            // EmitInstrumentationUpdate
+
+            mockEncService.EmitInstrumentationUpdateImpl = (solution, instrumentation) =>
+            {
+                var project = solution.GetRequiredProject(projectId);
+                Assert.Equal("proj", project.Name);
+                AssertEx.Equal(activeSpans1, activeStatementSpanProvider(documentId, "test.cs", CancellationToken.None).AsTask().Result);
+
+                var deltas = ImmutableArray.Create(new ModuleUpdate(
+                    Module: moduleId1,
+                    ILDelta: ImmutableArray.Create<byte>(1, 2),
+                    MetadataDelta: ImmutableArray.Create<byte>(3, 4),
+                    PdbDelta: ImmutableArray.Create<byte>(5, 6),
+                    UpdatedMethods: ImmutableArray.Create(0x06000001),
+                    UpdatedTypes: ImmutableArray.Create(0x02000001),
+                    SequencePoints: ImmutableArray<SequencePointUpdates>.Empty,
+                    ActiveStatements: ImmutableArray<ManagedActiveStatementUpdate>.Empty,
+                    ExceptionRegions: ImmutableArray<ManagedExceptionRegionUpdate>.Empty,
+                    RequiredCapabilities: EditAndContinueCapabilities.Baseline));
+
+                var syntaxTree = solution.GetRequiredDocument(documentId).GetSyntaxTreeSynchronously(CancellationToken.None)!;
+
+                var documentDiagnostic = Diagnostic.Create(diagnosticDescriptor1, Location.Create(syntaxTree, TextSpan.FromBounds(1, 2)), new[] { "doc", "some error" });
+                var projectDiagnostic = Diagnostic.Create(diagnosticDescriptor1, Location.None, new[] { "proj", "some error" });
+
+                var updates = new ModuleUpdates(ModuleUpdateStatus.Ready, deltas);
+                var diagnostics = ImmutableArray.Create(new ProjectDiagnostics(project.Id, ImmutableArray.Create(documentDiagnostic, projectDiagnostic)));
+
+                return new()
+                {
+                    ModuleUpdates = updates,
+                    Diagnostics = diagnostics,
+                };
+            };
+
+            var instrumentation = new MethodBodyInstrumentation()
+            {
+                SourceLocations = ImmutableArray.Create(new DocumentPosition(documentId, 10)),
+                Kinds = ImmutableArray.Create(InstrumentationKind.LocalStateTracing)
+            };
+
+            (updates, var diagnostiData) = await sessionProxy.EmitInstrumentationUpdateAsync(localWorkspace.CurrentSolution, instrumentation, CancellationToken.None);
+
+            Assert.Equal(ModuleUpdateStatus.Ready, updates.Status);
+
+            // no reanalysis, diagnostics are not reported to diagnostic source:
+            VerifyReanalyzeInvocation(ImmutableArray<DocumentId>.Empty);
+            Assert.Equal(0, emitDiagnosticsClearedCount);
+            AssertEx.Empty(emitDiagnosticsUpdated);
+
+            delta = updates.Updates.Single();
+            Assert.Equal(moduleId1, delta.Module);
+            AssertEx.Equal(new byte[] { 1, 2 }, delta.ILDelta);
+            AssertEx.Equal(new byte[] { 3, 4 }, delta.MetadataDelta);
+            AssertEx.Equal(new byte[] { 5, 6 }, delta.PdbDelta);
+            AssertEx.Equal(new[] { 0x06000001 }, delta.UpdatedMethods);
+            AssertEx.Equal(new[] { 0x02000001 }, delta.UpdatedTypes);
+            AssertEx.Empty(delta.SequencePoints);
+            AssertEx.Empty(delta.ExceptionRegions);
+            AssertEx.Empty(delta.ActiveStatements);
 
             // GetCurrentActiveStatementPosition
 

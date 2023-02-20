@@ -13,5 +13,6 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         DocumentIsOutOfSyncWithDebuggee = 5,
         UnableToReadSourceFileOrPdb = 6,
         AddingTypeRuntimeCapabilityRequired = 7,
+        InstrumentationBlockedByUncommittedChanges = 8,
     }
 }

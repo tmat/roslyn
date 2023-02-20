@@ -77,5 +77,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             Return New ParsedSyntaxTree(lazyText:=Nothing, DirectCast(root, VisualBasicSyntaxNode), DirectCast(options, VisualBasicParseOptions), filePath, encoding, checksumAlgorithm)
         End Function
+
+        Public Overrides Function ParseExpression(text As String, offset As Integer, options As ParseOptions, consumeFullText As Boolean) As SyntaxNode
+            Return SyntaxFactory.ParseExpression(text, offset, DirectCast(options, VisualBasicParseOptions), consumeFullText)
+        End Function
     End Class
 End Namespace

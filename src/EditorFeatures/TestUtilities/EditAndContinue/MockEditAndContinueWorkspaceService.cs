@@ -27,6 +27,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
         public ActionOut<ImmutableArray<DocumentId>>? EndDebuggingSessionImpl;
         public Func<Solution, ActiveStatementSpanProvider, EmitSolutionUpdateResults>? EmitSolutionUpdateImpl;
+        public Func<Solution, ManagedHotReloadInstrumentation, EmitInstrumentationUpdateResults>? EmitInstrumentationUpdateImpl;
         public Func<Solution, ManagedInstructionId, bool?>? IsActiveStatementInExceptionRegionImpl;
         public Action<Document>? OnSourceFileUpdatedImpl;
         public ActionOut<ImmutableArray<DocumentId>>? CommitSolutionUpdateImpl;
@@ -57,6 +58,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
         public ValueTask<EmitSolutionUpdateResults> EmitSolutionUpdateAsync(DebuggingSessionId sessionId, Solution solution, ActiveStatementSpanProvider activeStatementSpanProvider, CancellationToken cancellationToken)
             => new((EmitSolutionUpdateImpl ?? throw new NotImplementedException()).Invoke(solution, activeStatementSpanProvider));
+
+        public ValueTask<EmitInstrumentationUpdateResults> EmitInstrumentationUpdateAsync(DebuggingSessionId sessionId, Solution solution, ManagedHotReloadInstrumentation instrumentation, CancellationToken cancellationToken)
+            => new((EmitInstrumentationUpdateImpl ?? throw new NotImplementedException()).Invoke(solution, instrumentation));
 
         public void EndDebuggingSession(DebuggingSessionId sessionId, out ImmutableArray<DocumentId> documentsToReanalyze)
         {

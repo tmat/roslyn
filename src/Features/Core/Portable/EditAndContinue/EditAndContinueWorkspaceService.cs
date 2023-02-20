@@ -211,6 +211,17 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             return debuggingSession.EmitSolutionUpdateAsync(solution, activeStatementSpanProvider, cancellationToken);
         }
 
+        public ValueTask<EmitInstrumentationUpdateResults> EmitInstrumentationUpdateAsync(DebuggingSessionId sessionId, Solution solution, ManagedHotReloadInstrumentation instrumentation, CancellationToken cancellationToken)
+        {
+            var debuggingSession = TryGetDebuggingSession(sessionId);
+            if (debuggingSession == null)
+            {
+                return ValueTaskFactory.FromResult(EmitInstrumentationUpdateResults.Empty);
+            }
+
+            return debuggingSession.EmitInstrumentationUpdateAsync(solution, instrumentation, cancellationToken);
+        }
+
         public void CommitSolutionUpdate(DebuggingSessionId sessionId, out ImmutableArray<DocumentId> documentsToReanalyze)
         {
             var debuggingSession = TryGetDebuggingSession(sessionId);

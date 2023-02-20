@@ -15,6 +15,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
     {
         ValueTask<ImmutableArray<Diagnostic>> GetDocumentDiagnosticsAsync(Document document, ActiveStatementSpanProvider activeStatementSpanProvider, CancellationToken cancellationToken);
         ValueTask<EmitSolutionUpdateResults> EmitSolutionUpdateAsync(DebuggingSessionId sessionId, Solution solution, ActiveStatementSpanProvider activeStatementSpanProvider, CancellationToken cancellationToken);
+        ValueTask<EmitInstrumentationUpdateResults> EmitInstrumentationUpdateAsync(DebuggingSessionId sessionId, Solution solution, ManagedHotReloadInstrumentation instrumentation, CancellationToken cancellationToken);
 
         void CommitSolutionUpdate(DebuggingSessionId sessionId, out ImmutableArray<DocumentId> documentsToReanalyze);
         void DiscardSolutionUpdate(DebuggingSessionId sessionId);

@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.EditAndContinue.Contracts;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.NavigateTo;
 using Microsoft.CodeAnalysis.Remote;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
@@ -116,7 +117,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
                 {
                     var results = await GetLocalService().EmitSolutionUpdateAsync(_sessionId, solution, activeStatementSpanProvider, cancellationToken).ConfigureAwait(false);
                     moduleUpdates = results.ModuleUpdates;
-                    diagnosticData = results.GetDiagnosticData(solution);
+                    diagnosticData = results.Diagnostics.ToDiagnosticData(solution);
                     rudeEdits = results.RudeEdits;
                     syntaxError = results.GetSyntaxErrorData(solution);
                 }
@@ -146,14 +147,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             }
             catch (Exception e) when (FatalError.ReportAndCatchUnlessCanceled(e, cancellationToken))
             {
-                var descriptor = EditAndContinueDiagnosticDescriptors.GetDescriptor(RudeEditKind.InternalError);
-
-                var diagnostic = Diagnostic.Create(
-                    descriptor,
-                    Location.None,
-                    string.Format(descriptor.MessageFormat.ToString(), "", e.Message));
-
-                diagnosticData = ImmutableArray.Create(DiagnosticData.Create(solution, diagnostic, project: null));
+                diagnosticData = GetInternalErrorDiagnosticData(solution, e);
                 rudeEdits = ImmutableArray<(DocumentId DocumentId, ImmutableArray<RudeEditDiagnostic> Diagnostics)>.Empty;
                 moduleUpdates = new ModuleUpdates(ModuleUpdateStatus.RestartRequired, ImmutableArray<ModuleUpdate>.Empty);
                 syntaxError = null;
@@ -169,6 +163,61 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
             diagnosticUpdateSource.ReportDiagnostics(_workspace, solution, diagnosticData, rudeEdits);
 
             return (moduleUpdates, diagnosticData, rudeEdits, syntaxError);
+        }
+
+        public async ValueTask<(ModuleUpdates updates, ImmutableArray<DiagnosticData> diagnostics)> EmitInstrumentationUpdateAsync(Solution solution, ManagedHotReloadInstrumentation instrumentation, CancellationToken cancellationToken)
+        {
+            ModuleUpdates moduleUpdates;
+            ImmutableArray<DiagnosticData> diagnosticData;
+
+            try
+            {
+                var client = await RemoteHostClient.TryGetClientAsync(_workspace, cancellationToken).ConfigureAwait(false);
+                if (client == null)
+                {
+                    var results = await GetLocalService().EmitInstrumentationUpdateAsync(_sessionId, solution, instrumentation, cancellationToken).ConfigureAwait(false);
+
+                    moduleUpdates = results.ModuleUpdates;
+                    diagnosticData = results.Diagnostics.ToDiagnosticData(solution);
+                }
+                else
+                {
+                    var result = await client.TryInvokeAsync<IRemoteEditAndContinueService, EmitInstrumentationUpdateResults.Data>(
+                        solution,
+                        (service, solutionInfo, cancellationToken) => service.EmitInstrumentationUpdateAsync(solutionInfo, _sessionId, instrumentation, cancellationToken),
+                        cancellationToken).ConfigureAwait(false);
+
+                    if (result.HasValue)
+                    {
+                        moduleUpdates = result.Value.ModuleUpdates;
+                        diagnosticData = result.Value.Diagnostics;
+                    }
+                    else
+                    {
+                        moduleUpdates = new ModuleUpdates(ModuleUpdateStatus.Blocked, ImmutableArray<ModuleUpdate>.Empty);
+                        diagnosticData = ImmutableArray<DiagnosticData>.Empty;
+                    }
+                }
+            }
+            catch (Exception e) when (FatalError.ReportAndCatchUnlessCanceled(e, cancellationToken))
+            {
+                diagnosticData = GetInternalErrorDiagnosticData(solution, e);
+                moduleUpdates = new ModuleUpdates(ModuleUpdateStatus.Blocked, ImmutableArray<ModuleUpdate>.Empty);
+            }
+
+            return (moduleUpdates, diagnosticData);
+        }
+
+        private static ImmutableArray<DiagnosticData> GetInternalErrorDiagnosticData(Solution solution, Exception e)
+        {
+            var descriptor = EditAndContinueDiagnosticDescriptors.GetDescriptor(RudeEditKind.InternalError);
+
+            var diagnostic = Diagnostic.Create(
+                descriptor,
+                Location.None,
+                string.Format(descriptor.MessageFormat.ToString(), "", e.Message));
+
+            return ImmutableArray.Create(DiagnosticData.Create(solution, diagnostic, project: null));
         }
 
         public async ValueTask CommitSolutionUpdateAsync(IDiagnosticAnalyzerService diagnosticService, CancellationToken cancellationToken)
