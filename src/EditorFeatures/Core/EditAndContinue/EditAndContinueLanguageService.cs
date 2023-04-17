@@ -324,7 +324,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
         {
             if (_disabled)
             {
-                return new ManagedHotReloadUpdates(ImmutableArray<VisualStudio.Debugger.Contracts.HotReload.ManagedHotReloadUpdate>.Empty, ImmutableArray<ManagedHotReloadDiagnostic>.Empty);
+                return new ManagedHotReloadUpdates(ImmutableArray<ManagedHotReloadUpdate>.Empty, ImmutableArray<ManagedHotReloadDiagnostic>.Empty);
             }
 
             var workspace = WorkspaceProvider.Value.Workspace;
