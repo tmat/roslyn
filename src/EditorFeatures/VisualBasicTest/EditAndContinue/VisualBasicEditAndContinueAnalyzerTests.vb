@@ -6,9 +6,9 @@ Imports System.Collections.Immutable
 Imports System.IO
 Imports System.Text
 Imports System.Threading
+Imports Microsoft.CodeAnalysis.Debugging.Contracts.HotReload
 Imports Microsoft.CodeAnalysis.Differencing
 Imports Microsoft.CodeAnalysis.EditAndContinue
-Imports Microsoft.CodeAnalysis.EditAndContinue.Contracts
 Imports Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 Imports Microsoft.CodeAnalysis.Editor.UnitTests
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces

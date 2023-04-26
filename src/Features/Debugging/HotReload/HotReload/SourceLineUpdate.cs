@@ -5,7 +5,7 @@
 using System.Runtime.Serialization;
 using System;
 
-namespace Microsoft.CodeAnalysis.EditAndContinue.Contracts
+namespace Microsoft.CodeAnalysis.Debugging.Contracts.HotReload
 {
     /// <summary>
     /// Maps source lines affected by an update.

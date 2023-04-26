@@ -14,7 +14,7 @@ using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Options;
 using Roslyn.Utilities;
-using Microsoft.VisualStudio.Debugger.Contracts;
+using Microsoft.CodeAnalysis.Debugging.Contracts.HotReload;
 using Microsoft.CodeAnalysis.Simplification;
 
 namespace Microsoft.CodeAnalysis.EditAndContinue

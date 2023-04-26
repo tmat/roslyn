@@ -7,7 +7,7 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.CodeAnalysis.EditAndContinue.Contracts
+namespace Microsoft.CodeAnalysis.Debugging.Contracts.HotReload
 {
     /// <summary>
     /// Active instruction identifier.

@@ -6,11 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Debugging.Contracts.HotReload;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
-using Microsoft.CodeAnalysis.EditAndContinue.Contracts;
-using Microsoft.CodeAnalysis.CSharp;
-using System.Text;
 
 namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 {

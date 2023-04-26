@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Microsoft.CodeAnalysis.EditAndContinue.Contracts
+namespace Microsoft.CodeAnalysis.Debugging.Contracts.HotReload
 {
     /// <summary>
     /// Flags regarding active statements information.

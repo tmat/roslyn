@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.CodeAnalysis.EditAndContinue.Contracts
+namespace Microsoft.CodeAnalysis.Debugging.Contracts.HotReload
 {
     /// <summary>
     /// Service for providing helper functionality to a language service regarding hot reload and Edit and Continue operations.

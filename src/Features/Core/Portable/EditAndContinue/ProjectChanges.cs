@@ -5,7 +5,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis.Emit;
-using Microsoft.CodeAnalysis.EditAndContinue.Contracts;
+using Microsoft.CodeAnalysis.Debugging.Contracts.HotReload;
 
 namespace Microsoft.CodeAnalysis.EditAndContinue
 {
