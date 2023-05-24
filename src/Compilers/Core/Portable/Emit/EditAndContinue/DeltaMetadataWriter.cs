@@ -781,15 +781,15 @@ namespace Microsoft.CodeAnalysis.Emit
 
         protected override void ReportReferencesToAddedSymbols()
         {
-            foreach (var typeRef in GetTypeRefs())
-            {
-                ReportReferencesToAddedSymbol(typeRef.GetInternalSymbol());
-            }
+            //foreach (var typeRef in GetTypeRefs())
+            //{
+            //    ReportReferencesToAddedSymbol(typeRef.GetInternalSymbol());
+            //}
 
-            foreach (var memberRef in GetMemberRefs())
-            {
-                ReportReferencesToAddedSymbol(memberRef.GetInternalSymbol());
-            }
+            //foreach (var memberRef in GetMemberRefs())
+            //{
+            //    ReportReferencesToAddedSymbol(memberRef.GetInternalSymbol());
+            //}
         }
 
         private void ReportReferencesToAddedSymbol(ISymbolInternal? symbol)

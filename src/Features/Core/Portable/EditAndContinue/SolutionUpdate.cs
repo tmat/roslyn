@@ -53,30 +53,33 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 
             foreach (var moduleUpdate in ModuleUpdates.Updates)
             {
-                log.Write("Module update: capabilities=[{0}], types=[{1}], methods=[{2}]",
+                log.Write("Module update {0}: capabilities=[{1}], types=[{2}], methods=[{3}]",
+                    moduleUpdate.ModuleName,
                     moduleUpdate.RequiredCapabilities,
                     moduleUpdate.UpdatedTypes,
                     moduleUpdate.UpdatedMethods);
             }
 
-            if (Diagnostics.Length > 0)
+            foreach (var projectDiagnostics in Diagnostics)
             {
-                var firstProjectDiagnostic = Diagnostics[0];
-
-                log.Write("Solution update diagnostics: #{0} [{1}: {2}, ...]",
-                    Diagnostics.Length,
-                    firstProjectDiagnostic.ProjectId,
-                    firstProjectDiagnostic.Diagnostics[0]);
+                for (var i = 0; i < projectDiagnostics.Diagnostics.Length; i++)
+                {
+                    log.Write("Project {0} update diagnostic #{1}: {2}",
+                        projectDiagnostics.ProjectId,
+                        i,
+                        projectDiagnostics.Diagnostics[i]);
+                }
             }
 
-            if (DocumentsWithRudeEdits.Length > 0)
+            foreach (var documentWithRudeEdit in DocumentsWithRudeEdits)
             {
-                var firstDocumentWithRudeEdits = DocumentsWithRudeEdits[0];
-
-                log.Write("Solution update documents with rude edits: #{0} [{1}: {2}, ...]",
-                    DocumentsWithRudeEdits.Length,
-                    firstDocumentWithRudeEdits.DocumentId,
-                    firstDocumentWithRudeEdits.Diagnostics[0].Kind);
+                for (var i = 0; i < documentWithRudeEdit.Diagnostics.Length; i++)
+                {
+                    log.Write("Updated document {0} with rude edit #{1}: {2}",
+                        documentWithRudeEdit.DocumentId,
+                        i,
+                        documentWithRudeEdit.Diagnostics[i].Kind);
+                }
             }
         }
     }
