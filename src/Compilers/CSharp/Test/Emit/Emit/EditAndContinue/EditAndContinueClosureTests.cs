@@ -4660,5 +4660,111 @@ class C
                 Handle(2, TableIndex.StandAloneSig),
                 Handle(2, TableIndex.NestedClass));
         }
+
+        [Fact]
+        public void LambdaWithRudeEdit()
+        {
+            using var _ = new EditAndContinueTest()
+                .AddBaseline(
+                    source: """
+                    using System;
+                    class C
+                    {
+                        public void F()
+                        <N:0>{
+                            int <N:1>x = 1</N:1>;
+                            _ = new Action(<N:2>() => Console.WriteLine(0)</N:2>);
+                            _ = new Action(<N:3>() => Console.WriteLine(1)</N:3>);
+                        }</N:0>
+                    }
+                    """,
+                    validator: g =>
+                    {
+                    })
+
+                .AddGeneration(
+                    source: """
+                    using System;
+                    class C
+                    {
+                        public void F()
+                        <N:0>{
+                            int <N:1>x = 1</N:1>;
+                            _ = new Action(<N:2>() => Console.WriteLine(x)</N:2>);
+                            _ = new Action(<N:3>() => Console.WriteLine(2)</N:3>);
+                        }</N:0>
+                    }
+                    """,
+                    edits: source =>
+                    [
+                        Edit(SemanticEditKind.Update, c => c.GetMember("C.F"), preserveLocalVariables: true),
+                    ],
+                    validator: g =>
+                    {
+                        // Static lambda is reused.
+                        // A new display class and method is generated for lambda that captures x.
+                        g.VerifySynthesizedMembers(
+                            "C: {<>c, <>c__DisplayClass0_0#1}",
+                            "C.<>c: {<>9__0_1, <F>b__0_1}",
+                            "C.<>c__DisplayClass0_0#1: {x, <F>b__0#1}");
+
+                        g.VerifyMethodDefNames("F", "<F>b__0_0", "<F>b__0_1", ".ctor", "<F>b__0#1");
+
+                        g.VerifyIL(
+                        """
+                        {
+                          // Code size       44 (0x2c)
+                          .maxstack  2
+                          IL_0000:  newobj     0x06000007
+                          IL_0005:  stloc.1
+                          IL_0006:  nop
+                          IL_0007:  ldloc.1
+                          IL_0008:  ldc.i4.1
+                          IL_0009:  stfld      0x04000004
+                          IL_000e:  nop
+                          IL_000f:  ldsfld     0x04000003
+                          IL_0014:  brtrue.s   IL_002b
+                          IL_0016:  ldsfld     0x04000001
+                          IL_001b:  ldftn      0x06000006
+                          IL_0021:  newobj     0x0A000009
+                          IL_0026:  stsfld     0x04000003
+                          IL_002b:  ret
+                        }
+                        {
+                          // Code size       11 (0xb)
+                          .maxstack  8
+                          IL_0000:  ldstr      0x70000005
+                          IL_0005:  newobj     0x0A00000A
+                          IL_000a:  throw
+                        }
+                        {
+                          // Code size        8 (0x8)
+                          .maxstack  8
+                          IL_0000:  ldc.i4.2
+                          IL_0001:  call       0x0A00000B
+                          IL_0006:  nop
+                          IL_0007:  ret
+                        }
+                        {
+                          // Code size        8 (0x8)
+                          .maxstack  8
+                          IL_0000:  ldarg.0
+                          IL_0001:  call       0x0A00000C
+                          IL_0006:  nop
+                          IL_0007:  ret
+                        }
+                        {
+                          // Code size       13 (0xd)
+                          .maxstack  8
+                          IL_0000:  ldarg.0
+                          IL_0001:  ldfld      0x04000004
+                          IL_0006:  call       0x0A00000B
+                          IL_000b:  nop
+                          IL_000c:  ret
+                        }
+                        """);
+                    })
+                .Verify();
+        }
     }
 }

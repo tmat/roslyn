@@ -520,19 +520,20 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return _slotAllocatorOpt?.MethodId ?? new DebugId(_topLevelMethodOrdinal, _compilationState.ModuleBuilderOpt.CurrentGenerationOrdinal);
             }
 
-            internal DebugId GetClosureId(SyntaxNode syntax, ArrayBuilder<ClosureDebugInfo> closureDebugInfo)
+            internal DebugId GetClosureId(SyntaxNode syntax, ArrayBuilder<ClosureDebugInfo> closureDebugInfo, ref bool matchesPreviousGeneration)
             {
                 Debug.Assert(syntax != null);
 
                 DebugId closureId;
                 DebugId previousClosureId;
-                if (_slotAllocatorOpt != null && _slotAllocatorOpt.TryGetPreviousClosure(syntax, out previousClosureId))
+                if (matchesPreviousGeneration && _slotAllocatorOpt != null && _slotAllocatorOpt.TryGetPreviousClosure(syntax, out previousClosureId))
                 {
                     closureId = previousClosureId;
                 }
                 else
                 {
                     closureId = new DebugId(closureDebugInfo.Count, _compilationState.ModuleBuilderOpt.CurrentGenerationOrdinal);
+                    matchesPreviousGeneration = false;
                 }
 
                 int syntaxOffset = _topLevelMethod.CalculateLocalSyntaxOffset(LambdaUtilities.GetDeclaratorPosition(syntax), syntax.SyntaxTree);

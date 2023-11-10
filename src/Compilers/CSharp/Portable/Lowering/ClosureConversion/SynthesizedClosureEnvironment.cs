@@ -38,20 +38,25 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override TypeKind TypeKind { get; }
         internal override MethodSymbol Constructor { get; }
 
+        public readonly bool MatchesPreviousGeneration;
+
         internal SynthesizedClosureEnvironment(
             MethodSymbol topLevelMethod,
             MethodSymbol containingMethod,
             bool isStruct,
             SyntaxNode scopeSyntaxOpt,
             DebugId methodId,
-            DebugId closureId)
+            DebugId closureId,
+            bool matchesPreviousGeneration)
             : base(MakeName(scopeSyntaxOpt, methodId, closureId), containingMethod)
         {
             TypeKind = isStruct ? TypeKind.Struct : TypeKind.Class;
             _topLevelMethod = topLevelMethod;
             OriginalContainingMethodOpt = containingMethod;
             Constructor = isStruct ? null : new SynthesizedClosureEnvironmentConstructor(this);
-            this.ClosureOrdinal = closureId.Ordinal;
+
+            ClosureOrdinal = closureId.Ordinal;
+            MatchesPreviousGeneration = matchesPreviousGeneration;
 
             // static lambdas technically have the class scope so the scope syntax is null 
             if (scopeSyntaxOpt == null)

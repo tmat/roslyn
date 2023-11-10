@@ -357,13 +357,18 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             SynthesizedClosureEnvironment MakeFrame(Analysis.Scope scope, Analysis.ClosureEnvironment env)
             {
+                // Frames are created and assigned top-down, so the parent scope's environment has to be assigned at this point.
+                Debug.Assert(scope.Parent is null || scope.Parent.DeclaredEnvironment.SynthesizedEnvironment is not null);
+
                 var scopeBoundNode = scope.BoundNode;
 
                 var syntax = scopeBoundNode.Syntax;
                 Debug.Assert(syntax != null);
 
+                bool matchesPreviousGeneration = scope.Parent?.DeclaredEnvironment.SynthesizedEnvironment.MatchesPreviousGeneration != false;
+
                 DebugId methodId = _analysis.GetTopLevelMethodId();
-                DebugId closureId = _analysis.GetClosureId(syntax, closureDebugInfo);
+                DebugId closureId = _analysis.GetClosureId(syntax, closureDebugInfo, ref matchesPreviousGeneration);
 
                 var containingMethod = scope.ContainingFunctionOpt?.OriginalMethodSymbol ?? _topLevelMethod;
                 if ((object)_substitutedSourceMethod != null && containingMethod == _topLevelMethod)
@@ -377,7 +382,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                     env.IsStruct,
                     syntax,
                     methodId,
-                    closureId);
+                    closureId,
+                    matchesPreviousGeneration);
 
                 foreach (var captured in env.CapturedVariables)
                 {
@@ -453,7 +459,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 // Move the body of the lambda to a freshly generated synthetic method on its frame.
                 topLevelMethodId = _analysis.GetTopLevelMethodId();
-                lambdaId = GetLambdaId(syntax, closureKind, closureOrdinal);
+                lambdaId = GetLambdaId(syntax, closureKind, closureOrdinal, containerAsFrame?.MatchesPreviousGeneration != false);
 
                 var synthesizedMethod = new SynthesizedClosureMethod(
                     translatedLambdaContainer,
@@ -515,7 +521,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                         methodId = _analysis.GetTopLevelMethodId();
                     }
 
-                    DebugId closureId = default(DebugId);
                     // using _topLevelMethod as containing member because the static frame does not have generic parameters, except for the top level method's
                     var containingMethod = isNonGeneric ? null : (_substitutedSourceMethod ?? _topLevelMethod);
                     _lazyStaticLambdaFrame = new SynthesizedClosureEnvironment(
@@ -524,7 +529,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                         isStruct: false,
                         scopeSyntaxOpt: null,
                         methodId: methodId,
-                        closureId: closureId);
+                        closureId: default,
+                        matchesPreviousGeneration: true);
 
                     // non-generic static lambdas can share the frame
                     if (isNonGeneric)
@@ -1421,7 +1427,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             return new BoundNoOpStatement(node.Syntax, NoOpStatementFlavor.Default);
         }
 
-        private DebugId GetLambdaId(SyntaxNode syntax, ClosureKind closureKind, int closureOrdinal)
+        private DebugId GetLambdaId(SyntaxNode syntax, ClosureKind closureKind, int closureOrdinal, bool closureMatchesPreviousGeneration)
         {
             Debug.Assert(syntax != null);
 
@@ -1467,7 +1473,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             DebugId lambdaId;
             DebugId previousLambdaId;
-            if (slotAllocatorOpt != null && slotAllocatorOpt.TryGetPreviousLambda(lambdaOrLambdaBodySyntax, isLambdaBody, out previousLambdaId))
+            if (closureMatchesPreviousGeneration && slotAllocatorOpt != null && slotAllocatorOpt.TryGetPreviousLambda(lambdaOrLambdaBodySyntax, isLambdaBody, out previousLambdaId))
             {
                 lambdaId = previousLambdaId;
             }
