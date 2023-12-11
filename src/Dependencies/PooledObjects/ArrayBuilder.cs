@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Microsoft.CodeAnalysis.Collections;
+
 
 #if COMPILERCORE
 using Roslyn.Utilities;
@@ -475,10 +477,15 @@ namespace Microsoft.CodeAnalysis.PooledObjects
 
         internal Dictionary<K, ImmutableArray<T>> ToDictionary<K>(Func<T, K> keySelector, IEqualityComparer<K>? comparer = null)
             where K : notnull
+            => ToDictionary(keySelector, (capacity, comparer) => new Dictionary<K, ImmutableArray<T>>(capacity, comparer), comparer);
+
+        internal TDictionary ToDictionary<K, TDictionary>(Func<T, K> keySelector, Func<int, IEqualityComparer<K>?, TDictionary> dictionaryFactory, IEqualityComparer<K>? comparer = null)
+            where K : notnull
+            where TDictionary : IDictionary<K, ImmutableArray<T>>
         {
             if (this.Count == 1)
             {
-                var dictionary1 = new Dictionary<K, ImmutableArray<T>>(1, comparer);
+                var dictionary1 = dictionaryFactory(1, comparer);
                 var value = this[0];
                 dictionary1.Add(keySelector(value), ImmutableArray.Create(value));
                 return dictionary1;
@@ -486,7 +493,7 @@ namespace Microsoft.CodeAnalysis.PooledObjects
 
             if (this.Count == 0)
             {
-                return new Dictionary<K, ImmutableArray<T>>(comparer);
+                return dictionaryFactory(0, comparer);
             }
 
             // bucketize
@@ -505,7 +512,7 @@ namespace Microsoft.CodeAnalysis.PooledObjects
                 bucket.Add(item);
             }
 
-            var dictionary = new Dictionary<K, ImmutableArray<T>>(accumulator.Count, comparer);
+            var dictionary = dictionaryFactory(accumulator.Count, comparer);
 
             // freeze
             foreach (var pair in accumulator)

@@ -741,19 +741,7 @@ namespace Microsoft.CodeAnalysis
             var namespaceHandles = new Dictionary<NamespaceDefinitionHandle, ArrayBuilder<TypeDefinitionHandle>>(NamespaceHandleEqualityComparer.Singleton);
             foreach (TypeDefToNamespace pair in GetTypeDefsOrThrow(topLevelOnly: true))
             {
-                NamespaceDefinitionHandle nsHandle = pair.NamespaceHandle;
-                TypeDefinitionHandle typeDef = pair.TypeDef;
-
-                ArrayBuilder<TypeDefinitionHandle> builder;
-
-                if (namespaceHandles.TryGetValue(nsHandle, out builder))
-                {
-                    builder.Add(typeDef);
-                }
-                else
-                {
-                    namespaceHandles.Add(nsHandle, new ArrayBuilder<TypeDefinitionHandle> { typeDef });
-                }
+                namespaceHandles.Add(pair.NamespaceHandle, pair.TypeDef, usePool: false);
             }
 
             foreach (var kvp in namespaceHandles)
