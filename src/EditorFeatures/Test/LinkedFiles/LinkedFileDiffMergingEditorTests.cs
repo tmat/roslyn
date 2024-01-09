@@ -30,7 +30,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.LinkedFiles
         protected internal override string GetLanguage()
             => LanguageNames.CSharp;
 
-        protected override CodeRefactoringProvider CreateCodeRefactoringProvider(EditorTestWorkspace workspace, TestParameters parameters)
+        protected override CodeRefactoringProvider CreateCodeRefactoringProvider(TestParameters parameters)
             => new TestCodeRefactoringProvider();
 
         [WpfFact]

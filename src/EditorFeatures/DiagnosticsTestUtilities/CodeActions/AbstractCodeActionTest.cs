@@ -30,7 +30,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions
     public abstract partial class AbstractCodeActionTest : AbstractCodeActionOrUserDiagnosticTest
     {
         protected abstract CodeRefactoringProvider CreateCodeRefactoringProvider(
-            EditorTestWorkspace workspace, TestParameters parameters);
+            TestParameters parameters);
 
         protected override async Task<(ImmutableArray<CodeAction>, CodeAction actionToInvoke)> GetCodeActionsAsync(
             EditorTestWorkspace workspace, TestParameters parameters = null)
@@ -103,7 +103,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.CodeActions
             EditorTestWorkspace workspace,
             TestParameters parameters)
         {
-            var provider = CreateCodeRefactoringProvider(workspace, parameters);
+            var provider = CreateCodeRefactoringProvider(parameters);
 
             var actions = ArrayBuilder<(CodeAction, TextSpan?)>.GetInstance();
 

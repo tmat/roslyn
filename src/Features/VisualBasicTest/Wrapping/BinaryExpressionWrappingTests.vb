@@ -13,7 +13,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Wrapping
     Public Class BinaryExpressionWrappingTests
         Inherits AbstractWrappingTests
 
-        Protected Overrides Function CreateCodeRefactoringProvider(workspace As EditorTestWorkspace, parameters As TestParameters) As CodeRefactoringProvider
+        Protected Overrides Function CreateCodeRefactoringProvider(parameters As TestParameters) As CodeRefactoringProvider
             Return New VisualBasicWrappingCodeRefactoringProvider()
         End Function
 

@@ -12,7 +12,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.SplitOrMergeIfStat
     Public NotInheritable Class SplitIntoConsecutiveIfStatementsTests
         Inherits AbstractVisualBasicCodeActionTest
 
-        Protected Overrides Function CreateCodeRefactoringProvider(workspace As EditorTestWorkspace, parameters As TestParameters) As CodeRefactoringProvider
+        Protected Overrides Function CreateCodeRefactoringProvider(parameters As TestParameters) As CodeRefactoringProvider
             Return New VisualBasicSplitIntoConsecutiveIfStatementsCodeRefactoringProvider()
         End Function
 
