@@ -5,6 +5,7 @@
 using System.ComponentModel.Design;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.LanguageServices;
+using Microsoft.VisualStudio.LanguageServices.CSharp.Interactive;
 using InteractiveShell = Microsoft.VisualStudio.InteractiveWindow.Shell;
 
 namespace Roslyn.VisualStudio.IntegrationTests
@@ -52,14 +53,6 @@ namespace Roslyn.VisualStudio.IntegrationTests
 
             /// <seealso cref="InteractiveShell.CommandIds.ExecuteInInteractiveWindow"/>
             public static readonly CommandID ExecuteInInteractive = new(InteractiveShell::Guids.InteractiveCommandSetId, 268);
-        }
-
-        public static class ProjectandSolutionContextMenus
-        {
-            public static class Project
-            {
-                public static readonly CommandID ResetCSharpInteractiveFromProject = new(ID.InteractiveCommands.CSharpInteractiveCommandSetId, ID.InteractiveCommands.ResetInteractiveFromProject);
-            }
         }
 
         public static class Refactor

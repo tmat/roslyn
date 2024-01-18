@@ -14,6 +14,7 @@
     <CreateVsixContainer>false</CreateVsixContainer>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>
     <DeployExtension>false</DeployExtension>
+    <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
   </PropertyGroup>
   <ItemGroup Label="PkgDef">
     <PkgDefInstalledProduct Include="{13c3bbb4-f18f-4111-9f54-a0fb010d9194}" Name="Microsoft Visual C#" DisplayName="#116" ProductDetails="#117" />
@@ -37,6 +38,8 @@
   <ItemGroup>
     <Reference Include="System.Design" />
     <Reference Include="System.Windows.Forms" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.JsonGenerators.Sdk" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Microsoft.VisualStudio.ProjectSystem.CSharp" WorkItem="https://github.com/dotnet/roslyn/issues/35070" />
@@ -52,10 +55,5 @@
       <ManifestResourceName>VSPackage</ManifestResourceName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <Content Include="Interactive\Resources\ScriptFile.ico" />
-    <VSCTCompile Include="Interactive\Commands.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-      <SubType>Designer</SubType>
-    </VSCTCompile>
   </ItemGroup>
 </Project>
