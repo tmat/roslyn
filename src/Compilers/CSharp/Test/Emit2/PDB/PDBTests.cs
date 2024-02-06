@@ -2083,46 +2083,41 @@ public class C
     }
 }
 ";
-            var c = CreateCompilationWithMscorlib40AndSystemCore(source, options: TestOptions.ReleaseExe);
+            var c = CompileAndVerify(source, options: TestOptions.ReleaseExe);
 
-            // Sequence points:
-            // 1) Open brace at start of method
-            // 2) 'foreach'
-            // 3) '"hello"'
-            // 4) Hidden initial jump (of for loop)
-            // 5) 'var c'
-            // 6) Open brace of loop
-            // 7) Loop body
-            // 8) Close brace of loop
-            // 9) Hidden index increment.
-            // 10) 'in'
-            // 11) Close brace at end of method
-
-            c.VerifyPdb(@"
-<symbols>
-  <files>
-    <file id=""1"" name="""" language=""C#"" />
-  </files>
-  <entryPoint declaringType=""C"" methodName=""Main"" />
-  <methods>
-    <method containingType=""C"" name=""Main"">
-      <customDebugInfo>
-        <using>
-          <namespace usingCount=""0"" />
-        </using>
-      </customDebugInfo>
-      <sequencePoints>
-        <entry offset=""0x0"" startLine=""6"" startColumn=""27"" endLine=""6"" endColumn=""34"" document=""1"" />
-        <entry offset=""0x8"" hidden=""true"" document=""1"" />
-        <entry offset=""0xa"" startLine=""6"" startColumn=""18"" endLine=""6"" endColumn=""23"" document=""1"" />
-        <entry offset=""0x11"" startLine=""8"" startColumn=""13"" endLine=""8"" endColumn=""41"" document=""1"" />
-        <entry offset=""0x16"" hidden=""true"" document=""1"" />
-        <entry offset=""0x1a"" startLine=""6"" startColumn=""24"" endLine=""6"" endColumn=""26"" document=""1"" />
-        <entry offset=""0x23"" startLine=""10"" startColumn=""5"" endLine=""10"" endColumn=""6"" document=""1"" />
-      </sequencePoints>
-    </method>
-  </methods>
-</symbols>");
+            c.VerifyMethodBody("C.Main", """
+                {
+                  // Code size       36 (0x24)
+                  .maxstack  2
+                  .locals init (string V_0,
+                                int V_1)
+                  // sequence point: "hello"
+                  IL_0000:  ldstr      "hello"
+                  IL_0005:  stloc.0
+                  IL_0006:  ldc.i4.0
+                  IL_0007:  stloc.1
+                  // sequence point: <hidden>
+                  IL_0008:  br.s       IL_001a
+                  // sequence point: var c
+                  IL_000a:  ldloc.0
+                  IL_000b:  ldloc.1
+                  IL_000c:  callvirt   "char string.this[int].get"
+                  // sequence point: System.Console.WriteLine(c);
+                  IL_0011:  call       "void System.Console.WriteLine(char)"
+                  // sequence point: <hidden>
+                  IL_0016:  ldloc.1
+                  IL_0017:  ldc.i4.1
+                  IL_0018:  add
+                  IL_0019:  stloc.1
+                  // sequence point: in
+                  IL_001a:  ldloc.1
+                  IL_001b:  ldloc.0
+                  IL_001c:  callvirt   "int string.Length.get"
+                  IL_0021:  blt.s      IL_000a
+                  // sequence point: }
+                  IL_0023:  ret
+                }
+                """);
         }
 
         [Fact]
@@ -2141,59 +2136,79 @@ public class C
 }
 ");
 
-            var c = CreateCompilationWithMscorlib40AndSystemCore(source, options: TestOptions.DebugDll);
+            var c = CompileAndVerify(source, options: TestOptions.DebugDll);
 
-            // Sequence points:
-            // 1) Open brace at start of method
-            // 2) 'foreach'
-            // 3) 'new int[2]'
-            // 4) Hidden initial jump (of for loop)
-            // 5) 'var c'
-            // 6) Open brace of loop
-            // 7) Loop body
-            // 8) Close brace of loop
-            // 9) Hidden index increment.
-            // 10) 'in'
-            // 11) Close brace at end of method
+            c.VerifyMethodBody("C.Main", """
+                {
+                  // Code size       37 (0x25)
+                  .maxstack  2
+                  .locals init (int[] V_0,
+                                int V_1,
+                                int V_2) //x
+                  // sequence point: {
+                  IL_0000:  nop
+                  // sequence point: foreach
+                  IL_0001:  nop
+                  // sequence point: new int[2]
+                  IL_0002:  ldc.i4.2
+                  IL_0003:  newarr     "int"
+                  IL_0008:  stloc.0
+                  IL_0009:  ldc.i4.0
+                  IL_000a:  stloc.1
+                  // sequence point: <hidden>
+                  IL_000b:  br.s       IL_001e
+                  // sequence point: var x
+                  IL_000d:  ldloc.0
+                  IL_000e:  ldloc.1
+                  IL_000f:  ldelem.i4
+                  IL_0010:  stloc.2
+                  // sequence point: {
+                  IL_0011:  nop
+                  // sequence point: System.Console.WriteLine(x);
+                  IL_0012:  ldloc.2
+                  IL_0013:  call       "void System.Console.WriteLine(int)"
+                  IL_0018:  nop
+                  // sequence point: }
+                  IL_0019:  nop
+                  // sequence point: <hidden>
+                  IL_001a:  ldloc.1
+                  IL_001b:  ldc.i4.1
+                  IL_001c:  add
+                  IL_001d:  stloc.1
+                  // sequence point: in
+                  IL_001e:  ldloc.1
+                  IL_001f:  ldloc.0
+                  IL_0020:  ldlen
+                  IL_0021:  conv.i4
+                  IL_0022:  blt.s      IL_000d
+                  // sequence point: }
+                  IL_0024:  ret
+                }
+                """);
 
-            c.VerifyPdb(@"
-<symbols>
-  <files>
-    <file id=""1"" name="""" language=""C#"" />
-  </files>
-  <methods>
-    <method containingType=""C"" name=""Main"">
-      <customDebugInfo>
-        <using>
-          <namespace usingCount=""0"" />
-        </using>
-        <encLocalSlotMap>
-          <slot kind=""6"" offset=""11"" />
-          <slot kind=""8"" offset=""11"" />
-          <slot kind=""0"" offset=""11"" />
-        </encLocalSlotMap>
-      </customDebugInfo>
-      <sequencePoints>
-        <entry offset=""0x0"" startLine=""5"" startColumn=""5"" endLine=""5"" endColumn=""6"" document=""1"" />
-        <entry offset=""0x1"" startLine=""6"" startColumn=""9"" endLine=""6"" endColumn=""16"" document=""1"" />
-        <entry offset=""0x2"" startLine=""6"" startColumn=""27"" endLine=""6"" endColumn=""37"" document=""1"" />
-        <entry offset=""0xb"" hidden=""true"" document=""1"" />
-        <entry offset=""0xd"" startLine=""6"" startColumn=""18"" endLine=""6"" endColumn=""23"" document=""1"" />
-        <entry offset=""0x11"" startLine=""7"" startColumn=""9"" endLine=""7"" endColumn=""10"" document=""1"" />
-        <entry offset=""0x12"" startLine=""8"" startColumn=""13"" endLine=""8"" endColumn=""41"" document=""1"" />
-        <entry offset=""0x19"" startLine=""9"" startColumn=""9"" endLine=""9"" endColumn=""10"" document=""1"" />
-        <entry offset=""0x1a"" hidden=""true"" document=""1"" />
-        <entry offset=""0x1e"" startLine=""6"" startColumn=""24"" endLine=""6"" endColumn=""26"" document=""1"" />
-        <entry offset=""0x24"" startLine=""10"" startColumn=""5"" endLine=""10"" endColumn=""6"" document=""1"" />
-      </sequencePoints>
-      <scope startOffset=""0x0"" endOffset=""0x25"">
-        <scope startOffset=""0xd"" endOffset=""0x1a"">
-          <local name=""x"" il_index=""2"" il_start=""0xd"" il_end=""0x1a"" attributes=""0"" />
-        </scope>
-      </scope>
-    </method>
-  </methods>
-</symbols>");
+            c.VerifyPdb("C.Main", """
+                <symbols>
+                  <methods>
+                    <method containingType="C" name="Main">
+                      <customDebugInfo>
+                       <using>
+                         <namespace usingCount="0" />
+                       </using>
+                       <encLocalSlotMap>
+                          <slot kind="6" offset="11" />
+                          <slot kind="8" offset="11" />
+                          <slot kind="0" offset="11" />
+                        </encLocalSlotMap>
+                      </customDebugInfo>
+                      <scope startOffset="0x0" endOffset="0x25">
+                        <scope startOffset="0xd" endOffset="0x1a">
+                          <local name="x" il_index="2" il_start="0xd" il_end="0x1a" attributes="0" />
+                        </scope>
+                      </scope>
+                    </method>
+                  </methods>
+                </symbols>
+                """, options: PdbValidationOptions.CustomDebugInformationAndScopes);
         }
 
         [WorkItem(544937, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/544937")]
@@ -2214,79 +2229,9 @@ public class C
 ";
             var v = CompileAndVerify(source, options: TestOptions.DebugDll);
 
-            // Sequence points:
-            // 1) Open brace at start of method
-            // 2) 'foreach'
-            // 3) 'new int[2, 3]'
-            // 4) Hidden initial jump (of for loop)
-            // 5) 'var c'
-            // 6) Open brace of loop
-            // 7) Loop body
-            // 8) Close brace of loop
-            // 9) 'in'
-            // 10) Close brace at end of method
+            v.VerifyMethodBody("C.Main", """
 
-            v.VerifyIL("C.Main", @"
-{
-  // Code size       88 (0x58)
-  .maxstack  3
-  .locals init (int[,] V_0,
-                int V_1,
-                int V_2,
-                int V_3,
-                int V_4,
-                int V_5) //x
- -IL_0000:  nop
- -IL_0001:  nop
- -IL_0002:  ldc.i4.2
-  IL_0003:  ldc.i4.3
-  IL_0004:  newobj     ""int[*,*]..ctor""
-  IL_0009:  stloc.0
-  IL_000a:  ldloc.0
-  IL_000b:  ldc.i4.0
-  IL_000c:  callvirt   ""int System.Array.GetUpperBound(int)""
-  IL_0011:  stloc.1
-  IL_0012:  ldloc.0
-  IL_0013:  ldc.i4.1
-  IL_0014:  callvirt   ""int System.Array.GetUpperBound(int)""
-  IL_0019:  stloc.2
-  IL_001a:  ldloc.0
-  IL_001b:  ldc.i4.0
-  IL_001c:  callvirt   ""int System.Array.GetLowerBound(int)""
-  IL_0021:  stloc.3
- ~IL_0022:  br.s       IL_0053
-  IL_0024:  ldloc.0
-  IL_0025:  ldc.i4.1
-  IL_0026:  callvirt   ""int System.Array.GetLowerBound(int)""
-  IL_002b:  stloc.s    V_4
- ~IL_002d:  br.s       IL_004a
- -IL_002f:  ldloc.0
-  IL_0030:  ldloc.3
-  IL_0031:  ldloc.s    V_4
-  IL_0033:  call       ""int[*,*].Get""
-  IL_0038:  stloc.s    V_5
- -IL_003a:  nop
- -IL_003b:  ldloc.s    V_5
-  IL_003d:  call       ""void System.Console.WriteLine(int)""
-  IL_0042:  nop
- -IL_0043:  nop
- ~IL_0044:  ldloc.s    V_4
-  IL_0046:  ldc.i4.1
-  IL_0047:  add
-  IL_0048:  stloc.s    V_4
- -IL_004a:  ldloc.s    V_4
-  IL_004c:  ldloc.2
-  IL_004d:  ble.s      IL_002f
- ~IL_004f:  ldloc.3
-  IL_0050:  ldc.i4.1
-  IL_0051:  add
-  IL_0052:  stloc.3
- -IL_0053:  ldloc.3
-  IL_0054:  ldloc.1
-  IL_0055:  ble.s      IL_0024
- -IL_0057:  ret
-}
-", sequencePoints: "C.Main");
+                """);
         }
 
         [Fact]
