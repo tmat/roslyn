@@ -14,8 +14,8 @@ internal static class ManagedHotReloadLanguageServiceDescriptor
     public const string ServiceVersion = "0.1";
     public const string MonikerName = BrokeredServiceDescriptors.LanguageServerComponentNamespace + "." + BrokeredServiceDescriptors.LanguageServerComponentName + "." + ServiceName;
 
-    public static readonly ServiceJsonRpcDescriptor ServiceDescriptor = BrokeredServiceDescriptors.CreateServerServiceDescriptor(ServiceName, new(ServiceVersion));
+    public static readonly ServiceJsonRpcDescriptor Descriptor = BrokeredServiceDescriptors.CreateServerServiceDescriptor(ServiceName, new(ServiceVersion));
 
     static ManagedHotReloadLanguageServiceDescriptor()
-        => Debug.Assert(ServiceDescriptor.Moniker.Name == MonikerName);
+        => Debug.Assert(Descriptor.Moniker.Name == MonikerName);
 }
