@@ -333,6 +333,9 @@
   <data name="local_function" xml:space="preserve">
     <value>local function</value>
   </data>
+  <data name="Local_function" xml:space="preserve">
+    <value>Local function</value>
+  </data>
   <data name="out_var" xml:space="preserve">
     <value>out variable</value>
     <comment>{Locked="out"} "out" is a C# keyword and should not be localized.</comment>
@@ -621,4 +624,5 @@
   <data name="Warning_colon_AI_suggestions_might_be_inaccurate" xml:space="preserve">
     <value>Warning: AI suggestions might be inaccurate.</value>
   </data>
+  
 </root>
