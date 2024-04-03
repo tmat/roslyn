@@ -58,10 +58,12 @@ internal sealed class CSharpSemanticSearchService() : AbstractSemanticSearchServ
     protected override string MethodNotFoundMessage
         => string.Format(FeaturesResources.The_query_does_not_specify_0_1, CSharpFeaturesResources.local_function, SemanticSearchUtilities.FindMethodName);
 
-    protected override IMethodSymbol? TryGetFindMethod(Compilation queryCompilation, SyntaxNode queryRoot, out string? errorMessage, out string[]? errorMessageArgs)
+    protected override IMethodSymbol? TryGetFindMethod(Compilation queryCompilation, SyntaxNode queryRoot, out TargetEntity targetEntity, out string? targetLanguage, out string? errorMessage, out string[]? errorMessageArgs)
     {
         errorMessage = null;
         errorMessageArgs = null;
+        targetEntity = default;
+        targetLanguage = null;
 
         var model = queryCompilation.GetSemanticModel(queryRoot.SyntaxTree);
         var compilationUnit = (CompilationUnitSyntax)queryRoot;
@@ -93,29 +95,67 @@ internal sealed class CSharpSemanticSearchService() : AbstractSemanticSearchServ
                     return null;
                 }
 
-                var compilationSymbol = queryCompilation.GetTypeByMetadataName("System.Collections.Generic.Compilation");
-                Contract.ThrowIfNull(compilationSymbol);
+                var supportedParameterTypes = GetSupportedParameterTypes(queryCompilation);
 
-                var iSymbolSymbol = queryCompilation.GetTypeByMetadataName("System.Collections.Generic.ISymbol");
-                Contract.ThrowIfNull(iSymbolSymbol);
-
-                if (!(localFunction.Parameters is [{ Type: var paramType, RefKind: RefKind.None, RefCustomModifiers: [] }] &&
-                    (paramType.Implements(iSymbolSymbol) || paramType.GetBaseTypesAndThis().Any(b => b.Equals(compilationSymbol)))))
+                if (localFunction.Parameters is [{ Type: var paramType, RefKind: RefKind.None, RefCustomModifiers: [] }])
                 {
-                    errorMessage = string.Format(
-                        FeaturesResources._0_1_must_have_a_single_parameter_of_one_of_the_following_types_2,
-                        CSharpFeaturesResources.Local_function,
-                        SemanticSearchUtilities.FindMethodName,
-                        string.Join(", ", new[] { compilationSymbol, iSymbolSymbol }.Select(t => t.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))));
+                    foreach (var (supportedType, parameterKind) in supportedParameterTypes)
+                    {
+                        if (supportedType.Equals(paramType))
+                        {
+                            targetEntity = parameterKind;
+                            return localFunction;
+                        }
 
-                    return null;
+                        if (supportedType.Equals(paramType.BaseType) && GetLanguageFromNamespace(paramType) is { } language)
+                        {
+                            targetEntity = parameterKind;
+                            targetLanguage = language;
+                            return localFunction;
+                        }
+                    }
                 }
 
-                return localFunction;
+                errorMessage = string.Format(
+                    FeaturesResources._0_1_must_have_a_single_parameter_of_one_of_the_following_types_2,
+                    CSharpFeaturesResources.Local_function,
+                    SemanticSearchUtilities.FindMethodName,
+                    string.Join(", ", supportedParameterTypes.Select(t => t.symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))));
+
+                return null;
             }
         }
 
         return null;
+    }
+
+    private static string? GetLanguageFromNamespace(ITypeSymbol type)
+        => type.ContainingNamespace.Name switch
+        {
+            "CSharp" => LanguageNames.CSharp,
+            "VisualBasic" => LanguageNames.VisualBasic,
+            _ => null
+        };
+
+    private IEnumerable<(ISymbol symbol, TargetEntity kind)> GetSupportedParameterTypes(Compilation compilation)
+    {
+        yield return (GetSymbol(nameof(Compilation)), TargetEntity.Compilation);
+        yield return (GetSymbol(nameof(IAssemblySymbol)), TargetEntity.Assembly);
+        yield return (GetSymbol(nameof(IModuleSymbol)), TargetEntity.Module);
+        yield return (GetSymbol(nameof(INamespaceSymbol)), TargetEntity.Namespace);
+        yield return (GetSymbol(nameof(INamespaceOrTypeSymbol)), TargetEntity.NamespaceOrType);
+        yield return (GetSymbol(nameof(INamedTypeSymbol)), TargetEntity.NamedType);
+        yield return (GetSymbol(nameof(IMethodSymbol)), TargetEntity.Method);
+        yield return (GetSymbol(nameof(IFieldSymbol)), TargetEntity.Field);
+        yield return (GetSymbol(nameof(IEventSymbol)), TargetEntity.Event);
+        yield return (GetSymbol(nameof(IPropertySymbol)), TargetEntity.Property);
+
+        ISymbol GetSymbol(string name)
+        {
+            var symbol = compilation.GetTypeByMetadataName($"Microsoft.CodeAnalysis.{name}");
+            Contract.ThrowIfNull(symbol);
+            return symbol;
+        }
     }
 }
 #endif

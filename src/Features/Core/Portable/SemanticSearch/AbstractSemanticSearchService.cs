@@ -48,6 +48,20 @@ internal abstract partial class AbstractSemanticSearchService : ISemanticSearchS
             => IntPtr.Zero;
     }
 
+    protected enum TargetEntity
+    {
+        Compilation,
+        Assembly,
+        Module,
+        Namespace,
+        NamespaceOrType,
+        NamedType,
+        Method,
+        Field,
+        Property,
+        Event
+    }
+
     private static readonly FindReferencesSearchOptions s_findReferencesSearchOptions = new()
     {
         DisplayAllDefinitions = true,
@@ -56,7 +70,7 @@ internal abstract partial class AbstractSemanticSearchService : ISemanticSearchS
     private const int StackDisplayDepthLimit = 32;
 
     protected abstract Compilation CreateCompilation(SourceText query, IEnumerable<MetadataReference> references, SolutionServices services, out SyntaxTree queryTree, CancellationToken cancellationToken);
-    protected abstract IMethodSymbol? TryGetFindMethod(Compilation queryCompilation, SyntaxNode queryRoot, out string? errorMessage, out string[]? errorMessageArgs);
+    protected abstract IMethodSymbol? TryGetFindMethod(Compilation queryCompilation, SyntaxNode queryRoot, out TargetEntity targetEntity, out string? targetLanguage, out string? errorMessage, out string[]? errorMessageArgs);
     protected abstract string MethodNotFoundMessage { get; }
 
     public async Task<ExecuteQueryResult> ExecuteQueryAsync(
@@ -83,7 +97,7 @@ internal abstract partial class AbstractSemanticSearchService : ISemanticSearchS
             var queryCompilation = CreateCompilation(queryText, metadataReferences, solution.Services, out var queryTree, cancellationToken);
             var queryRoot = await queryTree.GetRootAsync(cancellationToken).ConfigureAwait(false);
 
-            var findMethodSymbol = TryGetFindMethod(queryCompilation, queryRoot, out var errorMessage, out var errorMessageArgs);
+            var findMethodSymbol = TryGetFindMethod(queryCompilation, queryRoot, out var targetEntity, out var targetLanguage, out var errorMessage, out var errorMessageArgs);
             if (findMethodSymbol == null)
             {
                 traceSource.TraceInformation($"Semantic search failed: {errorMessage}");
@@ -248,6 +262,11 @@ internal abstract partial class AbstractSemanticSearchService : ISemanticSearchS
         {
             throw ExceptionUtilities.Unreachable();
         }
+    }
+
+    private static Task[] GetSearchTasks(Solution solution, IMethodSymbol findMethod, TargetEntity targetEntity, string? targetLanguage)
+    {
+
     }
 
     private static ImmutableArray<TaggedText> GetExceptionTypeTaggedText(Exception e, Compilation compilation)
