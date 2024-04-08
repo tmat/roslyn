@@ -18,6 +18,7 @@ using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.CodeAnalysis.Symbols;
 using Roslyn.Utilities;
 using ReferenceEqualityComparer = Roslyn.Utilities.ReferenceEqualityComparer;
 
@@ -111,6 +112,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         {
             get { return _metadataName; }
         }
+
+#nullable enable
+        internal override ISymbolInternal? GetInternalSymbol(ISymbol publicSymbol)
+            => Symbols.PublicModel.Symbol.GetInternalSymbol(publicSymbol);
+#nullable disable
 
         internal sealed override Cci.ICustomAttribute SynthesizeAttribute(WellKnownMember attributeConstructor)
         {

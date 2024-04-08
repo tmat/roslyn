@@ -26,10 +26,18 @@ namespace Microsoft.CodeAnalysis.Emit
         /// </summary>
         public ImmutableArray<Diagnostic> Diagnostics { get; }
 
-        internal EmitResult(bool success, ImmutableArray<Diagnostic> diagnostics)
+        /// <summary>
+        /// If <see cref="Success"/> is true, returns metadata tokens emitted for the symbols specified in
+        /// metadataTokenRequests parameter of the <see cref="Compilation.Emit(System.IO.Stream, System.IO.Stream?, System.IO.Stream?, System.IO.Stream?, System.IO.Stream?, System.Collections.Generic.IEnumerable{ResourceDescription}?, EmitOptions?, IMethodSymbol?, System.IO.Stream?, System.Collections.Generic.IEnumerable{EmbeddedText}?, System.Collections.Generic.IEnumerable{ISymbol}, RebuildData?, CodeGen.CompilationTestData?, System.Threading.CancellationToken)"/>
+        /// method. If the specified symbol does not have a token in the emitted image the corresponding item in this array will be 0.
+        /// </summary>
+        public ImmutableArray<int> RequestedMetadataTokens { get; }
+
+        internal EmitResult(bool success, ImmutableArray<Diagnostic> diagnostics, ImmutableArray<int> requestedMetadataTokens)
         {
             Success = success;
             Diagnostics = diagnostics;
+            RequestedMetadataTokens = requestedMetadataTokens;
         }
 
         protected virtual string GetDebuggerDisplay()

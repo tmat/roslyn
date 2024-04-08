@@ -261,6 +261,7 @@ public class C
                 debugEntryPoint: null,
                 sourceLinkStream: null,
                 embeddedTexts: null,
+                metadataTokenRequests: null,
                 rebuildData: null,
                 testData: new CompilationTestData() { SymWriterFactory = _ => new MockSymUnmanagedWriter() });
 
@@ -293,6 +294,7 @@ public class C
                 debugEntryPoint: null,
                 sourceLinkStream: null,
                 embeddedTexts: null,
+                metadataTokenRequests: null,
                 rebuildData: null,
                 testData: new CompilationTestData() { SymWriterFactory = SymWriterTestUtilities.ThrowingFactory });
 
@@ -325,6 +327,7 @@ public class C
                 debugEntryPoint: null,
                 sourceLinkStream: null,
                 embeddedTexts: null,
+                metadataTokenRequests: null,
                 rebuildData: null,
                 testData: new CompilationTestData() { SymWriterFactory = SymWriterTestUtilities.ThrowingFactory });
 
@@ -357,6 +360,7 @@ public class C
                 debugEntryPoint: null,
                 sourceLinkStream: null,
                 embeddedTexts: null,
+                metadataTokenRequests: null,
                 rebuildData: null,
                 testData: new CompilationTestData() { SymWriterFactory = _ => throw new DllNotFoundException("xxx") });
 

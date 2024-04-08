@@ -21,8 +21,13 @@ namespace Microsoft.CodeAnalysis.Emit
         /// </summary>
         public ImmutableArray<TypeDefinitionHandle> ChangedTypes { get; }
 
-        internal EmitDifferenceResult(bool success, ImmutableArray<Diagnostic> diagnostics, EmitBaseline? baseline, ImmutableArray<MethodDefinitionHandle> updatedMethods, ImmutableArray<TypeDefinitionHandle> changedTypes)
-            : base(success, diagnostics)
+        internal EmitDifferenceResult(
+            bool success,
+            ImmutableArray<Diagnostic> diagnostics,
+            EmitBaseline? baseline,
+            ImmutableArray<MethodDefinitionHandle> updatedMethods,
+            ImmutableArray<TypeDefinitionHandle> changedTypes)
+            : base(success, diagnostics, [])
         {
             Baseline = baseline;
             UpdatedMethods = updatedMethods;

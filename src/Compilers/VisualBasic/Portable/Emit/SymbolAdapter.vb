@@ -5,6 +5,7 @@
 Imports System.Collections.Immutable
 Imports Microsoft.CodeAnalysis.Emit
 Imports Microsoft.CodeAnalysis.PooledObjects
+Imports Microsoft.CodeAnalysis.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Emit
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 
@@ -23,7 +24,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Throw ExceptionUtilities.Unreachable
         End Function
 
-        Private Function IReferenceGetInternalSymbol() As CodeAnalysis.Symbols.ISymbolInternal Implements Cci.IReference.GetInternalSymbol
+        Private Function IReferenceGetInternalSymbol() As ISymbolInternal Implements Cci.IReference.GetInternalSymbol
             Return AdaptedSymbol
         End Function
 
@@ -39,6 +40,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
     End Class
 
     Partial Friend Class Symbol
+        Public Shared Function GetInternalSymbol(publicSymbol As ISymbol) As ISymbolInternal
+            Return TryCast(publicSymbol, ISymbolInternal)
+        End Function
+
 #If DEBUG Then
         Friend Function GetCciAdapter() As SymbolAdapter
             Return GetCciAdapterImpl()
@@ -59,7 +64,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 #End If
 
-        Private Function ISymbolInternalGetCciAdapter() As Cci.IReference Implements CodeAnalysis.Symbols.ISymbolInternal.GetCciAdapter
+        Private Function ISymbolInternalGetCciAdapter() As Cci.IReference Implements ISymbolInternal.GetCciAdapter
             Return GetCciAdapter()
         End Function
 

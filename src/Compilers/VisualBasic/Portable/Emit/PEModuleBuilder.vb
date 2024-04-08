@@ -88,6 +88,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             End Get
         End Property
 
+        Friend Overrides Function GetInternalSymbol(publicSymbol As ISymbol) As ISymbolInternal
+            Return Symbol.GetInternalSymbol(publicSymbol)
+        End Function
+
         Public Overrides ReadOnly Property LinkedAssembliesDebugInfo As IEnumerable(Of String)
             Get
                 ' NOTE: Dev12 does not seem to emit anything but the name (i.e. no version, token, etc).

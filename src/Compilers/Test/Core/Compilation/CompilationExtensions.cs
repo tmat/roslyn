@@ -83,6 +83,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 debugEntryPoint: debugEntryPoint,
                 sourceLinkStream: sourceLinkStream,
                 embeddedTexts: embeddedTexts,
+                metadataTokenRequests: null,
                 rebuildData: null,
                 testData: testData,
                 cancellationToken: default(CancellationToken));

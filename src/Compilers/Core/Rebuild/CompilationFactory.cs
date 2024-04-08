@@ -152,6 +152,7 @@ namespace Microsoft.CodeAnalysis.Rebuild
                     subsystemVersion: SubsystemVersion.Create(peHeader.MajorSubsystemVersion, peHeader.MinorSubsystemVersion)),
                 debugEntryPoint: debugEntryPoint,
                 metadataPEStream: null,
+                metadataTokenRequests: null,
                 rebuildData: rebuildData,
                 sourceLinkStream: sourceLink != null ? new MemoryStream(sourceLink) : null,
                 embeddedTexts: embeddedTexts,

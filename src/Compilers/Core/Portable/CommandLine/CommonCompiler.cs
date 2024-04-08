@@ -1448,6 +1448,8 @@ namespace Microsoft.CodeAnalysis
                             refPeStreamProviderOpt,
                             pdbStreamProviderOpt,
                             rebuildData: null,
+                            metadataTokenRequests: [],
+                            requestedMetadataTokens: null,
                             testSymWriterFactory: null,
                             diagnostics: diagnostics,
                             emitOptions: emitOptions,

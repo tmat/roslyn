@@ -14,7 +14,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Emit
 {
-    internal abstract class SymbolChanges
+    internal sealed class SymbolChanges
     {
         /// <summary>
         /// Maps definitions being emitted to the corresponding definitions defined in the previous generation (metadata or source).
@@ -47,10 +47,16 @@ namespace Microsoft.CodeAnalysis.Emit
 
         private readonly Func<ISymbol, bool> _isAddedSymbol;
 
-        protected SymbolChanges(DefinitionMap definitionMap, IEnumerable<SemanticEdit> edits, Func<ISymbol, bool> isAddedSymbol)
+        /// <summary>
+        /// Translates from a public symbol to the corresponding internal symbol.
+        /// </summary>
+        private readonly Func<ISymbol, ISymbolInternal?> _symbolTranslator;
+
+        public SymbolChanges(DefinitionMap definitionMap, IEnumerable<SemanticEdit> edits, Func<ISymbol, bool> isAddedSymbol, Func<ISymbol, ISymbolInternal?> symbolTranslator)
         {
             _definitionMap = definitionMap;
             _isAddedSymbol = isAddedSymbol;
+            _symbolTranslator = symbolTranslator;
             CalculateChanges(edits, out _changes, out _replacedSymbols, out DeletedMembers, out UpdatedMethods);
         }
 
@@ -317,12 +323,10 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
-        protected abstract ISymbolInternal? GetISymbolInternalOrNull(ISymbol symbol);
-
         public ISymbolInternal GetRequiredInternalSymbol(ISymbol? symbol)
         {
             Debug.Assert(symbol != null);
-            var result = GetISymbolInternalOrNull(symbol);
+            var result = _symbolTranslator(symbol);
             Debug.Assert(result != null);
             return result;
         }

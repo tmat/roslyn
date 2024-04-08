@@ -819,6 +819,8 @@ namespace Microsoft.CodeAnalysis.ExpressionEvaluator.UnitTests
                         () => pdbStream,
                         nativePdbWriterOpt: null,
                         pdbPathOpt: null,
+                        metadataTokenRequests: null,
+                        requestedMetadataTokens: null,
                         metadataOnly: true,
                         isDeterministic: false,
                         emitTestCoverageData: false,

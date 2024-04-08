@@ -64,7 +64,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             End If
 
             _previousDefinitions = New VisualBasicDefinitionMap(edits, metadataDecoder, previousSourceToMetadata, matchToMetadata, matchToPrevious, previousGeneration)
-            _changes = New VisualBasicSymbolChanges(_previousDefinitions, edits, isAddedSymbol)
+            _changes = New SymbolChanges(_previousDefinitions, edits, isAddedSymbol, symbolTranslator:=Function(symbol) TryCast(symbol, Symbol))
 
             ' Workaround for https://github.com/dotnet/roslyn/issues/3192. 
             ' When compiling state machine we stash types of awaiters and state-machine hoisted variables,

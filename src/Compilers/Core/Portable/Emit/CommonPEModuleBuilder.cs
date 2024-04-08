@@ -117,6 +117,10 @@ namespace Microsoft.CodeAnalysis.Emit
         public abstract IEnumerable<Cci.ICustomAttribute> GetSourceModuleAttributes();
         internal abstract Cci.ICustomAttribute SynthesizeAttribute(WellKnownMember attributeConstructor);
 
+#nullable enable
+        internal abstract ISymbolInternal? GetInternalSymbol(ISymbol publicSymbol);
+#nullable disable
+
         /// <summary>
         /// Public types defined in other modules making up this assembly and to which other assemblies may refer to via this assembly
         /// followed by types forwarded to another assembly.

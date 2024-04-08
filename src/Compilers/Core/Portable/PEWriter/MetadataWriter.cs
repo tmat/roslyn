@@ -1676,7 +1676,12 @@ namespace Microsoft.Cci
         }
 
 #nullable enable
-        public void WriteMetadataAndIL(PdbWriter? nativePdbWriterOpt, Stream metadataStream, Stream ilStream, Stream? portablePdbStreamOpt, out MetadataSizes metadataSizes)
+        public void WriteMetadataAndIL(
+            PdbWriter? nativePdbWriterOpt,
+            Stream metadataStream,
+            Stream ilStream,
+            Stream? portablePdbStreamOpt,
+            out MetadataSizes metadataSizes)
         {
             Debug.Assert(nativePdbWriterOpt == null ^ portablePdbStreamOpt == null);
 
@@ -1701,6 +1706,8 @@ namespace Microsoft.Cci
             BuildMetadataAndIL(
                 nativePdbWriterOpt,
                 ilBuilder,
+                metadataTokenRequests: null,
+                requestedMetadataTokens: null,
                 out mappedFieldDataBuilder,
                 out managedResourceDataBuilder,
                 out Blob mvidFixup,
@@ -1765,6 +1772,8 @@ namespace Microsoft.Cci
         public void BuildMetadataAndIL(
             PdbWriter? nativePdbWriterOpt,
             BlobBuilder ilBuilder,
+            IEnumerable<ISymbol>? metadataTokenRequests,
+            ArrayBuilder<int>? requestedMetadataTokens,
             out PooledBlobBuilder? mappedFieldDataBuilder,
             out PooledBlobBuilder? managedResourceDataBuilder,
             out Blob mvidFixup,
@@ -1772,6 +1781,12 @@ namespace Microsoft.Cci
         {
             // Extract information from object model into tables, indices and streams
             CreateIndices();
+
+            if (metadataTokenRequests != null)
+            {
+                Debug.Assert(requestedMetadataTokens != null);
+                PopulateMetadataTokens(metadataTokenRequests, requestedMetadataTokens);
+            }
 
             if (_debugMetadataOpt != null)
             {
@@ -1839,6 +1854,18 @@ namespace Microsoft.Cci
             PopulateTypeSystemTables(methodBodyOffsets, out mappedFieldDataBuilder, out managedResourceDataBuilder, dynamicAnalysisData, out mvidFixup);
             dynamicAnalysisData?.Free();
         }
+
+        private void PopulateMetadataTokens(IEnumerable<ISymbol> symbols, ArrayBuilder<int> metadataTokens)
+        {
+            foreach (var publicSymbol in symbols)
+            {
+                var handle = module.GetInternalSymbol(publicSymbol) is { } internalSymbol
+                    ? TryGetHandle(internalSymbol.GetCciAdapter()) : default;
+
+                metadataTokens.Add(MetadataTokens.GetToken(handle));
+            }
+        }
+
 #nullable disable
 
         public virtual void PopulateEncTables(ImmutableArray<int> typeSystemRowCounts)
@@ -3095,6 +3122,9 @@ namespace Microsoft.Cci
         }
 
         private EntityHandle GetHandle(object reference)
+            => TryGetHandle(reference) is { IsNil: false } handle ? handle : throw ExceptionUtilities.UnexpectedValue(reference);
+
+        private EntityHandle TryGetHandle(object reference)
         {
             return reference switch
             {
@@ -3102,7 +3132,7 @@ namespace Microsoft.Cci
                 IFieldReference fieldReference => GetFieldHandle(fieldReference),
                 IMethodReference methodReference => GetMethodHandle(methodReference),
                 ISignature signature => GetStandaloneSignatureHandle(signature),
-                _ => throw ExceptionUtilities.UnexpectedValue(reference)
+                _ => default
             };
         }
 

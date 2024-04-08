@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.DiaSymReader;
 using static Microsoft.CodeAnalysis.SigningUtilities;
@@ -84,6 +85,8 @@ namespace Microsoft.Cci
             Func<Stream?>? getPortablePdbStreamOpt,
             PdbWriter? nativePdbWriterOpt,
             string? pdbPathOpt,
+            IEnumerable<ISymbol>? metadataTokenRequests,
+            ArrayBuilder<int>? requestedMetadataTokens,
             bool metadataOnly,
             bool isDeterministic,
             bool emitTestCoverageData,
@@ -111,6 +114,8 @@ namespace Microsoft.Cci
             mdWriter.BuildMetadataAndIL(
                 nativePdbWriterOpt,
                 emitBuilders.IlBlobBuilder,
+                metadataTokenRequests,
+                requestedMetadataTokens,
                 out emitBuilders.MappedFieldDataBlobBuilder,
                 out emitBuilders.ManagedResourceBlobBuilder,
                 out mvidFixup,

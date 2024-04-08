@@ -2,18 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#nullable disable
-
 using System;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Threading;
 using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.CodeAnalysis.Symbols;
 
 namespace Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
 {
     internal abstract class Symbol : ISymbol
     {
+        internal static ISymbolInternal? GetInternalSymbol(ISymbol publicSymbol)
+            => (publicSymbol as Symbol)?.UnderlyingSymbol;
+
+#nullable disable
         internal abstract CSharp.Symbol UnderlyingSymbol { get; }
 
         protected static ImmutableArray<TypeWithAnnotations> ConstructTypeArguments(ITypeSymbol[] typeArguments)

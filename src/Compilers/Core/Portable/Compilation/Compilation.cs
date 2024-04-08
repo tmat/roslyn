@@ -9,6 +9,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -2730,6 +2731,36 @@ namespace Microsoft.CodeAnalysis
                 cancellationToken: cancellationToken);
         }
 
+        // BACKCOMPAT OVERLOAD -- DO NOT TOUCH
+        public EmitResult Emit(
+            Stream peStream,
+            Stream? pdbStream,
+            Stream? xmlDocumentationStream,
+            Stream? win32Resources,
+            IEnumerable<ResourceDescription>? manifestResources,
+            EmitOptions? options,
+            IMethodSymbol? debugEntryPoint,
+            Stream? sourceLinkStream,
+            IEnumerable<EmbeddedText>? embeddedTexts,
+            Stream? metadataPEStream,
+            CancellationToken cancellationToken)
+        {
+            return Emit(
+                peStream,
+                pdbStream,
+                xmlDocumentationStream,
+                win32Resources,
+                manifestResources,
+                options,
+                debugEntryPoint,
+                sourceLinkStream,
+                embeddedTexts,
+                metadataPEStream,
+                metadataTokenRequests: null,
+                rebuildData: null,
+                cancellationToken);
+        }
+
         /// <summary>
         /// Emit the IL for the compiled source code into the specified stream.
         /// </summary>
@@ -2764,6 +2795,9 @@ namespace Microsoft.CodeAnalysis
         /// Texts to embed in the PDB.
         /// Only supported when emitting Portable PDBs.
         /// </param>
+        /// <param name="metadataTokenRequests">
+        /// Symbols whose tokens should be added to <see cref="EmitResult.RequestedMetadataTokens"/>.
+        /// </param>
         /// <param name="cancellationToken">To cancel the emit process.</param>
         public EmitResult Emit(
             Stream peStream,
@@ -2776,7 +2810,8 @@ namespace Microsoft.CodeAnalysis
             Stream? sourceLinkStream = null,
             IEnumerable<EmbeddedText>? embeddedTexts = null,
             Stream? metadataPEStream = null,
-            CancellationToken cancellationToken = default(CancellationToken))
+            IEnumerable<ISymbol>? metadataTokenRequests = null,
+            CancellationToken cancellationToken = default)
         {
             return Emit(
                 peStream,
@@ -2789,6 +2824,7 @@ namespace Microsoft.CodeAnalysis
                 sourceLinkStream,
                 embeddedTexts,
                 metadataPEStream,
+                metadataTokenRequests,
                 rebuildData: null,
                 cancellationToken);
         }
@@ -2804,6 +2840,7 @@ namespace Microsoft.CodeAnalysis
             Stream? sourceLinkStream,
             IEnumerable<EmbeddedText>? embeddedTexts,
             Stream? metadataPEStream,
+            IEnumerable<ISymbol>? metadataTokenRequests,
             RebuildData? rebuildData,
             CancellationToken cancellationToken)
         {
@@ -2882,12 +2919,37 @@ namespace Microsoft.CodeAnalysis
                 throw new ArgumentException(CodeAnalysisResources.StreamMustSupportRead, nameof(sourceLinkStream));
             }
 
-            if (embeddedTexts != null &&
-                !embeddedTexts.IsEmpty() &&
-                pdbStream == null &&
-                options?.DebugInformationFormat != DebugInformationFormat.Embedded)
+            if (embeddedTexts != null && !embeddedTexts.IsEmpty())
             {
-                throw new ArgumentException(CodeAnalysisResources.EmbeddedTextsRequirePdb, nameof(embeddedTexts));
+                int i = 0;
+                foreach (var symbol in embeddedTexts)
+                {
+                    if (symbol is null)
+                    {
+                        throw new ArgumentNullException($"{nameof(embeddedTexts)}[{i}]");
+                    }
+
+                    i++;
+                }
+
+                if (pdbStream == null && options?.DebugInformationFormat != DebugInformationFormat.Embedded)
+                {
+                    throw new ArgumentException(CodeAnalysisResources.EmbeddedTextsRequirePdb, nameof(embeddedTexts));
+                }
+            }
+
+            if (metadataTokenRequests != null)
+            {
+                int i = 0;
+                foreach (var symbol in metadataTokenRequests)
+                {
+                    if (symbol is null)
+                    {
+                        throw new ArgumentNullException($"{nameof(metadataTokenRequests)}[{i}]");
+                    }
+
+                    i++;
+                }
             }
 
             return Emit(
@@ -2901,6 +2963,7 @@ namespace Microsoft.CodeAnalysis
                 debugEntryPoint,
                 sourceLinkStream,
                 embeddedTexts,
+                metadataTokenRequests,
                 rebuildData,
                 testData: null,
                 cancellationToken: cancellationToken);
@@ -2921,6 +2984,7 @@ namespace Microsoft.CodeAnalysis
             IMethodSymbol? debugEntryPoint,
             Stream? sourceLinkStream,
             IEnumerable<EmbeddedText>? embeddedTexts,
+            IEnumerable<ISymbol>? metadataTokenRequests,
             RebuildData? rebuildData,
             CompilationTestData? testData,
             CancellationToken cancellationToken)
@@ -2932,6 +2996,7 @@ namespace Microsoft.CodeAnalysis
             Debug.Assert(metadataPEStream == null || !options.IncludePrivateMembers); // you may not use a secondary stream and include private members together
 
             var diagnostics = DiagnosticBag.GetInstance();
+            var requestedMetadataTokens = (metadataTokenRequests != null) ? ArrayBuilder<int>.GetInstance() : null;
 
             var moduleBeingBuilt = CheckOptionsAndCreateModuleBuilder(
                 diagnostics,
@@ -3002,6 +3067,8 @@ namespace Microsoft.CodeAnalysis
                         (metadataPEStream != null) ? new SimpleEmitStreamProvider(metadataPEStream) : null,
                         (pdbStream != null) ? new SimpleEmitStreamProvider(pdbStream) : null,
                         rebuildData,
+                        metadataTokenRequests,
+                        requestedMetadataTokens,
                         testData?.SymWriterFactory,
                         diagnostics,
                         emitOptions: options,
@@ -3010,7 +3077,7 @@ namespace Microsoft.CodeAnalysis
                 }
             }
 
-            return new EmitResult(success, diagnostics.ToReadOnlyAndFree());
+            return new EmitResult(success, diagnostics.ToReadOnlyAndFree(), requestedMetadataTokens?.ToImmutableAndFree() ?? []);
         }
 
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
@@ -3193,6 +3260,8 @@ namespace Microsoft.CodeAnalysis
             EmitStreamProvider? metadataPEStreamProvider,
             EmitStreamProvider? pdbStreamProvider,
             RebuildData? rebuildData,
+            IEnumerable<ISymbol>? metadataTokenRequests,
+            ArrayBuilder<int>? requestedMetadataTokens,
             Func<ISymWriterMetadataProvider, SymUnmanagedWriter>? testSymWriterFactory,
             DiagnosticBag diagnostics,
             EmitOptions emitOptions,
@@ -3266,6 +3335,8 @@ namespace Microsoft.CodeAnalysis
                         getPortablePdbStream,
                         nativePdbWriter,
                         pePdbFilePath,
+                        metadataTokenRequests,
+                        requestedMetadataTokens,
                         rebuildData,
                         emitOptions.EmitMetadataOnly,
                         emitOptions.IncludePrivateMembers,
@@ -3348,6 +3419,8 @@ namespace Microsoft.CodeAnalysis
             Func<Stream?>? getPortablePdbStreamOpt,
             Cci.PdbWriter? nativePdbWriterOpt,
             string? pdbPathOpt,
+            IEnumerable<ISymbol>? metadataTokenRequests,
+            ArrayBuilder<int>? requestedMetadataTokens,
             RebuildData? rebuildData,
             bool metadataOnly,
             bool includePrivateMembers,
@@ -3365,6 +3438,8 @@ namespace Microsoft.CodeAnalysis
                 getPortablePdbStreamOpt,
                 nativePdbWriterOpt,
                 pdbPathOpt,
+                metadataTokenRequests,
+                requestedMetadataTokens,
                 metadataOnly,
                 deterministicPrimaryOutput,
                 emitTestCoverageData,
@@ -3387,6 +3462,8 @@ namespace Microsoft.CodeAnalysis
                     getPortablePdbStreamOpt: null,
                     nativePdbWriterOpt: null,
                     pdbPathOpt: null,
+                    metadataTokenRequests: [],
+                    requestedMetadataTokens: null,
                     metadataOnly: true,
                     isDeterministic: true,
                     emitTestCoverageData: false,

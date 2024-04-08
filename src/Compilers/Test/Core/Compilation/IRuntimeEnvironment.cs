@@ -268,6 +268,7 @@ namespace Roslyn.Test.Utilities
                     debugEntryPoint: null,
                     sourceLinkStream: null,
                     embeddedTexts,
+                    metadataTokenRequests: null,
                     rebuildData: null,
                     testData: testData,
                     cancellationToken: default);

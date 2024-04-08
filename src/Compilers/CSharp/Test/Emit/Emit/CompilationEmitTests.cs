@@ -31,6 +31,19 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Emit
     public partial class CompilationEmitTests : EmitMetadataTestBase
     {
         [Fact]
+        public void EmbeddedTexts_ArgumentValidation()
+        {
+            var compilation = CreateCompilation("class C;");
+            var peStream = new MemoryStream();
+            var pdbStream = new MemoryStream();
+
+            Assert.Throws<ArgumentNullException>(() => compilation.Emit(
+                peStream,
+                pdbStream,
+                embeddedTexts: [null]));
+        }
+
+        [Fact]
         public void CompilationEmitDiagnostics()
         {
             // Check that Compilation.Emit actually produces compilation errors.
@@ -5647,6 +5660,73 @@ public class Y { }
                 // (4,19): error CS0612: 'Y' is obsolete
                 //     public void M(Y y)
                 Diagnostic(ErrorCode.WRN_DeprecatedSymbol, "Y").WithArguments("Y").WithLocation(4, 19).WithWarningAsError(true));
+        }
+
+        [Fact]
+        public void MetadataTokenRequests_ArgumentValidation()
+        {
+            var compilation = CreateCompilation("class C;");
+            var peStream = new MemoryStream();
+
+            Assert.Throws<ArgumentNullException>(() => compilation.Emit(
+                peStream,
+                metadataTokenRequests: [null]));
+        }
+
+        [Fact]
+        public void ValidateMetadataTokenRequest()
+        {
+            var source = """
+            using System;
+
+            namespace N;
+
+            class C
+            {
+                int F;
+                int P { get; set; }
+                event Action E;
+
+                void M(int p)
+                {
+                    int local = 1;
+                }
+            }
+            """;
+
+            var symbolGetters = new Func<Compilation, ISymbol>[]
+            {
+                c => c.GetMember("N"),
+                c => c.GetMember("N.C"),
+                c => c.GetMember("N.C.F"),
+                c => c.GetMember("N.C.P"),
+                c => c.GetMember("N.C.E"),
+                c => c.GetMember("N.C.get_P"),
+                c => c.GetMember("N.C.set_P"),
+                c => c.GetMember("N.C.M"),
+                c => c.GetMember("N.C.M").GetParameters().Single(),
+            };
+
+            var compilation = CreateCompilation(source);
+            var peStream = new MemoryStream();
+
+            var symbols = symbolGetters.Select(g => g(compilation));
+            var result = compilation.Emit(peStream, metadataTokenRequests: symbols);
+
+            result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Verify();
+
+            peStream.Position = 0;
+            var reference = AssemblyMetadata.CreateFromStream(peStream).GetReference();
+
+            var peCompilation = CreateCompilation("", [reference], options: TestOptions.DebugDll.WithMetadataImportOptions(MetadataImportOptions.All));
+
+            for (int i = 0; i < symbolGetters.Length; i++)
+            {
+                var symbol = symbolGetters[i](peCompilation);
+                var expected = result.RequestedMetadataTokens[i];
+                var actual = symbol.MetadataToken;
+                AssertEx.AreEqual(expected, actual, message: $"{symbol}: expected = 0x{expected:X8}, actual = 0x{actual:X8}");
+            }
         }
     }
 }
