@@ -776,6 +776,11 @@ internal sealed partial class SolutionCompilationState
         return UpdateAnalyzerConfigDocumentState(this.SolutionState.WithAnalyzerConfigDocumentText(documentId, text, mode));
     }
 
+    public SolutionCompilationState WithFallbackAnalyzerOptions(ProjectId projectId, ImmutableDictionary<string, string> options)
+    {
+        return UpdateAnalyzerConfigDocumentState(this.SolutionState.WithFallbackAnalyzerOptions(projectId, options));
+    }
+
     /// <inheritdoc cref="SolutionState.WithDocumentText(DocumentId, TextAndVersion, PreservationMode)"/>
     public SolutionCompilationState WithDocumentText(
         DocumentId documentId, TextAndVersion textAndVersion, PreservationMode mode)

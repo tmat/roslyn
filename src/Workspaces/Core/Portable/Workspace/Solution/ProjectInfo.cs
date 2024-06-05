@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -148,10 +149,18 @@ public sealed class ProjectInfo
     /// </summary>
     public Type? HostObjectType { get; }
 
+    /// <summary>
+    /// Analyzer config options that we look an option in if it is not present in <see cref="AnalyzerConfigOptionsResult"/> produced by the compiler.
+    /// Implements a top-level (but not global) virtual editorconfig file that's in scope for all source files of this project.
+    /// The options may be shared accross all projects of the same language.
+    /// </summary>
+    internal ImmutableDictionary<string, string> FallbackAnalyzerOptions { get; }
+
     private ProjectInfo(
         ProjectAttributes attributes,
         CompilationOptions? compilationOptions,
         ParseOptions? parseOptions,
+        ImmutableDictionary<string, string>? fallbackAnalyzerOptions,
         IReadOnlyList<DocumentInfo> documents,
         IReadOnlyList<ProjectReference> projectReferences,
         IReadOnlyList<MetadataReference> metadataReferences,
@@ -163,6 +172,7 @@ public sealed class ProjectInfo
         Attributes = attributes;
         CompilationOptions = compilationOptions;
         ParseOptions = parseOptions;
+        FallbackAnalyzerOptions = fallbackAnalyzerOptions ?? ImmutableDictionary<string, string>.Empty;
         Documents = documents;
         ProjectReferences = projectReferences;
         MetadataReferences = metadataReferences;
@@ -242,6 +252,7 @@ public sealed class ProjectInfo
                 runAnalyzers: true),
             compilationOptions,
             parseOptions,
+            fallbackAnalyzerOptions: null,
             documents,
             projectReferences,
             metadataReferences,
@@ -255,6 +266,7 @@ public sealed class ProjectInfo
         ProjectAttributes attributes,
         CompilationOptions? compilationOptions = null,
         ParseOptions? parseOptions = null,
+        ImmutableDictionary<string, string>? fallbackAnalyzerOptions = null,
         IEnumerable<DocumentInfo>? documents = null,
         IEnumerable<ProjectReference>? projectReferences = null,
         IEnumerable<MetadataReference>? metadataReferences = null,
@@ -267,6 +279,7 @@ public sealed class ProjectInfo
             attributes,
             compilationOptions,
             parseOptions,
+            fallbackAnalyzerOptions,
             PublicContract.ToBoxedImmutableArrayWithDistinctNonNullItems(documents, nameof(documents)),
             PublicContract.ToBoxedImmutableArrayWithDistinctNonNullItems(projectReferences, nameof(projectReferences)),
             PublicContract.ToBoxedImmutableArrayWithDistinctNonNullItems(metadataReferences, nameof(metadataReferences)),
@@ -280,6 +293,7 @@ public sealed class ProjectInfo
         ProjectAttributes? attributes = null,
         Optional<CompilationOptions?> compilationOptions = default,
         Optional<ParseOptions?> parseOptions = default,
+        ImmutableDictionary<string, string>? fallbackAnalyzerOptions = null,
         IReadOnlyList<DocumentInfo>? documents = null,
         IReadOnlyList<ProjectReference>? projectReferences = null,
         IReadOnlyList<MetadataReference>? metadataReferences = null,
@@ -291,6 +305,7 @@ public sealed class ProjectInfo
         var newAttributes = attributes ?? Attributes;
         var newCompilationOptions = compilationOptions.HasValue ? compilationOptions.Value : CompilationOptions;
         var newParseOptions = parseOptions.HasValue ? parseOptions.Value : ParseOptions;
+        var newFallbackAnalyzerOptions = fallbackAnalyzerOptions ?? FallbackAnalyzerOptions;
         var newDocuments = documents ?? Documents;
         var newProjectReferences = projectReferences ?? ProjectReferences;
         var newMetadataReferences = metadataReferences ?? MetadataReferences;
@@ -302,6 +317,7 @@ public sealed class ProjectInfo
         if (newAttributes == Attributes &&
             newCompilationOptions == CompilationOptions &&
             newParseOptions == ParseOptions &&
+            newFallbackAnalyzerOptions == FallbackAnalyzerOptions &&
             newDocuments == Documents &&
             newProjectReferences == ProjectReferences &&
             newMetadataReferences == MetadataReferences &&
@@ -317,6 +333,7 @@ public sealed class ProjectInfo
             newAttributes,
             newCompilationOptions,
             newParseOptions,
+            newFallbackAnalyzerOptions,
             newDocuments,
             newProjectReferences,
             newMetadataReferences,
@@ -364,6 +381,9 @@ public sealed class ProjectInfo
 
     public ProjectInfo WithParseOptions(ParseOptions? parseOptions)
         => With(parseOptions: parseOptions);
+
+    internal ProjectInfo WithFallbackAnalyzerOptions(ImmutableDictionary<string, string> options)
+        => With(fallbackAnalyzerOptions: options);
 
     public ProjectInfo WithDocuments(IEnumerable<DocumentInfo>? documents)
         => With(documents: PublicContract.ToBoxedImmutableArrayWithDistinctNonNullItems(documents, nameof(documents)));

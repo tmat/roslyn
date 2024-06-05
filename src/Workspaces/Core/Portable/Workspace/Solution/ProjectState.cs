@@ -101,7 +101,7 @@ internal partial class ProjectState
         // We need to compute our AnalyerConfigDocumentStates first, since we use those to produce our DocumentStates
         AnalyzerConfigDocumentStates = new TextDocumentStates<AnalyzerConfigDocumentState>(projectInfoFixed.AnalyzerConfigDocuments, info => new AnalyzerConfigDocumentState(languageServices.SolutionServices, info, loadTextOptions));
 
-        _lazyAnalyzerConfigOptions = ComputeAnalyzerConfigOptionsValueSource(AnalyzerConfigDocumentStates);
+        _lazyAnalyzerConfigOptions = ComputeAnalyzerConfigOptionsValueSource(AnalyzerConfigDocumentStates, projectInfo.FallbackAnalyzerOptions);
 
         // Add analyzer config information to the compilation options
         if (projectInfoFixed.CompilationOptions != null)
@@ -277,12 +277,6 @@ internal partial class ProjectState
             additionalFiles: AdditionalDocumentStates.SelectAsArray(static documentState => documentState.AdditionalText),
             optionsProvider: new ProjectAnalyzerConfigOptionsProvider(this));
 
-    public async Task<AnalyzerConfigData> GetAnalyzerOptionsForPathAsync(string path, CancellationToken cancellationToken)
-    {
-        var cache = await _lazyAnalyzerConfigOptions.GetValueAsync(cancellationToken).ConfigureAwait(false);
-        return cache.GetOptionsForSourcePath(path);
-    }
-
     public AnalyzerConfigData GetAnalyzerOptionsForPath(string path, CancellationToken cancellationToken)
         => _lazyAnalyzerConfigOptions.GetValue(cancellationToken).GetOptionsForSourcePath(path);
 
@@ -454,7 +448,7 @@ internal partial class ProjectState
         {
             var options = _lazyAnalyzerConfigSet
                 .GetValue(cancellationToken).GetOptionsForSourcePath(tree.FilePath);
-            return GeneratedCodeUtilities.GetIsGeneratedCodeFromOptions(options.AnalyzerOptions);
+            return GeneratedCodeUtilities.GetGeneratedCodeKindFromOptions(options.ConfigOptions);
         }
 
         public override bool TryGetDiagnosticValue(SyntaxTree tree, string diagnosticId, CancellationToken cancellationToken, out ReportDiagnostic severity)
@@ -480,31 +474,33 @@ internal partial class ProjectState
         public override int GetHashCode() => _lazyAnalyzerConfigSet.GetHashCode();
     }
 
-    private static AsyncLazy<AnalyzerConfigOptionsCache> ComputeAnalyzerConfigOptionsValueSource(TextDocumentStates<AnalyzerConfigDocumentState> analyzerConfigDocumentStates)
+    private static AsyncLazy<AnalyzerConfigOptionsCache> ComputeAnalyzerConfigOptionsValueSource(
+        TextDocumentStates<AnalyzerConfigDocumentState> analyzerConfigDocumentStates,
+        ImmutableDictionary<string, string> fallbackOptions)
     {
         return AsyncLazy.Create(
-            asynchronousComputeFunction: static async (analyzerConfigDocumentStates, cancellationToken) =>
+            asynchronousComputeFunction: static async (args, cancellationToken) =>
             {
-                var tasks = analyzerConfigDocumentStates.States.Values.Select(a => a.GetAnalyzerConfigAsync(cancellationToken));
+                var tasks = args.analyzerConfigDocumentStates.States.Values.Select(a => a.GetAnalyzerConfigAsync(cancellationToken));
                 var analyzerConfigs = await Task.WhenAll(tasks).ConfigureAwait(false);
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                return new AnalyzerConfigOptionsCache(AnalyzerConfigSet.Create(analyzerConfigs));
+                return new AnalyzerConfigOptionsCache(AnalyzerConfigSet.Create(analyzerConfigs), args.fallbackOptions);
             },
-            synchronousComputeFunction: static (analyzerConfigDocumentStates, cancellationToken) =>
+            synchronousComputeFunction: static (args, cancellationToken) =>
             {
-                var analyzerConfigs = analyzerConfigDocumentStates.SelectAsArray(a => a.GetAnalyzerConfig(cancellationToken));
-                return new AnalyzerConfigOptionsCache(AnalyzerConfigSet.Create(analyzerConfigs));
+                var analyzerConfigs = args.analyzerConfigDocumentStates.SelectAsArray(a => a.GetAnalyzerConfig(cancellationToken));
+                return new AnalyzerConfigOptionsCache(AnalyzerConfigSet.Create(analyzerConfigs), args.fallbackOptions);
             },
-            arg: analyzerConfigDocumentStates);
+            arg: (analyzerConfigDocumentStates, fallbackOptions));
     }
 
-    private readonly struct AnalyzerConfigOptionsCache(AnalyzerConfigSet configSet)
+    private readonly struct AnalyzerConfigOptionsCache(AnalyzerConfigSet configSet, ImmutableDictionary<string, string> fallbackOptions)
     {
         private readonly ConcurrentDictionary<string, AnalyzerConfigData> _sourcePathToResult = [];
-        private readonly Func<string, AnalyzerConfigData> _computeFunction = path => new AnalyzerConfigData(configSet.GetOptionsForSourcePath(path));
-        private readonly Lazy<AnalyzerConfigData> _global = new(() => new AnalyzerConfigData(configSet.GlobalConfigOptions));
+        private readonly Func<string, AnalyzerConfigData> _computeFunction = path => new AnalyzerConfigData(configSet.GetOptionsForSourcePath(path), fallbackOptions);
+        private readonly Lazy<AnalyzerConfigData> _global = new(() => new AnalyzerConfigData(configSet.GlobalConfigOptions, ImmutableDictionary<string, string>.Empty));
 
         public AnalyzerConfigData GlobalConfigOptions
             => _global.Value;
@@ -582,6 +578,9 @@ internal partial class ProjectState
 
     [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
     public ParseOptions? ParseOptions => this.ProjectInfo.ParseOptions;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+    public ImmutableDictionary<string, string> FallbackAnalyzerOptions => ProjectInfo.FallbackAnalyzerOptions;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
     public IReadOnlyList<MetadataReference> MetadataReferences => this.ProjectInfo.MetadataReferences;
@@ -702,6 +701,16 @@ internal partial class ProjectState
             documentStates: DocumentStates.UpdateStates(static (state, args) => state.UpdateParseOptions(args.options, args.onlyPreprocessorDirectiveChange), (options, onlyPreprocessorDirectiveChange)));
     }
 
+    public ProjectState WithFallbackAnalyzerOptions(ImmutableDictionary<string, string> options)
+    {
+        if (options == FallbackAnalyzerOptions)
+        {
+            return this;
+        }
+
+        return CreateNewStateForChangedAnalyzerConfig(AnalyzerConfigDocumentStates, options);
+    }
+
     public static bool IsSameLanguage(ProjectState project1, ProjectState project2)
         => project1.LanguageServices == project2.LanguageServices;
 
@@ -784,12 +793,12 @@ internal partial class ProjectState
 
         var newAnalyzerConfigDocumentStates = AnalyzerConfigDocumentStates.AddRange(documents);
 
-        return CreateNewStateForChangedAnalyzerConfigDocuments(newAnalyzerConfigDocumentStates);
+        return CreateNewStateForChangedAnalyzerConfig(newAnalyzerConfigDocumentStates, ProjectInfo.FallbackAnalyzerOptions);
     }
 
-    private ProjectState CreateNewStateForChangedAnalyzerConfigDocuments(TextDocumentStates<AnalyzerConfigDocumentState> newAnalyzerConfigDocumentStates)
+    private ProjectState CreateNewStateForChangedAnalyzerConfig(TextDocumentStates<AnalyzerConfigDocumentState> newAnalyzerConfigDocumentStates, ImmutableDictionary<string, string> fallbackOptions)
     {
-        var newAnalyzerConfigSet = ComputeAnalyzerConfigOptionsValueSource(newAnalyzerConfigDocumentStates);
+        var newAnalyzerConfigSet = ComputeAnalyzerConfigOptionsValueSource(newAnalyzerConfigDocumentStates, fallbackOptions);
         var projectInfo = ProjectInfo.WithVersion(Version.GetNewerVersion());
 
         // Changing analyzer configs changes compilation options
@@ -816,7 +825,7 @@ internal partial class ProjectState
         return With(
             projectInfo: ProjectInfo.WithVersion(Version.GetNewerVersion()),
             documentStates: DocumentStates.RemoveRange(documentIds),
-            analyzerConfigSet: ComputeAnalyzerConfigOptionsValueSource(AnalyzerConfigDocumentStates));
+            analyzerConfigSet: ComputeAnalyzerConfigOptionsValueSource(AnalyzerConfigDocumentStates, ProjectInfo.FallbackAnalyzerOptions));
     }
 
     public ProjectState RemoveAdditionalDocuments(ImmutableArray<DocumentId> documentIds)
@@ -836,7 +845,7 @@ internal partial class ProjectState
 
         var newAnalyzerConfigDocumentStates = AnalyzerConfigDocumentStates.RemoveRange(documentIds);
 
-        return CreateNewStateForChangedAnalyzerConfigDocuments(newAnalyzerConfigDocumentStates);
+        return CreateNewStateForChangedAnalyzerConfig(newAnalyzerConfigDocumentStates);
     }
 
     public ProjectState RemoveAllNormalDocuments()
@@ -849,7 +858,7 @@ internal partial class ProjectState
         return With(
             projectInfo: ProjectInfo.WithVersion(Version.GetNewerVersion()),
             documentStates: TextDocumentStates<DocumentState>.Empty,
-            analyzerConfigSet: ComputeAnalyzerConfigOptionsValueSource(AnalyzerConfigDocumentStates));
+            analyzerConfigSet: ComputeAnalyzerConfigOptionsValueSource(AnalyzerConfigDocumentStates, ProjectInfo.FallbackAnalyzerOptions));
     }
 
     public ProjectState UpdateDocument(DocumentState newDocument, bool contentChanged)
@@ -909,7 +918,7 @@ internal partial class ProjectState
 
         var newDocumentStates = AnalyzerConfigDocumentStates.SetState(newDocument);
 
-        return CreateNewStateForChangedAnalyzerConfigDocuments(newDocumentStates);
+        return CreateNewStateForChangedAnalyzerConfig(newDocumentStates);
     }
 
     public ProjectState UpdateDocumentsOrder(ImmutableList<DocumentId> documentIds)

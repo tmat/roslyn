@@ -162,6 +162,11 @@ public partial class Project
     public ParseOptions? ParseOptions => _projectState.ParseOptions;
 
     /// <summary>
+    /// Analyzer config options that we look an option in if it is not present in <see cref="AnalyzerConfigOptionsResult"/> produced by the compiler.
+    /// </summary>
+    internal ImmutableDictionary<string, string> FallbackAnalyzerOptions => _projectState.FallbackAnalyzerOptions;
+
+    /// <summary>
     /// Returns true if this is a submission project.
     /// </summary>
     public bool IsSubmission => _projectState.IsSubmission;
@@ -592,6 +597,12 @@ public partial class Project
     /// </summary>
     public Project WithParseOptions(ParseOptions options)
         => this.Solution.WithProjectParseOptions(this.Id, options).GetProject(this.Id)!;
+
+    /// <summary>
+    /// Creates a new instance of this project updated to have the specified <see cref="FallbackAnalyzerOptions"/>.
+    /// </summary>
+    internal Project WithFallbackAnalyzerOptions(ImmutableDictionary<string, string> options)
+        => this.Solution.WithFallbackAnalyzerOptions(this.Id, options).GetProject(this.Id)!;
 
     /// <summary>
     /// Creates a new instance of this project updated to include the specified project reference

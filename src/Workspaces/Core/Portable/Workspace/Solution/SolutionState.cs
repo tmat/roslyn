@@ -831,6 +831,21 @@ internal sealed partial class SolutionState
     }
 
     /// <summary>
+    /// Creates a new solution instance with updated analyzer fallback options.
+    /// </summary>
+    public StateChange WithFallbackAnalyzerOptions(ProjectId projectId, ImmutableDictionary<string, string> options)
+    {
+        var oldProject = GetRequiredProjectState(projectId);
+        var newProject = oldProject.WithFallbackAnalyzerOptions(options);
+        if (oldProject == newProject)
+        {
+            return new(this, oldProject, newProject);
+        }
+
+        return ForkProject(oldProject, newProject);
+    }
+
+    /// <summary>
     /// Creates a new solution instance with the document specified updated to have the specified name.
     /// </summary>
     public StateChange WithDocumentName(DocumentId documentId, string name)

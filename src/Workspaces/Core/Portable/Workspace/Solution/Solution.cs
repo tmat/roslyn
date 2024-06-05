@@ -502,6 +502,16 @@ public partial class Solution
 
     /// <summary>
     /// Create a new solution instance with the project specified updated to have
+    /// the specified <see cref="Project.FallbackAnalyzerOptions"/>.
+    /// </summary>
+    internal Solution WithFallbackAnalyzerOptions(ProjectId projectId, ImmutableDictionary<string, string> options)
+    {
+        CheckContainsProject(projectId);
+        return WithCompilationState(_compilationState.WithFallbackAnalyzerOptions(projectId, options));
+    }
+
+    /// <summary>
+    /// Create a new solution instance with the project specified updated to have
     /// the specified hasAllInformation.
     /// </summary>
     // TODO: https://github.com/dotnet/roslyn/issues/42449 make it public

@@ -1944,6 +1944,7 @@ public abstract partial class Workspace : IDisposable
             project.State.Attributes.With(version: VersionStamp.Create()),
             project.CompilationOptions,
             project.ParseOptions,
+            project.FallbackAnalyzerOptions,
             project.Documents.Select(CreateDocumentInfoWithText),
             project.ProjectReferences,
             project.MetadataReferences,
