@@ -319,6 +319,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                     isSubmission: IsSubmission),
                 CompilationOptions,
                 ParseOptions,
+                fallbackAnalyzerOptions: null,
                 documents: Documents.Where(d => !d.IsSourceGenerated).Select(d => d.ToDocumentInfo()),
                 ProjectReferences,
                 MetadataReferences,
