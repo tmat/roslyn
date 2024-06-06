@@ -85,6 +85,7 @@ namespace Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator
                     outputFilePath: parsedCommandLine.OutputFileName),
                 parsedCommandLine.CompilationOptions,
                 parsedCommandLine.ParseOptions,
+                fallbackAnalyzerOptions: null,
                 parsedCommandLine.SourceFiles.Select(s => CreateDocumentInfo(unmappedPath: s.Path)),
                 projectReferences: null,
                 metadataReferences: parsedCommandLine.MetadataReferences.Select(
