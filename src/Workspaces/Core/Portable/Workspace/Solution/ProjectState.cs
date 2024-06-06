@@ -845,7 +845,7 @@ internal partial class ProjectState
 
         var newAnalyzerConfigDocumentStates = AnalyzerConfigDocumentStates.RemoveRange(documentIds);
 
-        return CreateNewStateForChangedAnalyzerConfig(newAnalyzerConfigDocumentStates);
+        return CreateNewStateForChangedAnalyzerConfig(newAnalyzerConfigDocumentStates, FallbackAnalyzerOptions);
     }
 
     public ProjectState RemoveAllNormalDocuments()
@@ -918,7 +918,7 @@ internal partial class ProjectState
 
         var newDocumentStates = AnalyzerConfigDocumentStates.SetState(newDocument);
 
-        return CreateNewStateForChangedAnalyzerConfig(newDocumentStates);
+        return CreateNewStateForChangedAnalyzerConfig(newDocumentStates, FallbackAnalyzerOptions);
     }
 
     public ProjectState UpdateDocumentsOrder(ImmutableList<DocumentId> documentIds)

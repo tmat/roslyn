@@ -12,11 +12,12 @@ using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Internal.Log;
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Shared.TestHooks;
 using Roslyn.Utilities;
 
 namespace Microsoft.VisualStudio.LanguageServices.Implementation.Diagnostics;
-
+#if TODO
 /// <summary>
 /// Updates <see cref="Project.FallbackAnalyzerOptions"/> of all affected projects loaded in given workspaces.
 /// </summary>
@@ -24,12 +25,17 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Diagnostics;
 [ExportEventListener(WellKnownEventListeners.Workspace, WorkspaceKind.Host, WorkspaceKind.Interactive, WorkspaceKind.SemanticSearch), Shared]
 [method: ImportingConstructor]
 [method: Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-internal sealed class VisualStudioAnalyzerOptionsWorkspaceUpdater() : IEventListener<object>
+internal sealed class VisualStudioAnalyzerOptionsWorkspaceUpdater(IGlobalOptionService globalOptions) : IEventListener<object>
 {
     private readonly IAsynchronousOperationListener _listener;
 
     public void StartListening(Workspace workspace, object serviceOpt)
     {
+        globalOptions.AddOptionChangedHandler(workspace, new EventHandler<OptionChangedEventArgs>((_, args) =>
+        {
+
+        });
+
         //var setter = workspace.Services.GetService<ISolutionAnalyzerSetterWorkspaceService>();
         //if (setter != null)
         //{
@@ -39,7 +45,7 @@ internal sealed class VisualStudioAnalyzerOptionsWorkspaceUpdater() : IEventList
         //}
     }
 
-    private async Task InitializeWorkspaceAsync(ISolutionAnalyzerSetterWorkspaceService setter)
+    private async Task UpdateWorkspaceAsync(ISolutionAnalyzerSetterWorkspaceService setter)
     {
         try
         {
@@ -60,3 +66,4 @@ internal sealed class VisualStudioAnalyzerOptionsWorkspaceUpdater() : IEventList
         Logger.Log(FunctionId.DiagnosticAnalyzerService_Analyzers, KeyValueLogMessage.Create(m => m["AnalyzerCount"] = analyzerCount, LogLevel.Debug));
     }
 }
+#endif
