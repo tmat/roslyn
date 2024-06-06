@@ -61,6 +61,11 @@ internal partial class ProjectState
                 cancellationToken.ThrowIfCancellationRequested();
                 var parseOptionsChecksum = GetParseOptionsChecksum(serializer);
 
+                var fallbackAnalyzerOptionsChecksum = ChecksumCache.GetOrCreate(
+                    FallbackAnalyzerOptions,
+                    static (options, args) => args.serializer.CreateChecksum(options, args.cancellationToken),
+                    (serializer, cancellationToken));
+
                 var projectReferenceChecksums = ChecksumCache.GetOrCreateChecksumCollection(ProjectReferences, serializer, cancellationToken);
                 var metadataReferenceChecksums = ChecksumCache.GetOrCreateChecksumCollection(MetadataReferences, serializer, cancellationToken);
                 var analyzerReferenceChecksums = ChecksumCache.GetOrCreateChecksumCollection(AnalyzerReferences, serializer, cancellationToken);
@@ -70,6 +75,7 @@ internal partial class ProjectState
                     infoChecksum,
                     compilationOptionsChecksum,
                     parseOptionsChecksum,
+                    fallbackAnalyzerOptionsChecksum,
                     projectReferenceChecksums,
                     metadataReferenceChecksums,
                     analyzerReferenceChecksums,

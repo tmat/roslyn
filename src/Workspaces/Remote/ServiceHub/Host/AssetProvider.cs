@@ -186,6 +186,7 @@ internal sealed partial class AssetProvider(Checksum solutionChecksum, SolutionA
             tasks.Add(SynchronizeProjectAssetAsync<ProjectInfo.ProjectAttributes>(new(AssetPathKind.ProjectAttributes, projectId), static p => p.Info));
             tasks.Add(SynchronizeProjectAssetAsync<CompilationOptions>(new(AssetPathKind.ProjectCompilationOptions, projectId), static p => p.CompilationOptions));
             tasks.Add(SynchronizeProjectAssetAsync<ParseOptions>(new(AssetPathKind.ProjectParseOptions, projectId), static p => p.ParseOptions));
+            tasks.Add(SynchronizeProjectAssetAsync<ImmutableDictionary<string, string>>(new(AssetPathKind.ProjectFallbackAnalyzerOptions, projectId), static p => p.FallbackAnalyzerOptions));
             tasks.Add(SynchronizeProjectAssetCollectionAsync<ProjectReference>(new(AssetPathKind.ProjectProjectReferences, projectId), static p => p.ProjectReferences));
             tasks.Add(SynchronizeProjectAssetCollectionAsync<MetadataReference>(new(AssetPathKind.ProjectMetadataReferences, projectId), static p => p.MetadataReferences));
             tasks.Add(SynchronizeProjectAssetCollectionAsync<AnalyzerReference>(new(AssetPathKind.ProjectAnalyzerReferences, projectId), static p => p.AnalyzerReferences));

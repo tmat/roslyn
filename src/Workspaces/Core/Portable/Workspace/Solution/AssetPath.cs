@@ -71,6 +71,7 @@ internal readonly struct AssetPath
     public bool IncludeProjectAttributes => (_kind & AssetPathKind.ProjectAttributes) != 0;
     public bool IncludeProjectCompilationOptions => (_kind & AssetPathKind.ProjectCompilationOptions) != 0;
     public bool IncludeProjectParseOptions => (_kind & AssetPathKind.ProjectParseOptions) != 0;
+    public bool IncludeProjectFallbackAnalyzerOptions => (_kind & AssetPathKind.ProjectFallbackAnalyzerOptions) != 0;
     public bool IncludeProjectProjectReferences => (_kind & AssetPathKind.ProjectProjectReferences) != 0;
     public bool IncludeProjectMetadataReferences => (_kind & AssetPathKind.ProjectMetadataReferences) != 0;
     public bool IncludeProjectAnalyzerReferences => (_kind & AssetPathKind.ProjectAnalyzerReferences) != 0;
@@ -128,6 +129,7 @@ internal enum AssetPathKind
     ProjectProjectReferences = 1 << 19,
     ProjectMetadataReferences = 1 << 20,
     ProjectAnalyzerReferences = 1 << 21,
+    ProjectFallbackAnalyzerOptions = 1 << 22,
 
     // Keep a gap so we can easily add more project kinds
     DocumentAttributes = 1 << 25,
@@ -146,7 +148,7 @@ internal enum AssetPathKind
     /// <summary>
     /// Search projects for results.  All project-level information will be searched.
     /// </summary>
-    Projects = ProjectStateChecksums | ProjectAttributes | ProjectCompilationOptions | ProjectParseOptions | ProjectProjectReferences | ProjectMetadataReferences | ProjectAnalyzerReferences,
+    Projects = ProjectStateChecksums | ProjectAttributes | ProjectCompilationOptions | ProjectParseOptions | ProjectFallbackAnalyzerOptions | ProjectProjectReferences | ProjectMetadataReferences | ProjectAnalyzerReferences,
 
     /// <summary>
     /// Search documents for results.

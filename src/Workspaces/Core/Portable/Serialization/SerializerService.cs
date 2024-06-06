@@ -4,7 +4,10 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Composition;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Versioning;
 using System.Threading;
@@ -12,6 +15,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Internal.Log;
+using Microsoft.CodeAnalysis.PooledObjects;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Serialization;
@@ -80,6 +84,7 @@ internal partial class SerializerService : ISerializerService
                 case WellKnownSynchronizationKind.ParseOptions:
                 case WellKnownSynchronizationKind.ProjectReference:
                 case WellKnownSynchronizationKind.SourceGeneratedDocumentIdentity:
+                case WellKnownSynchronizationKind.ImmutableDictionaryStringToString:
                     return Checksum.Create(value, this, cancellationToken);
 
                 case WellKnownSynchronizationKind.MetadataReference:
@@ -166,12 +171,46 @@ internal partial class SerializerService : ISerializerService
                     ((SourceGeneratorExecutionVersionMap)value).WriteTo(writer);
                     return;
 
+                case WellKnownSynchronizationKind.ImmutableDictionaryStringToString:
+                    Write(writer, (ImmutableDictionary<string, string>)value);
+                    return;
+
                 default:
                     // object that is not part of solution is not supported since we don't know what inputs are required to
                     // serialize it
                     throw ExceptionUtilities.UnexpectedValue(kind);
             }
         }
+    }
+
+    private static void Write(ObjectWriter writer, IReadOnlyCollection<KeyValuePair<string, string>> values)
+    {
+        writer.WriteCompressedUInt((uint)values.Count);
+        foreach (var (key, value) in values)
+        {
+            writer.WriteString(key);
+            writer.WriteString(value);
+        }
+    }
+
+    private static ImmutableDictionary<string, string> ReadImmutableDictionaryStringToString(ObjectReader reader)
+    {
+        var count = reader.ReadCompressedUInt();
+        if (count == 0)
+        {
+            return ImmutableDictionary<string, string>.Empty;
+        }
+
+        var builder = ImmutableDictionary.CreateBuilder<string, string>();
+
+        for (var i = 0; i < count; i++)
+        {
+            var key = reader.ReadRequiredString();
+            var value = reader.ReadRequiredString();
+            builder.Add(key, value);
+        }
+
+        return builder.ToImmutable();
     }
 
     public object Deserialize(WellKnownSynchronizationKind kind, ObjectReader reader, CancellationToken cancellationToken)
@@ -196,6 +235,7 @@ internal partial class SerializerService : ISerializerService
                 WellKnownSynchronizationKind.AnalyzerReference => DeserializeAnalyzerReference(reader, cancellationToken),
                 WellKnownSynchronizationKind.SerializableSourceText => SerializableSourceText.Deserialize(reader, _storageService, _textService, cancellationToken),
                 WellKnownSynchronizationKind.SourceGeneratorExecutionVersionMap => SourceGeneratorExecutionVersionMap.Deserialize(reader),
+                WellKnownSynchronizationKind.ImmutableDictionaryStringToString => ReadImmutableDictionaryStringToString(reader),
                 _ => throw ExceptionUtilities.UnexpectedValue(kind),
             };
         }

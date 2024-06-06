@@ -69,6 +69,8 @@ internal abstract class AbstractAssetProvider
             await GetAssetAsync<CompilationOptions>(new(AssetPathKind.ProjectCompilationOptions, projectId), projectChecksums.CompilationOptions, cancellationToken).ConfigureAwait(false));
         var parseOptionsTask = GetAssetAsync<ParseOptions>(new(AssetPathKind.ProjectParseOptions, projectId), projectChecksums.ParseOptions, cancellationToken);
 
+        var fallbackAnalyzerOptions = await GetAssetAsync<ImmutableDictionary<string, string>>(new(AssetPathKind.ProjectAttributes, projectId), projectChecksums.Info, cancellationToken).ConfigureAwait(false);
+
         var projectReferencesTask = this.GetAssetsArrayAsync<ProjectReference>(new(AssetPathKind.ProjectProjectReferences, projectId), projectChecksums.ProjectReferences, cancellationToken);
         var metadataReferencesTask = this.GetAssetsArrayAsync<MetadataReference>(new(AssetPathKind.ProjectMetadataReferences, projectId), projectChecksums.MetadataReferences, cancellationToken);
         var analyzerReferencesTask = this.GetAssetsArrayAsync<AnalyzerReference>(new(AssetPathKind.ProjectAnalyzerReferences, projectId), projectChecksums.AnalyzerReferences, cancellationToken);
@@ -85,6 +87,7 @@ internal abstract class AbstractAssetProvider
             attributes,
             compilationOptions,
             await parseOptionsTask.ConfigureAwait(false),
+            fallbackAnalyzerOptions,
             await documentInfosTask.ConfigureAwait(false),
             await projectReferencesTask.ConfigureAwait(false),
             await metadataReferencesTask.ConfigureAwait(false),

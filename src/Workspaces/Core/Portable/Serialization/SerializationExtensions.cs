@@ -29,6 +29,7 @@ internal static class SerializationExtensions
             SerializableSourceText => WellKnownSynchronizationKind.SerializableSourceText,
             SourceGeneratedDocumentIdentity => WellKnownSynchronizationKind.SourceGeneratedDocumentIdentity,
             SourceGeneratorExecutionVersionMap => WellKnownSynchronizationKind.SourceGeneratorExecutionVersionMap,
+            ImmutableDictionary<string, string> => WellKnownSynchronizationKind.ImmutableDictionaryStringToString,
             _ => throw ExceptionUtilities.UnexpectedValue(value),
         };
 

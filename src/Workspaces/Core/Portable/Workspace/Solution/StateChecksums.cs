@@ -344,6 +344,7 @@ internal sealed class ProjectStateChecksums(
     Checksum infoChecksum,
     Checksum compilationOptionsChecksum,
     Checksum parseOptionsChecksum,
+    Checksum fallbackAnalyzerOptionsChecksum,
     ChecksumCollection projectReferenceChecksums,
     ChecksumCollection metadataReferenceChecksums,
     ChecksumCollection analyzerReferenceChecksums,
@@ -356,7 +357,8 @@ internal sealed class ProjectStateChecksums(
         infoChecksum,
         compilationOptionsChecksum,
         parseOptionsChecksum,
-        documentChecksums.Checksum,
+        parseOptionsChecksum,
+        fallbackAnalyzerOptionsChecksum,
         projectReferenceChecksums.Checksum,
         metadataReferenceChecksums.Checksum,
         analyzerReferenceChecksums.Checksum,
@@ -369,6 +371,7 @@ internal sealed class ProjectStateChecksums(
     public Checksum Info => infoChecksum;
     public Checksum CompilationOptions => compilationOptionsChecksum;
     public Checksum ParseOptions => parseOptionsChecksum;
+    public Checksum FallbackAnalyzerOptions => fallbackAnalyzerOptionsChecksum;
 
     public ChecksumCollection ProjectReferences => projectReferenceChecksums;
     public ChecksumCollection MetadataReferences => metadataReferenceChecksums;
@@ -393,6 +396,7 @@ internal sealed class ProjectStateChecksums(
         checksums.AddIfNotNullChecksum(this.Info);
         checksums.AddIfNotNullChecksum(this.CompilationOptions);
         checksums.AddIfNotNullChecksum(this.ParseOptions);
+        checksums.AddIfNotNullChecksum(this.FallbackAnalyzerOptions);
         this.ProjectReferences.AddAllTo(checksums);
         this.MetadataReferences.AddAllTo(checksums);
         this.AnalyzerReferences.AddAllTo(checksums);
@@ -410,6 +414,7 @@ internal sealed class ProjectStateChecksums(
         this.Info.WriteTo(writer);
         this.CompilationOptions.WriteTo(writer);
         this.ParseOptions.WriteTo(writer);
+        this.FallbackAnalyzerOptions.WriteTo(writer);
         this.ProjectReferences.WriteTo(writer);
         this.MetadataReferences.WriteTo(writer);
         this.AnalyzerReferences.WriteTo(writer);
@@ -426,6 +431,7 @@ internal sealed class ProjectStateChecksums(
             infoChecksum: Checksum.ReadFrom(reader),
             compilationOptionsChecksum: Checksum.ReadFrom(reader),
             parseOptionsChecksum: Checksum.ReadFrom(reader),
+            fallbackAnalyzerOptionsChecksum: Checksum.ReadFrom(reader),
             projectReferenceChecksums: ChecksumCollection.ReadFrom(reader),
             metadataReferenceChecksums: ChecksumCollection.ReadFrom(reader),
             analyzerReferenceChecksums: ChecksumCollection.ReadFrom(reader),
@@ -472,6 +478,9 @@ internal sealed class ProjectStateChecksums(
                 onAssetFound(ParseOptions, parseOptions, arg);
             }
 
+            if (assetPath.IncludeProjectFallbackAnalyzerOptions && searchingChecksumsLeft.Remove(FallbackAnalyzerOptions))
+                onAssetFound(FallbackAnalyzerOptions, state.FallbackAnalyzerOptions, arg);
+
             if (assetPath.IncludeProjectProjectReferences)
                 ChecksumCollection.Find(state.ProjectReferences, ProjectReferences, searchingChecksumsLeft, onAssetFound, arg, cancellationToken);
 
@@ -496,6 +505,7 @@ internal sealed class ProjectStateChecksums(
                 Info={Info}
                 CompilationOptions={CompilationOptions}
                 ParseOptions={ParseOptions}
+                FallbackAnalyzerOptions={FallbackAnalyzerOptions}
                 ProjectReferences={ProjectReferences.Checksum}
                 MetadataReferences={MetadataReferences.Checksum}
                 AnalyzerReferences={AnalyzerReferences.Checksum}
