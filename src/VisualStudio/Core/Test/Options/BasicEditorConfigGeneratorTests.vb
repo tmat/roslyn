@@ -290,7 +290,12 @@ dotnet_naming_style.begins_with_i.required_suffix =
 dotnet_naming_style.begins_with_i.word_separator = 
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
 "
+<<<<<<< HEAD
                 Dim editorConfigOptions = workspace.GetService(Of EditorConfigOptionsEnumerator).GetOptions(LanguageNames.VisualBasic)
+=======
+                Dim editorService = workspace.GetService(Of EditorConfigOptionsEnumerator)()
+                Dim editorConfigOptions = editorService.GetOptions(LanguageNames.VisualBasic)
+>>>>>>> 8a65a79419a (Fallback options in solution snapshot)
                 Dim actualText = EditorConfigFileGenerator.Generate(editorConfigOptions, options, LanguageNames.VisualBasic)
                 AssertEx.EqualOrDiff(expectedText, actualText)
             End Using

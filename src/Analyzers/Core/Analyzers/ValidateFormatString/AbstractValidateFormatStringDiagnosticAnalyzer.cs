@@ -8,9 +8,16 @@ using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CodeStyle;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.LanguageService;
+using Microsoft.CodeAnalysis.Options;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.ValidateFormatString;
+
+internal static class ValidateFormatStringOptionStorage
+{
+    public static PerLanguageOption2<bool> ReportInvalidPlaceholdersInStringDotFormatCalls = new(
+        "dotnet_report_invalid_placeholders_in_string_dot_format_calls", IdeAnalyzerOptions.CommonDefault.ReportInvalidPlaceholdersInStringDotFormatCalls);
+}
 
 internal abstract class AbstractValidateFormatStringDiagnosticAnalyzer<TSyntaxKind>
     : DiagnosticAnalyzer
@@ -96,7 +103,7 @@ internal abstract class AbstractValidateFormatStringDiagnosticAnalyzer<TSyntaxKi
             return;
         }
 
-        if (!context.GetIdeAnalyzerOptions().ReportInvalidPlaceholdersInStringDotFormatCalls)
+        if (!context.GetAnalyzerOptions().ReportInvalidPlaceholdersInStringDotFormatCalls)
         {
             return;
         }
