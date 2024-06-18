@@ -25,7 +25,7 @@ internal static class CSharpSyntaxWrappingOptionsProviders
         var newLineBeforeOpenBraceDefault = ((CSharpSyntaxFormattingOptions)fallbackOptions.CleanupOptions.FormattingOptions).NewLines.ToNewLineBeforeOpenBracePlacement();
 
         return new(
-            new CSharpSyntaxFormattingOptions(options, (CSharpSyntaxFormattingOptions)fallbackOptions.CleanupOptions.FormattingOptions),
+            new CSharpSyntaxFormattingOptions(options),
             operatorPlacement: options.GetOption(CodeStyleOptions2.OperatorPlacementWhenWrapping, fallbackOptions.CodeStyleOptions.OperatorPlacementWhenWrapping),
             newLinesForBracesInObjectCollectionArrayInitializers: options.GetOption(CSharpFormattingOptions2.NewLineBeforeOpenBrace, newLineBeforeOpenBraceDefault).HasFlag(NewLineBeforeOpenBracePlacement.ObjectCollectionArrayInitializers));
     }
