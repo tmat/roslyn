@@ -20,10 +20,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Wrapping
             MyBase.New(formattingOptions, operatorPlacement)
         End Sub
 
-        Public Shared Function Create(options As IOptionsReader, fallbackOptions As CodeActionOptions) As VisualBasicSyntaxWrappingOptions
+        Public Shared Function Create(options As IOptionsReader) As VisualBasicSyntaxWrappingOptions
             Return New VisualBasicSyntaxWrappingOptions(
                 formattingOptions:=New VisualBasicSyntaxFormattingOptions(options),
-                operatorPlacement:=options.GetOption(CodeStyleOptions2.OperatorPlacementWhenWrapping, fallbackOptions.CodeStyleOptions.OperatorPlacementWhenWrapping))
+                operatorPlacement:=options.GetOption(CodeStyleOptions2.OperatorPlacementWhenWrapping))
         End Function
     End Class
 End Namespace
