@@ -40,7 +40,7 @@ internal sealed class EventHookupTestState : AbstractCommandHandlerTestState
 
         _testSessionHookupMutex = new Mutex(false);
         _commandHandler.TESTSessionHookupMutex = _testSessionHookupMutex;
-        options?.SetGlobalOptions(Workspace.GlobalOptions);
+        Workspace.SetAnalyzerFallbackOptions(options);
     }
 
     public static EventHookupTestState CreateTestState(string markup, OptionsCollection options = null)
