@@ -91,10 +91,8 @@ namespace Microsoft.CodeAnalysis.Remote
                 if (locations is null)
                     return null;
 
-                var fallbackOptions = GetClientOptionsProvider<CodeCleanupOptions, IRemoteRenamerService.ICallback>(callback, callbackId).ToCodeCleanupOptionsProvider();
-
                 var result = await ConflictResolver.ResolveSymbolicLocationConflictsInCurrentProcessAsync(
-                    locations, replacementText, nonConflictSymbolKeys, fallbackOptions, cancellationToken).ConfigureAwait(false);
+                    locations, replacementText, nonConflictSymbolKeys, cancellationToken).ConfigureAwait(false);
                 return await result.DehydrateAsync(cancellationToken).ConfigureAwait(false);
             }, cancellationToken);
         }

@@ -47,7 +47,7 @@ internal sealed class UseExpressionBodyForLambdaCodeFixProvider : SyntaxEditorBa
         return Task.CompletedTask;
     }
 
-    protected override Task FixAllAsync(Document document, ImmutableArray<Diagnostic> diagnostics, SyntaxEditor editor, CodeActionOptionsProvider fallbackOptions, CancellationToken cancellationToken)
+    protected override Task FixAllAsync(Document document, ImmutableArray<Diagnostic> diagnostics, SyntaxEditor editor, CancellationToken cancellationToken)
         => FixAllAsync(document, diagnostics, editor, cancellationToken);
 
     private static async Task FixAllAsync(Document document, ImmutableArray<Diagnostic> diagnostics, SyntaxEditor editor, CancellationToken cancellationToken)

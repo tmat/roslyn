@@ -137,21 +137,6 @@ internal sealed class DelegatingCodeActionOptionsProvider(Func<LanguageServices,
 
 internal static class CodeActionOptionsProviders
 {
-    internal static CodeActionOptionsProvider GetOptionsProvider(this CodeFixContext context)
-#if CODE_STYLE
-        => CodeActionOptions.DefaultProvider;
-#else
-        => context.Options;
-#endif
-
-#if CODE_STYLE
-    internal static CodeActionOptionsProvider GetOptionsProvider(this FixAllContext _)
-        => CodeActionOptions.DefaultProvider;
-#else
-    internal static CodeActionOptionsProvider GetOptionsProvider(this IFixAllContext context)
-        => context.State.CodeActionOptionsProvider;
-#endif
-
 #if !CODE_STYLE
     public static ImplementTypeGenerationOptions GetImplementTypeGenerationOptions(this CodeActionOptionsProvider provider, LanguageServices languageServices)
         => new(provider.GetOptions(languageServices).ImplementTypeOptions, provider);

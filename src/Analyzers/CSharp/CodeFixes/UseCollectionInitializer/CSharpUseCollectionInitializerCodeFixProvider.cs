@@ -35,7 +35,6 @@ internal partial class CSharpUseCollectionInitializerCodeFixProvider() :
 
     protected override async Task<(SyntaxNode, SyntaxNode)> GetReplacementNodesAsync(
         Document document,
-        CodeActionOptionsProvider fallbackOptions,
         BaseObjectCreationExpressionSyntax objectCreation,
         bool useCollectionExpression,
         ImmutableArray<Match<StatementSyntax>> matches,

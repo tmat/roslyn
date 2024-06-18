@@ -193,7 +193,7 @@ public static partial class Renamer
         }
 
         return await RenameSymbolInCurrentProcessAsync(
-            solution, symbol, newName, options, fallbackOptions,
+            solution, symbol, newName, options,
             nonConflictSymbolKeys, cancellationToken).ConfigureAwait(false);
     }
 
@@ -202,7 +202,6 @@ public static partial class Renamer
         ISymbol symbol,
         string newName,
         SymbolRenameOptions options,
-        CodeCleanupOptionsProvider cleanupOptions,
         ImmutableArray<SymbolKey> nonConflictSymbolKeys,
         CancellationToken cancellationToken)
     {
@@ -217,6 +216,6 @@ public static partial class Renamer
         // without having to go through any intermediary LightweightTypes.
         var renameLocations = await SymbolicRenameLocations.FindLocationsInCurrentProcessAsync(symbol, solution, options, cancellationToken).ConfigureAwait(false);
         return await ConflictResolver.ResolveSymbolicLocationConflictsInCurrentProcessAsync(
-            renameLocations, newName, nonConflictSymbolKeys, cleanupOptions, cancellationToken).ConfigureAwait(false);
+            renameLocations, newName, nonConflictSymbolKeys, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -86,7 +86,7 @@ internal static partial class ConflictResolver
             return new ConflictResolution(WorkspacesResources.Failed_to_resolve_rename_conflicts);
 
         return await ResolveSymbolicLocationConflictsInCurrentProcessAsync(
-            heavyweightLocations, replacementText, nonConflictSymbolKeys, fallbackOptions, cancellationToken).ConfigureAwait(false);
+            heavyweightLocations, replacementText, nonConflictSymbolKeys, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -97,7 +97,6 @@ internal static partial class ConflictResolver
         SymbolicRenameLocations renameLocations,
         string replacementText,
         ImmutableArray<SymbolKey> nonConflictSymbolKeys,
-        CodeCleanupOptionsProvider fallbackOptions,
         CancellationToken cancellationToken)
     {
         // when someone e.g. renames a symbol from metadata through the API (IDE blocks this), we need to return
@@ -109,14 +108,13 @@ internal static partial class ConflictResolver
         }
 
         var resolution = await ResolveMutableConflictsAsync(
-            renameLocations, fallbackOptions, renameSymbolDeclarationLocation, replacementText, nonConflictSymbolKeys, cancellationToken).ConfigureAwait(false);
+            renameLocations, renameSymbolDeclarationLocation, replacementText, nonConflictSymbolKeys, cancellationToken).ConfigureAwait(false);
 
         return resolution.ToConflictResolution();
     }
 
     private static Task<MutableConflictResolution> ResolveMutableConflictsAsync(
         SymbolicRenameLocations renameLocationSet,
-        CodeCleanupOptionsProvider fallbackOptions,
         Location renameSymbolDeclarationLocation,
         string replacementText,
         ImmutableArray<SymbolKey> nonConflictSymbolKeys,
@@ -124,7 +122,7 @@ internal static partial class ConflictResolver
     {
         cancellationToken.ThrowIfCancellationRequested();
         var session = new Session(
-            renameLocationSet, fallbackOptions, renameSymbolDeclarationLocation, replacementText, nonConflictSymbolKeys, cancellationToken);
+            renameLocationSet, renameSymbolDeclarationLocation, replacementText, nonConflictSymbolKeys, cancellationToken);
         return session.ResolveConflictsAsync();
     }
 

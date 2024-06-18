@@ -79,7 +79,7 @@ internal sealed class AddInheritdocCodeFixProvider : SyntaxEditorBasedCodeFixPro
         }
     }
 
-    protected override async Task FixAllAsync(Document document, ImmutableArray<Diagnostic> diagnostics, SyntaxEditor editor, CodeActionOptionsProvider fallbackOptions, CancellationToken cancellationToken)
+    protected override async Task FixAllAsync(Document document, ImmutableArray<Diagnostic> diagnostics, SyntaxEditor editor, CancellationToken cancellationToken)
     {
         string? newLine = null;
         SourceText? sourceText = null;

@@ -70,8 +70,7 @@ public readonly struct CodeFixContext
 
     /// <summary>
     /// IDE supplied options to use for settings not specified in the corresponding editorconfig file.
-    /// These are not available in Code Style layer. Use <see cref="CodeActionOptionsProviders.GetOptionsProvider(CodeFixContext)"/> extension method 
-    /// to access these options in code shared with Code Style layer.
+    /// These are not available in Code Style layer.
     /// </summary>
     /// <remarks>
     /// This is a <see cref="CodeActionOptionsProvider"/> (rather than <see cref="CodeActionOptions"/> directly)

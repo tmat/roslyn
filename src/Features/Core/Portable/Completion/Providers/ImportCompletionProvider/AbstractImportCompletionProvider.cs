@@ -151,9 +151,8 @@ internal abstract class AbstractImportCompletionProvider : LSPCompletionProvider
 
         // TODO: fallback options https://github.com/dotnet/roslyn/issues/60786
         var globalOptions = document.Project.Solution.Services.GetService<ILegacyGlobalCleanCodeGenerationOptionsWorkspaceService>();
-        var fallbackOptions = globalOptions?.Provider ?? CodeActionOptions.DefaultProvider;
 
-        var addImportsOptions = await document.GetAddImportPlacementOptionsAsync(fallbackOptions, cancellationToken).ConfigureAwait(false);
+        var addImportsOptions = await document.GetAddImportPlacementOptionsAsync(cancellationToken).ConfigureAwait(false);
         var formattingOptions = await document.GetSyntaxFormattingOptionsAsync(cancellationToken).ConfigureAwait(false);
 
         var importNode = CreateImport(document, containingNamespace);
