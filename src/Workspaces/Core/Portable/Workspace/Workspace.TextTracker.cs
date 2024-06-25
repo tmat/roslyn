@@ -20,7 +20,7 @@ public partial class Workspace
         private readonly Workspace _workspace;
         private readonly DocumentId _documentId;
         internal readonly SourceTextContainer TextContainer;
-        private readonly EventHandler<TextChangeEventArgs> _weakOnTextChanged;
+        private readonly WeakEventHandler<TextChangeEventArgs> _weakOnTextChanged;
         private readonly Action<Workspace, DocumentId, SourceText, PreservationMode> _onChangedHandler;
 
         internal TextTracker(
@@ -35,14 +35,14 @@ public partial class Workspace
             _onChangedHandler = onChangedHandler;
 
             // use weak event so TextContainer cannot accidentally keep workspace alive.
-            _weakOnTextChanged = WeakEventHandler<TextChangeEventArgs>.Create(this, (target, sender, args) => target.OnTextChanged(sender, args));
+            _weakOnTextChanged = WeakEventHandler<TextChangeEventArgs>.Create(this, static (target, sender, args) => target.OnTextChanged(sender, args));
         }
 
         public void Connect()
-            => this.TextContainer.TextChanged += _weakOnTextChanged;
+            => this.TextContainer.TextChanged += _weakOnTextChanged.Handler;
 
         public void Disconnect()
-            => this.TextContainer.TextChanged -= _weakOnTextChanged;
+            => this.TextContainer.TextChanged -= _weakOnTextChanged.Handler;
 
         private void OnTextChanged(object sender, TextChangeEventArgs e)
         {

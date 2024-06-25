@@ -11,21 +11,23 @@ internal partial class TaggerEventSources
 {
     private sealed class GlobalOptionChangedEventSource(IGlobalOptionService globalOptions, Func<IOption2, bool> predicate) : AbstractTaggerEventSource
     {
+        private readonly Func<IOption2, bool> _predicate = predicate;
+
         public override void Connect()
         {
-            globalOptions.AddOptionChangedHandler(this, OnGlobalOptionChanged);
+            globalOptions.AddOptionChangedHandler(WeakEventHandler<OptionChangedEventArgs>.Create(this, OnGlobalOptionChanged));
         }
 
         public override void Disconnect()
         {
-            globalOptions.RemoveOptionChangedHandler(this, OnGlobalOptionChanged);
+            globalOptions.RemoveOptionChangedHandler(WeakEventHandler<OptionChangedEventArgs>.Create(this, OnGlobalOptionChanged));
         }
 
-        private void OnGlobalOptionChanged(object? sender, OptionChangedEventArgs e)
+        private static void OnGlobalOptionChanged(GlobalOptionChangedEventSource self, OptionChangedEventArgs e)
         {
-            if (e.HasOption(predicate))
+            if (e.HasOption(self._predicate))
             {
-                RaiseChanged();
+                self.RaiseChanged();
             }
         }
     }

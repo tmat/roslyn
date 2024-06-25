@@ -12,6 +12,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler.InlayHint
     internal class InlayHintRefreshQueue : AbstractRefreshQueue
     {
         private readonly IGlobalOptionService _globalOptionService;
+        private readonly WeakEventHandler<OptionChangedEventArgs> _onOptionChanged;
 
         public InlayHintRefreshQueue(
             IAsynchronousOperationListenerProvider asynchronousOperationListenerProvider,
@@ -22,16 +23,17 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler.InlayHint
             : base(asynchronousOperationListenerProvider, lspWorkspaceRegistrationService, lspWorkspaceManager, notificationManager)
         {
             _globalOptionService = globalOptionService;
-            _globalOptionService.AddOptionChangedHandler(this, OnOptionChanged);
+            _onOptionChanged = WeakEventHandler<OptionChangedEventArgs>.Create(this, OnOptionChanged);
+            _globalOptionService.AddOptionChangedHandler(_onOptionChanged);
         }
 
         public override void Dispose()
         {
             base.Dispose();
-            _globalOptionService.RemoveOptionChangedHandler(this, OnOptionChanged);
+            _globalOptionService.RemoveOptionChangedHandler(_onOptionChanged);
         }
 
-        private void OnOptionChanged(object? sender, OptionChangedEventArgs e)
+        private static void OnOptionChanged(InlayHintRefreshQueue self, OptionChangedEventArgs e)
         {
             if (e.HasOption(static option =>
                     option.Equals(InlineHintsOptionsStorage.EnabledForParameters) ||
@@ -48,7 +50,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler.InlayHint
                     option.Equals(InlineHintsOptionsStorage.ForImplicitObjectCreation) ||
                     option.Equals(InlineHintsOptionsStorage.ForCollectionExpressions)))
             {
-                EnqueueRefreshNotification(documentUri: null);
+                self.EnqueueRefreshNotification(documentUri: null);
             }
         }
 

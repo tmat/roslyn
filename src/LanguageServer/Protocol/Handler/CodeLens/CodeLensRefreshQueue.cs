@@ -22,7 +22,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler.CodeLens
             : base(asynchronousOperationListenerProvider, lspWorkspaceRegistrationService, lspWorkspaceManager, notificationManager)
         {
             _globalOptionService = globalOptionService;
-            _globalOptionService.AddOptionChangedHandler(this, OnOptionChanged);
+            _globalOptionService.AddOptionChangedHandler(WeakEventHandler<OptionChangedEventArgs>.Create(this, OnOptionChanged));
         }
 
         protected override string GetFeatureAttribute()
@@ -38,18 +38,18 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler.CodeLens
             return Methods.WorkspaceCodeLensRefreshName;
         }
 
-        private void OnOptionChanged(object? sender, OptionChangedEventArgs e)
+        private static void OnOptionChanged(CodeLensRefreshQueue self, OptionChangedEventArgs args)
         {
-            if (e.HasOption(static option => option.Equals(LspOptionsStorage.LspEnableReferencesCodeLens) || option.Equals(LspOptionsStorage.LspEnableTestsCodeLens)))
+            if (args.HasOption(static option => option.Equals(LspOptionsStorage.LspEnableReferencesCodeLens) || option.Equals(LspOptionsStorage.LspEnableTestsCodeLens)))
             {
-                EnqueueRefreshNotification(documentUri: null);
+                self.EnqueueRefreshNotification(documentUri: null);
             }
         }
 
         public override void Dispose()
         {
             base.Dispose();
-            _globalOptionService.RemoveOptionChangedHandler(this, OnOptionChanged);
+            _globalOptionService.RemoveOptionChangedHandler(WeakEventHandler<OptionChangedEventArgs>.Create(this, OnOptionChanged));
         }
     }
 }

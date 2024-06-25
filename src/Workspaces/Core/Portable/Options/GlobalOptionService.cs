@@ -35,7 +35,7 @@ internal sealed class GlobalOptionService(
 
     #endregion
 
-    private readonly WeakEvent<OptionChangedEventArgs> _optionChanged = new();
+    private WeakEventHandler<OptionChangedEventArgs> _optionChanged;
 
     private ImmutableArray<IOptionPersister> GetOptionPersisters()
     {
@@ -254,20 +254,20 @@ internal sealed class GlobalOptionService(
         return true;
     }
 
-    public void AddOptionChangedHandler(object target, EventHandler<OptionChangedEventArgs> handler)
+    public void AddOptionChangedHandler(WeakEventHandler<OptionChangedEventArgs> handler)
     {
-        _optionChanged.AddHandler(target, handler);
+        _optionChanged += handler;
     }
 
-    public void RemoveOptionChangedHandler(object target, EventHandler<OptionChangedEventArgs> handler)
+    public void RemoveOptionChangedHandler(WeakEventHandler<OptionChangedEventArgs> handler)
     {
-        _optionChanged.RemoveHandler(target, handler);
+        _optionChanged -= handler;
     }
 
     private void RaiseOptionChangedEvent(ImmutableArray<(OptionKey2, object?)> changedOptions)
     {
         Debug.Assert(!changedOptions.IsEmpty);
-        _optionChanged.RaiseEvent(this, new OptionChangedEventArgs(changedOptions));
+        _optionChanged.Invoke(null, new OptionChangedEventArgs(changedOptions));
     }
 
     internal TestAccessor GetTestAccessor()
