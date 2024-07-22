@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../FeaturesResources.resx">
     <body>
+      <trans-unit id="0_1_must_be_static_and_non_generic">
+        <source>{0} '{1}' must be static and non-generic</source>
+        <target state="new">{0} '{1}' must be static and non-generic</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="0_1_must_have_a_single_parameter_of_one_of_the_following_types_2">
+        <source>{0} '{1}' must have a single parameter of one of the following types: '{2}'</source>
+        <target state="new">{0} '{1}' must have a single parameter of one of the following types: '{2}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="0_1_must_return_2">
+        <source>{0} '{1}' must return '{2}'</source>
+        <target state="new">{0} '{1}' must return '{2}'</target>
+        <note />
+      </trans-unit>
       <trans-unit id="0_directive">
         <source>#{0} directive</source>
         <target state="translated">direttiva #{0}</target>
@@ -1155,14 +1170,9 @@ Assicurarsi di usare l'identificatore "tt" per le lingue per le quali è necessa
         <target state="translated">{0} deve restituire un flusso che supporta operazioni di lettura e ricerca.</target>
         <note />
       </trans-unit>
-      <trans-unit id="Method_0_must_be_static_and_non_generic">
-        <source>Method '{0}' must be static and non-generic</source>
-        <target state="new">Method '{0}' must be static and non-generic</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Method_0_must_have_a_single_parameter_of_type_1_and_return_2">
-        <source>Method '{0}' must have a single parameter of type '{1}' and return '{2}'</source>
-        <target state="new">Method '{0}' must have a single parameter of type '{1}' and return '{2}'</target>
+      <trans-unit id="Method_0_has_an_unexpected_signature_1">
+        <source>Method '{0}' has an unexpected signature: {1}</source>
+        <target state="new">Method '{0}' has an unexpected signature: {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="Miscellaneous_Files">
@@ -2750,9 +2760,9 @@ Le asserzioni lookbehind positive di larghezza zero vengono usate in genere all'
         <target state="translated">L'assembly dell'analizzatore '{0}' fa riferimento alla versione '{1}' del compilatore, che è più recente della versione attualmente in esecuzione '{2}'.</target>
         <note />
       </trans-unit>
-      <trans-unit id="The_query_does_not_specify_0_method_or_top_level_function">
-        <source>The query does not specify '{0}' method or top-level function</source>
-        <target state="new">The query does not specify '{0}' method or top-level function</target>
+      <trans-unit id="The_query_does_not_specify_0_1">
+        <source>The query does not specify {0} '{1}'</source>
+        <target state="new">The query does not specify {0} '{1}'</target>
         <note />
       </trans-unit>
       <trans-unit id="The_selection_contains_a_local_function_call_without_its_declaration">
@@ -2808,6 +2818,11 @@ Le asserzioni lookbehind positive di larghezza zero vengono usate in genere all'
       <trans-unit id="UnableToReadSourceFileOrPdb">
         <source>Unable to read source file '{0}' or the PDB built for the containing project. Any changes made to this file while debugging won't be applied until its content matches the built source.</source>
         <target state="translated">Non è possibile leggere il file di origine '{0}' o il file PDB compilato per il progetto contenitore. Tutte le modifiche apportate a questo file durante il debug non verranno applicate finché il relativo contenuto non corrisponde al codice sorgente compilato.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Unable_to_load_method_0_1">
+        <source>Unable to load method '{0}': '{1}'</source>
+        <target state="new">Unable to load method '{0}': '{1}'</target>
         <note />
       </trans-unit>
       <trans-unit id="Unable_to_load_type_0_1">

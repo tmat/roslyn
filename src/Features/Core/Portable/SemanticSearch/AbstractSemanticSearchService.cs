@@ -264,10 +264,10 @@ internal abstract partial class AbstractSemanticSearchService : ISemanticSearchS
         }
     }
 
-    private static Task[] GetSearchTasks(Solution solution, IMethodSymbol findMethod, TargetEntity targetEntity, string? targetLanguage)
-    {
+    //private static Task[] GetSearchTasks(Solution solution, IMethodSymbol findMethod, TargetEntity targetEntity, string? targetLanguage)
+    //{
 
-    }
+    //}
 
     private static ImmutableArray<TaggedText> GetExceptionTypeTaggedText(Exception e, Compilation compilation)
         => e.GetType().FullName is { } exceptionTypeName

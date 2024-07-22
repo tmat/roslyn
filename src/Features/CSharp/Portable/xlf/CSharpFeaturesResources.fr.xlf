@@ -212,6 +212,11 @@
         <target state="translated">Conflit(s) détecté(s).</target>
         <note />
       </trans-unit>
+      <trans-unit id="Local_function">
+        <source>Local function</source>
+        <target state="new">Local function</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Make_private_field_readonly_when_possible">
         <source>Make private fields readonly when possible</source>
         <target state="translated">Configurer les champs privés en lecture seule quand cela est possible</target>

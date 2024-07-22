@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../FeaturesResources.resx">
     <body>
+      <trans-unit id="0_1_must_be_static_and_non_generic">
+        <source>{0} '{1}' must be static and non-generic</source>
+        <target state="new">{0} '{1}' must be static and non-generic</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="0_1_must_have_a_single_parameter_of_one_of_the_following_types_2">
+        <source>{0} '{1}' must have a single parameter of one of the following types: '{2}'</source>
+        <target state="new">{0} '{1}' must have a single parameter of one of the following types: '{2}'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="0_1_must_return_2">
+        <source>{0} '{1}' must return '{2}'</source>
+        <target state="new">{0} '{1}' must return '{2}'</target>
+        <note />
+      </trans-unit>
       <trans-unit id="0_directive">
         <source>#{0} directive</source>
         <target state="translated">Direktiva #{0}</target>
@@ -1155,14 +1170,9 @@ Ujistěte se, že specifikátor tt použijete pro jazyky, pro které je nezbytn�
         <target state="translated">Metoda {0} musí vrátit stream, který podporuje operace čtení a hledání.</target>
         <note />
       </trans-unit>
-      <trans-unit id="Method_0_must_be_static_and_non_generic">
-        <source>Method '{0}' must be static and non-generic</source>
-        <target state="new">Method '{0}' must be static and non-generic</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="Method_0_must_have_a_single_parameter_of_type_1_and_return_2">
-        <source>Method '{0}' must have a single parameter of type '{1}' and return '{2}'</source>
-        <target state="new">Method '{0}' must have a single parameter of type '{1}' and return '{2}'</target>
+      <trans-unit id="Method_0_has_an_unexpected_signature_1">
+        <source>Method '{0}' has an unexpected signature: {1}</source>
+        <target state="new">Method '{0}' has an unexpected signature: {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="Miscellaneous_Files">
@@ -2750,9 +2760,9 @@ Pozitivní kontrolní výrazy zpětného vyhledávání s nulovou délkou se obv
         <target state="translated">Sestavení analyzátoru {0} odkazuje na verzi {1} kompilátoru, která je novější než aktuálně spuštěná verze {2}.</target>
         <note />
       </trans-unit>
-      <trans-unit id="The_query_does_not_specify_0_method_or_top_level_function">
-        <source>The query does not specify '{0}' method or top-level function</source>
-        <target state="new">The query does not specify '{0}' method or top-level function</target>
+      <trans-unit id="The_query_does_not_specify_0_1">
+        <source>The query does not specify {0} '{1}'</source>
+        <target state="new">The query does not specify {0} '{1}'</target>
         <note />
       </trans-unit>
       <trans-unit id="The_selection_contains_a_local_function_call_without_its_declaration">
@@ -2808,6 +2818,11 @@ Pozitivní kontrolní výrazy zpětného vyhledávání s nulovou délkou se obv
       <trans-unit id="UnableToReadSourceFileOrPdb">
         <source>Unable to read source file '{0}' or the PDB built for the containing project. Any changes made to this file while debugging won't be applied until its content matches the built source.</source>
         <target state="translated">Není možné přečíst zdrojový soubor {0} nebo soubor PDB sestavený pro projekt, který tyto soubory obsahuje. Případné změny provedené v tomto souboru během ladění se nepoužijí, dokud se jeho obsah nebude shodovat se sestaveným zdrojem.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Unable_to_load_method_0_1">
+        <source>Unable to load method '{0}': '{1}'</source>
+        <target state="new">Unable to load method '{0}': '{1}'</target>
         <note />
       </trans-unit>
       <trans-unit id="Unable_to_load_type_0_1">
