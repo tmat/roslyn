@@ -29,7 +29,6 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
         private readonly IncrementalMemberEditAnalyzer _incrementalMemberEditAnalyzer = new();
 
         internal DiagnosticAnalyzerService AnalyzerService { get; }
-        internal Workspace Workspace { get; }
 
         [Obsolete(MefConstruction.FactoryMethodMessage, error: true)]
         public DiagnosticIncrementalAnalyzer(
@@ -40,7 +39,6 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
             Contract.ThrowIfNull(analyzerService);
 
             AnalyzerService = analyzerService;
-            Workspace = workspace;
 
             _stateManager = new StateManager(workspace, analyzerInfoCache);
             _stateManager.ProjectAnalyzerReferenceChanged += OnProjectAnalyzerReferenceChanged;
