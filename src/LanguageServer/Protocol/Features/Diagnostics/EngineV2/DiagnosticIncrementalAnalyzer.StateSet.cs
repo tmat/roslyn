@@ -18,7 +18,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
             public readonly string Language;
             public readonly DiagnosticAnalyzer Analyzer;
 
-            private readonly ConcurrentDictionary<DocumentId, ActiveFileState> _activeFileStates;
+            private readonly ConcurrentSet<DocumentId> _activeDocuments;
             private readonly ConcurrentDictionary<ProjectId, ProjectState> _projectStates;
 
             public StateSet(string language, DiagnosticAnalyzer analyzer)
@@ -26,21 +26,21 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
                 Language = language;
                 Analyzer = analyzer;
 
-                _activeFileStates = new ConcurrentDictionary<DocumentId, ActiveFileState>(concurrencyLevel: 2, capacity: 10);
+                _activeDocuments = new ConcurrentSet<DocumentId>();
                 _projectStates = new ConcurrentDictionary<ProjectId, ProjectState>(concurrencyLevel: 2, capacity: 1);
             }
 
             public bool FromBuild(ProjectId projectId)
                 => _projectStates.TryGetValue(projectId, out var projectState) && projectState.FromBuild;
 
-            public bool TryGetActiveFileState(DocumentId documentId, [NotNullWhen(true)] out ActiveFileState? state)
-                => _activeFileStates.TryGetValue(documentId, out state);
+            public bool IsActive(DocumentId documentId)
+                => _activeDocuments.Contains(documentId);
 
             public bool TryGetProjectState(ProjectId projectId, [NotNullWhen(true)] out ProjectState? state)
                 => _projectStates.TryGetValue(projectId, out state);
 
-            public ActiveFileState GetOrCreateActiveFileState(DocumentId documentId)
-                => _activeFileStates.GetOrAdd(documentId, id => new ActiveFileState(id));
+            public void SetActiveDocument(DocumentId documentId)
+                => _activeDocuments.Add(documentId);
 
             public ProjectState GetOrCreateProjectState(ProjectId projectId)
                 => _projectStates.GetOrAdd(projectId, static (id, self) => new ProjectState(self, id), this);

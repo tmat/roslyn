@@ -86,8 +86,5 @@ namespace Microsoft.CodeAnalysis.Diagnostics.EngineV2
 
         private static string GetProjectLogMessage(Project project, ImmutableArray<StateSet> stateSets)
             => $"project: ({project.Id}), ({string.Join(Environment.NewLine, stateSets.Select(s => s.Analyzer.ToString()))})";
-
-        private static string GetOpenLogMessage(TextDocument document)
-            => $"document open: ({document.FilePath ?? document.Name})";
     }
 }
