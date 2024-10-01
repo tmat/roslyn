@@ -304,6 +304,9 @@ namespace Microsoft.CodeAnalysis.MSBuild
                                 language: language,
                                 compilationOutputInfo: new CompilationOutputInfo(projectFileInfo.IntermediateOutputFilePath),
                                 checksumAlgorithm: SourceHashAlgorithms.Default,
+                                outputFilePath: projectFileInfo.OutputFilePath,
+                                outputRefFilePath: projectFileInfo.OutputRefFilePath,
+                                generatedFilesOutputDirectory: projectFileInfo.GeneratedFilesOutputDirectory,
                                 filePath: projectPath),
                             compilationOptions: compilationOptions,
                             parseOptions: parseOptions));
@@ -375,6 +378,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
                             filePath: projectPath,
                             outputFilePath: projectFileInfo.OutputFilePath,
                             outputRefFilePath: projectFileInfo.OutputRefFilePath,
+                            generatedFilesOutputDirectory: projectFileInfo.GeneratedFilesOutputDirectory,
                             isSubmission: false),
                         compilationOptions: compilationOptions,
                         parseOptions: parseOptions,
@@ -385,8 +389,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
                         additionalDocuments: additionalDocuments,
                         hostObjectType: null)
                         .WithDefaultNamespace(projectFileInfo.DefaultNamespace)
-                        .WithAnalyzerConfigDocuments(analyzerConfigDocuments)
-                        .WithCompilationOutputInfo(new CompilationOutputInfo(projectFileInfo.OutputFilePath));
+                        .WithAnalyzerConfigDocuments(analyzerConfigDocuments);
                 });
             }
 

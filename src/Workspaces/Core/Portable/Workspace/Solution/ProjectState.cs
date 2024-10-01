@@ -521,6 +521,9 @@ internal sealed partial class ProjectState
     public string? OutputRefFilePath => this.ProjectInfo.OutputRefFilePath;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+    public string? GeneratedFilesOutputDirectory => this.ProjectInfo.GeneratedFilesOutputDirectory;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
     public CompilationOutputInfo CompilationOutputInfo => this.ProjectInfo.CompilationOutputInfo;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
@@ -602,6 +605,22 @@ internal sealed partial class ProjectState
         => ProjectInfo.Attributes;
 
     /// <summary>
+    /// True if the project has an absolute generated source file output path.
+    /// 
+    /// Required in order for generators to be activated.
+    /// Otherwise, the compiler and IDE wouldn't agree on the file paths of source-generated files,
+    /// which might cause different metadata to be emitted for file-scoped classes during EnC and compilation.
+    /// </summary>
+    internal bool HasEffectiveGeneratedFilesOutputDirectory
+        => PathUtilities.IsAbsolute(GeneratedFilesOutputDirectory ?? CompilationOutputInfo.AssemblyPath);
+
+    /// <summary>
+    /// Absolute path of a directory used to produce absolute file paths of source generated files.
+    /// </summary>
+    internal string? GetEffectiveGeneratedFilesOutputDirectory()
+        => HasEffectiveGeneratedFilesOutputDirectory ? GeneratedFilesOutputDirectory ?? PathUtilities.GetDirectoryName(CompilationOutputInfo.AssemblyPath) : null;
+
+    /// <summary>
     /// Updates <see cref="ProjectInfo"/> to a newer version of attributes.
     /// </summary>
     private ProjectState WithNewerAttributes(ProjectInfo.ProjectAttributes attributes)
@@ -626,6 +645,9 @@ internal sealed partial class ProjectState
 
     public ProjectState WithOutputRefFilePath(string? outputRefFilePath)
         => (outputRefFilePath == OutputRefFilePath) ? this : WithNewerAttributes(Attributes.With(outputRefPath: outputRefFilePath, version: Version.GetNewerVersion()));
+
+    public ProjectState WithGeneratedFilesOutputDirectory(string? path)
+        => (path == GeneratedFilesOutputDirectory) ? this : WithNewerAttributes(Attributes.With(generatedFilesOutputDirectory: path, version: Version.GetNewerVersion()));
 
     public ProjectState WithCompilationOutputInfo(in CompilationOutputInfo info)
         => (info == CompilationOutputInfo) ? this : WithNewerAttributes(Attributes.With(compilationOutputInfo: info, version: Version.GetNewerVersion()));

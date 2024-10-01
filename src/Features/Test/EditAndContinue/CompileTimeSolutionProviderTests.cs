@@ -32,7 +32,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
             var designTimeFilePath = Path.Combine(TempRoot.Root, "a", $"X.{kind}.g.cs");
 
             var generator = new TestSourceGenerator() { ExecuteImpl = context => context.AddSource($"a_X_{kind}.g.cs", "") };
-            var sourceGeneratedPathPrefix = Path.Combine(typeof(TestSourceGenerator).Assembly.GetName().Name!, typeof(TestSourceGenerator).FullName);
+            var sourceGeneratedPathPrefix = Path.Combine(TempRoot.Root, typeof(TestSourceGenerator).Assembly.GetName().Name!, typeof(TestSourceGenerator).FullName);
             var analyzerConfigId = DocumentId.CreateNewId(projectId);
             var documentId = DocumentId.CreateNewId(projectId);
             var additionalDocumentId = DocumentId.CreateNewId(projectId);
@@ -40,6 +40,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
             var designTimeSolution = workspace.CurrentSolution.
                 AddProject(ProjectInfo.Create(projectId, VersionStamp.Default, "proj", "proj", LanguageNames.CSharp, filePath: projectFilePath)).
+                WithProjectGeneratedFilesOutputDirectory(projectId, TempRoot.Root).
                 WithProjectMetadataReferences(projectId, TargetFrameworkUtil.GetReferences(TargetFramework.NetStandard20)).
                 AddAnalyzerReference(projectId, new TestGeneratorReference(generator)).
                 AddAdditionalDocument(additionalDocumentId, "additional", SourceText.From(""), filePath: additionalFilePath).
@@ -107,6 +108,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue.UnitTests
 
             workspace.SetCurrentSolution(s => s.
                 AddProject(ProjectInfo.Create(projectId, VersionStamp.Default, "proj", "proj", LanguageNames.CSharp)).
+                WithProjectGeneratedFilesOutputDirectory(projectId, TempRoot.Root).
                 AddAnalyzerReference(projectId, new TestGeneratorReference(generator)).
                 AddAdditionalDocument(additionalDocumentId, "additional", SourceText.From(""), filePath: "additional.razor").
                 AddAnalyzerConfigDocument(analyzerConfigId, "config", SourceText.From(analyzerConfigText), filePath: "Z:\\RazorSourceGenerator.razorencconfig"),

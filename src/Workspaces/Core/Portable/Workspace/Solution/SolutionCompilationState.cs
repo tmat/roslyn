@@ -432,6 +432,15 @@ internal sealed partial class SolutionCompilationState
             forkTracker: true);
     }
 
+    /// <inheritdoc cref="SolutionState.WithProjectGeneratedFilesOutputDirectory"/>
+    public SolutionCompilationState WithProjectGeneratedFilesOutputDirectory(ProjectId projectId, string? path)
+    {
+        return ForkProject(
+            this.SolutionState.WithProjectGeneratedFilesOutputDirectory(projectId, path),
+            translate: null,
+            forkTracker: true);
+    }
+
     /// <inheritdoc cref="SolutionState.WithProjectCompilationOutputInfo"/>
     public SolutionCompilationState WithProjectCompilationOutputInfo(
         ProjectId projectId, in CompilationOutputInfo info)
@@ -570,6 +579,7 @@ internal sealed partial class SolutionCompilationState
             .WithProjectFilePath(projectId, attributes.FilePath)
             .WithProjectOutputFilePath(projectId, attributes.OutputFilePath)
             .WithProjectOutputRefFilePath(projectId, attributes.OutputRefFilePath)
+            .WithProjectGeneratedFilesOutputDirectory(projectId, attributes.GeneratedFilesOutputDirectory)
             .WithProjectCompilationOutputInfo(projectId, attributes.CompilationOutputInfo)
             .WithProjectDefaultNamespace(projectId, attributes.DefaultNamespace)
             .WithHasAllInformation(projectId, attributes.HasAllInformation)

@@ -64,6 +64,11 @@ public sealed class ProjectInfo
     public string? OutputRefFilePath => Attributes.OutputRefFilePath;
 
     /// <summary>
+    /// The path to the root directory of source generated files, or null if it is not known.
+    /// </summary>
+    public string? GeneratedFilesOutputDirectory => Attributes.GeneratedFilesOutputDirectory;
+
+    /// <summary>
     /// The path to the compiler output file (module or assembly).
     /// </summary>
     public CompilationOutputInfo CompilationOutputInfo => Attributes.CompilationOutputInfo;
@@ -236,6 +241,7 @@ public sealed class ProjectInfo
                 filePath: filePath,
                 outputFilePath: outputFilePath,
                 outputRefFilePath: outputRefFilePath,
+                generatedFilesOutputDirectory: null,
                 telemetryId: default,
                 isSubmission,
                 hasAllInformation: true,
@@ -347,6 +353,9 @@ public sealed class ProjectInfo
     public ProjectInfo WithOutputRefFilePath(string? outputRefFilePath)
         => With(attributes: Attributes.With(outputRefPath: outputRefFilePath));
 
+    public ProjectInfo WithGeneratedFilesOutputDirectory(string? path)
+        => With(attributes: Attributes.With(generatedFilesOutputDirectory: path));
+
     public ProjectInfo WithCompilationOutputInfo(in CompilationOutputInfo info)
         => With(attributes: Attributes.With(compilationOutputInfo: info));
 
@@ -410,6 +419,7 @@ public sealed class ProjectInfo
         string? filePath = null,
         string? outputFilePath = null,
         string? outputRefFilePath = null,
+        string? generatedFilesOutputDirectory = null,
         Guid telemetryId = default,
         bool isSubmission = false,
         bool hasAllInformation = true,
@@ -459,6 +469,11 @@ public sealed class ProjectInfo
         /// The path to the reference assembly output file.
         /// </summary>
         public string? OutputRefFilePath { get; } = outputRefFilePath;
+
+        /// <summary>
+        /// The path to the root directory of source generated files, or null if it is not known.
+        /// </summary>
+        public string? GeneratedFilesOutputDirectory { get; } = generatedFilesOutputDirectory;
 
         /// <summary>
         /// Paths to the compiler output files.
@@ -521,6 +536,7 @@ public sealed class ProjectInfo
             Optional<string?> filePath = default,
             Optional<string?> outputPath = default,
             Optional<string?> outputRefPath = default,
+            Optional<string?> generatedFilesOutputDirectory = default,
             Optional<CompilationOutputInfo> compilationOutputInfo = default,
             Optional<string?> defaultNamespace = default,
             Optional<SourceHashAlgorithm> checksumAlgorithm = default,
@@ -536,6 +552,7 @@ public sealed class ProjectInfo
             var newFilePath = filePath.HasValue ? filePath.Value : FilePath;
             var newOutputPath = outputPath.HasValue ? outputPath.Value : OutputFilePath;
             var newOutputRefPath = outputRefPath.HasValue ? outputRefPath.Value : OutputRefFilePath;
+            var newGeneratedFilesOutputDirectory = generatedFilesOutputDirectory.HasValue ? generatedFilesOutputDirectory.Value : GeneratedFilesOutputDirectory;
             var newCompilationOutputPaths = compilationOutputInfo.HasValue ? compilationOutputInfo.Value : CompilationOutputInfo;
             var newDefaultNamespace = defaultNamespace.HasValue ? defaultNamespace.Value : DefaultNamespace;
             var newChecksumAlgorithm = checksumAlgorithm.HasValue ? checksumAlgorithm.Value : ChecksumAlgorithm;
@@ -551,6 +568,7 @@ public sealed class ProjectInfo
                 newFilePath == FilePath &&
                 newOutputPath == OutputFilePath &&
                 newOutputRefPath == OutputRefFilePath &&
+                newGeneratedFilesOutputDirectory == GeneratedFilesOutputDirectory &&
                 newCompilationOutputPaths == CompilationOutputInfo &&
                 newDefaultNamespace == DefaultNamespace &&
                 newChecksumAlgorithm == ChecksumAlgorithm &&
@@ -574,6 +592,7 @@ public sealed class ProjectInfo
                 filePath: newFilePath,
                 outputFilePath: newOutputPath,
                 outputRefFilePath: newOutputRefPath,
+                generatedFilesOutputDirectory: newGeneratedFilesOutputDirectory,
                 newTelemetryId,
                 newIsSubmission,
                 newHasAllInformation,
@@ -593,6 +612,7 @@ public sealed class ProjectInfo
             writer.WriteString(FilePath);
             writer.WriteString(OutputFilePath);
             writer.WriteString(OutputRefFilePath);
+            writer.WriteString(GeneratedFilesOutputDirectory);
             CompilationOutputInfo.WriteTo(writer);
             writer.WriteString(DefaultNamespace);
             writer.WriteByte(checked((byte)ChecksumAlgorithm));
@@ -616,6 +636,7 @@ public sealed class ProjectInfo
             var filePath = reader.ReadString();
             var outputFilePath = reader.ReadString();
             var outputRefFilePath = reader.ReadString();
+            var generatedFilesOutputDirectory = reader.ReadString();
             var compilationOutputFilePaths = CompilationOutputInfo.ReadFrom(reader);
             var defaultNamespace = reader.ReadString();
             var checksumAlgorithm = (SourceHashAlgorithm)reader.ReadByte();
@@ -636,6 +657,7 @@ public sealed class ProjectInfo
                 filePath: filePath,
                 outputFilePath: outputFilePath,
                 outputRefFilePath: outputRefFilePath,
+                generatedFilesOutputDirectory: generatedFilesOutputDirectory,
                 telemetryId,
                 isSubmission: isSubmission,
                 hasAllInformation: hasAllInformation,

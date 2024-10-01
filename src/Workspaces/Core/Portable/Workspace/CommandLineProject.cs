@@ -112,6 +112,8 @@ public static class CommandLineProject
 
         // TODO (tomat): what should be the assemblyName when compiling a netmodule? Should it be /moduleassemblyname
 
+        var outputFilePath = commandLineArguments.OutputFileName != null ? commandLineArguments.GetOutputFilePath(commandLineArguments.OutputFileName) : null;
+
         var projectInfo = ProjectInfo.Create(
             new ProjectInfo.ProjectAttributes(
                 id: projectId,
@@ -119,7 +121,10 @@ public static class CommandLineProject
                 name: projectName,
                 assemblyName: assemblyName,
                 language: language,
-                compilationOutputInfo: new CompilationOutputInfo(commandLineArguments.OutputFileName != null ? commandLineArguments.GetOutputFilePath(commandLineArguments.OutputFileName) : null),
+                compilationOutputInfo: new CompilationOutputInfo(outputFilePath),
+                outputFilePath: outputFilePath,
+                outputRefFilePath: commandLineArguments.OutputRefFilePath,
+                generatedFilesOutputDirectory: commandLineArguments.GeneratedFilesOutputDirectory,
                 checksumAlgorithm: commandLineArguments.ChecksumAlgorithm),
             compilationOptions: commandLineArguments.CompilationOptions
                 .WithXmlReferenceResolver(xmlFileResolver)

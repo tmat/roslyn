@@ -552,6 +552,22 @@ internal sealed partial class SolutionState
     }
 
     /// <summary>
+    /// Creates a new solution instance with the project specified updated to have the generated files output directory.
+    /// </summary>
+    public StateChange WithProjectGeneratedFilesOutputDirectory(ProjectId projectId, string? path)
+    {
+        var oldProject = GetRequiredProjectState(projectId);
+        var newProject = oldProject.WithGeneratedFilesOutputDirectory(path);
+
+        if (oldProject == newProject)
+        {
+            return new(this, oldProject, newProject);
+        }
+
+        return ForkProject(oldProject, newProject);
+    }
+
+    /// <summary>
     /// Creates a new solution instance with the project specified updated to have the compiler output file path.
     /// </summary>
     public StateChange WithProjectCompilationOutputInfo(ProjectId projectId, in CompilationOutputInfo info)

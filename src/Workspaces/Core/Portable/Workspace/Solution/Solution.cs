@@ -416,6 +416,20 @@ public partial class Solution
     }
 
     /// <summary>
+    /// Creates a new solution instance with the project specified updated to have the generated files output directory.
+    /// </summary>
+    public Solution WithProjectGeneratedFilesOutputDirectory(ProjectId projectId, string? path)
+    {
+        CheckContainsProject(projectId);
+        if (path != null && !PathUtilities.IsAbsolute(path))
+        {
+            throw new ArgumentException(WorkspacesResources.AbsolutePathExpected, nameof(path));
+        }
+
+        return WithCompilationState(CompilationState.WithProjectGeneratedFilesOutputDirectory(projectId, path));
+    }
+
+    /// <summary>
     /// Creates a new solution instance with the project specified updated to have the compiler output file path.
     /// </summary>
     public Solution WithProjectCompilationOutputInfo(ProjectId projectId, in CompilationOutputInfo info)

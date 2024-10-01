@@ -429,6 +429,7 @@ namespace Roslyn.VisualStudio.Next.UnitTests.Remote
                 var project = localWorkspace.CurrentSolution
                     .AddProject(ProjectInfo.Create(projectId, VersionStamp.Default, name: "Test", assemblyName: "Test", language: LanguageNames.CSharp))
                     .GetRequiredProject(projectId)
+                    .WithGeneratedFilesOutputDirectory(TempRoot.Root)
                     .AddAnalyzerReference(analyzerReference);
                 var tempDoc = project.AddDocument("X.cs", SourceText.From("// "));
                 tempDocId = tempDoc.Id;
@@ -765,6 +766,7 @@ namespace Roslyn.VisualStudio.Next.UnitTests.Remote
             var project = workspace.CurrentSolution
                 .AddProject(ProjectInfo.Create(projectId, VersionStamp.Default, name: "Test", assemblyName: "Test", language: LanguageNames.CSharp))
                 .GetRequiredProject(projectId)
+                .WithGeneratedFilesOutputDirectory(TempRoot.Root)
                 .AddAnalyzerReference(analyzerReference);
             var tempDoc = project.AddDocument("X.cs", SourceText.From("// "));
 

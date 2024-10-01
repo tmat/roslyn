@@ -127,6 +127,7 @@ internal sealed partial class ProjectSystemProjectFactory
                 language,
                 compilationOutputInfo: new(creationInfo.CompilationOutputAssemblyFilePath),
                 SourceHashAlgorithms.Default, // will be updated when command line is set
+                outputFilePath: creationInfo.CompilationOutputAssemblyFilePath,
                 filePath: creationInfo.FilePath,
                 telemetryId: creationInfo.TelemetryId),
             compilationOptions: creationInfo.CompilationOptions,
