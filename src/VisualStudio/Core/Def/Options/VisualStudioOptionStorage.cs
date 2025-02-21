@@ -429,5 +429,9 @@ internal abstract class VisualStudioOptionStorage
         {"dotnet_reload_changed_analyzer_references", new RoamingProfileStorage("TextEditor.Roslyn.Specific.ReloadChangedAnalyzerReferences")},
         {"dotnet_reload_changed_analyzer_references_feature_flag", new FeatureFlagStorage(@"Roslyn.ReloadChangedAnalyzerReferences")},
         {"xaml_enable_lsp_intellisense", new FeatureFlagStorage(@"Xaml.EnableLspIntelliSense")},
+        {"copilot_enable_code_analysis", new RoamingProfileStorage("Microsoft.VisualStudio.Conversations.EnableCSharpCodeAnalysis")},
+        {"copilot_enable_refine_quick_action_suggestion", new RoamingProfileStorage("Microsoft.VisualStudio.Conversations.EnableCSharpRefineQuickActionSuggestion")},
+        {"copilot_enable_on_the_fly_docs", new RoamingProfileStorage("Microsoft.VisualStudio.Conversations.EnableOnTheFlyDocs")},
+        {"copilot_enable_doc_comment_generation", new RoamingProfileStorage("Microsoft.VisualStudio.Conversations.EnableCSharpGenerateDocumentationComment")},
     };
 }
