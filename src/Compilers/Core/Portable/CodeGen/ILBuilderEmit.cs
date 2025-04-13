@@ -363,7 +363,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <summary>
         /// Generates code that creates an instance of multidimensional array
         /// </summary>
-        internal void EmitArrayCreation(Microsoft.Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode)
+        internal void EmitArrayCreation(Cci.IArrayTypeReference arrayType, SyntaxNode syntaxNode)
         {
             Debug.Assert(!arrayType.IsSZArray, "should be used only with multidimensional arrays");
 

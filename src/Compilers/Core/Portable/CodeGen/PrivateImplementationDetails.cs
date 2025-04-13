@@ -382,7 +382,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
                 var encodingGetString = getWellKnownTypeMember(compilation, WellKnownMember.System_Text_Encoding__GetString);
 
                 TryAddSynthesizedMethod(BytesToStringHelper.Create(
-                    moduleBuilder: (ITokenDeferral)ModuleBuilder,
+                    moduleBuilder: ModuleBuilder,
                     containingType: this,
                     encodingUtf8: encodingUtf8,
                     encodingGetString: encodingGetString,
@@ -743,13 +743,13 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
             var stringField = new DataSectionStringField("s", this);
 
-            var staticConstructor = synthesizeStaticConstructor((ITokenDeferral)containingType.ModuleBuilder, containingType, dataField, stringField, bytesToStringHelper, diagnostics);
+            var staticConstructor = synthesizeStaticConstructor(containingType.ModuleBuilder, containingType, dataField, stringField, bytesToStringHelper, diagnostics);
 
             _fields = [stringField];
             _methods = [staticConstructor];
 
             static Cci.IMethodDefinition synthesizeStaticConstructor(
-                ITokenDeferral module,
+                CommonPEModuleBuilder module,
                 Cci.INamespaceTypeDefinition containingType,
                 MappedField dataField,
                 DataSectionStringField stringField,
@@ -1174,7 +1174,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         }
 
         public static BytesToStringHelper Create(
-            ITokenDeferral moduleBuilder,
+            CommonPEModuleBuilder moduleBuilder,
             Cci.INamespaceTypeDefinition containingType,
             Cci.IMethodReference encodingUtf8,
             Cci.IMethodReference encodingGetString,
