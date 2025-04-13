@@ -8,6 +8,8 @@ namespace Microsoft.CodeAnalysis.CodeGen
 {
     internal interface ITokenDeferral
     {
+        bool ReserveUserStringHeapCapacity(string value);
+
         uint GetFakeStringTokenForIL(string value);
         uint GetFakeSymbolTokenForIL(Cci.IReference value, SyntaxNode? syntaxNode, DiagnosticBag diagnostics);
         uint GetFakeSymbolTokenForIL(Cci.ISignature value, SyntaxNode? syntaxNode, DiagnosticBag diagnostics);

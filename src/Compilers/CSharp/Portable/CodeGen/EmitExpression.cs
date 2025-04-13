@@ -3439,7 +3439,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
                     var constantValue = type.GetDefaultValue();
                     if (constantValue != null)
                     {
-                        _builder.EmitConstantValue(constantValue);
+                        _builder.EmitConstantValue(constantValue, syntaxNode);
                         return;
                     }
                 }
@@ -3484,7 +3484,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
                 }
                 else if (!TryEmitStringLiteralAsUtf8Encoded(constantValue, syntaxNode))
                 {
-                    _builder.EmitConstantValue(constantValue);
+                    _builder.EmitConstantValue(constantValue, syntaxNode);
                 }
             }
         }
@@ -3497,7 +3497,10 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
                 return false;
             }
 
-            bool utf8Required = _module.PreviousGeneration != null && _module.PreviousGeneration.UserStringStreamLength > EmitBaseline.UserStringHeapSizeLimit;
+            // We are compiling methods in parallel hence switching to data section literals based on the capacity reserved so far
+            // produces non-deterministic output. This only happens when emitting EnC delta where deterministic output is desirable
+            // but not strictly required.
+            bool utf8Required = _module.PreviousGeneration != null && !_module.ReserveUserStringHeapCapacity(constantValue.StringValue);
             if (!utf8Required)
             {
                 var threshold = _module.Compilation.DataSectionStringLiteralThreshold;

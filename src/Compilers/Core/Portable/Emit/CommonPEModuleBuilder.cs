@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -110,6 +111,14 @@ namespace Microsoft.CodeAnalysis.Emit
         /// Returns the HotReloadException type symbol if it has been used in this compilation, null otherwise.
         /// </summary>
         public abstract INamedTypeSymbolInternal? GetUsedSynthesizedHotReloadExceptionType();
+
+        /// <summary>
+        /// Reserves space for given string on the #UserHeap.
+        /// Returns true if adding the string constant will not exceed the limit on the total size of the #UserString heap (including the baseline), false otherwise.
+        /// Only used when emitting EnC delta.
+        /// </summary>
+        public virtual bool ReserveUserStringHeapCapacity(string value)
+            => throw ExceptionUtilities.Unreachable();
 
 #nullable disable
 
