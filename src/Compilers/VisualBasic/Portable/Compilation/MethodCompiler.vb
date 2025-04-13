@@ -1612,7 +1612,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 optimizations = OptimizationLevel.Release
             End If
 
-            Dim builder As ILBuilder = New ILBuilder(moduleBuilder, localSlotManager, optimizations, areLocalsZeroed:=True)
+            Dim builder As ILBuilder = New ILBuilder(moduleBuilder, localSlotManager, diagnostics.DiagnosticBag, optimizations, areLocalsZeroed:=True)
 
             Try
                 Debug.Assert(Not diagnostics.HasAnyErrors)

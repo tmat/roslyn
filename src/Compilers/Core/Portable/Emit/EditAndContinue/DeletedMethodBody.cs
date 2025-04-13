@@ -68,7 +68,7 @@ namespace Microsoft.CodeAnalysis.Emit.EditAndContinue
         {
             var hotReloadExceptionCtorDef = context.Module.GetOrCreateHotReloadExceptionConstructorDefinition();
 
-            var builder = new ILBuilder((ITokenDeferral)context.Module, null, OptimizationLevel.Debug, false);
+            var builder = new ILBuilder((ITokenDeferral)context.Module, localSlotManager: null, context.Diagnostics, OptimizationLevel.Debug, areLocalsZeroed: false);
 
             string message;
             int codeValue;
@@ -89,7 +89,7 @@ namespace Microsoft.CodeAnalysis.Emit.EditAndContinue
 
             // consumes message and code, pushes the created exception object:
             builder.EmitOpCode(ILOpCode.Newobj, stackAdjustment: -1);
-            builder.EmitToken(hotReloadExceptionCtorDef.GetCciAdapter(), context.SyntaxNode!, context.Diagnostics);
+            builder.EmitToken(hotReloadExceptionCtorDef.GetCciAdapter(), context.SyntaxNode!);
             builder.EmitThrow(isRethrow: false);
             builder.Realize();
 

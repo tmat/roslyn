@@ -23,6 +23,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
     {
         private readonly OptimizationLevel _optimizations;
         internal readonly LocalSlotManager LocalSlotManager;
+        private readonly DiagnosticBag _diagnostics;
         private readonly LocalScopeManager _scopeManager;
 
         // internal for testing
@@ -69,10 +70,12 @@ namespace Microsoft.CodeAnalysis.CodeGen
         // created, in particular for leader blocks in exception handlers.
         private bool _pendingBlockCreate;
 
-        internal ILBuilder(ITokenDeferral module, LocalSlotManager localSlotManager, OptimizationLevel optimizations, bool areLocalsZeroed)
+        internal ILBuilder(ITokenDeferral module, LocalSlotManager localSlotManager, DiagnosticBag diagnostics, OptimizationLevel optimizations, bool areLocalsZeroed)
         {
             this.module = module;
             this.LocalSlotManager = localSlotManager;
+
+            _diagnostics = diagnostics;
             _emitState = default(EmitState);
             _scopeManager = new LocalScopeManager();
 
