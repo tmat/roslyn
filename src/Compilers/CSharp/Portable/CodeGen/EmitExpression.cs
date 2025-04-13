@@ -3437,7 +3437,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
                     var constantValue = type.GetDefaultValue();
                     if (constantValue != null)
                     {
-                        _builder.EmitConstantValue(constantValue);
+                        _builder.EmitConstantValue(constantValue, syntaxNode);
                         return;
                     }
                 }
@@ -3482,7 +3482,7 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
                 }
                 else if (!TryEmitStringLiteralAsUtf8Encoded(constantValue, syntaxNode))
                 {
-                    _builder.EmitConstantValue(constantValue);
+                    _builder.EmitConstantValue(constantValue, syntaxNode);
                 }
             }
         }
