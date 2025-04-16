@@ -44,6 +44,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         /// </summary>
         private volatile bool _isHotReloadExceptionTypeUsed;
 
+        /// <summary>
+        /// Number of bytes reserved so far for string constants being emitted to the #UserString heap. Includes the baseline.
+        /// </summary>
+        private volatile int _reservedUserStringHeapCapacity;
+
         public PEDeltaAssemblyBuilder(
             SourceAssemblySymbol sourceAssembly,
             CSharpSymbolChanges changes,
@@ -57,6 +62,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         {
             _changes = changes;
             _options = options;
+            _reservedUserStringHeapCapacity = changes.DefinitionMap.Baseline.UserStringStreamLength;
 
             // Workaround for https://github.com/dotnet/roslyn/issues/3192.
             // When compiling state machine we stash types of awaiters and state-machine hoisted variables,
@@ -78,6 +84,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         public override SymbolChanges? EncSymbolChanges => _changes;
         public override EmitBaseline PreviousGeneration => _changes.DefinitionMap.Baseline;
         public override bool FieldRvaSupported => _options.EmitFieldRva;
+
+        public override bool ReserveUserStringHeapCapacity(string value)
+        {
+            var size = MetadataHelpers.GetUserStringBlobSize(value);
+
+            // String can span beyond the heap limit, but must start within the limit.
+            return Interlocked.Add(ref _reservedUserStringHeapCapacity, size) - size <= MetadataHelpers.UserStringHeapCapacity;
+        }
 
         internal override Cci.ITypeReference EncTranslateLocalVariableType(TypeSymbol type, DiagnosticBag diagnostics)
         {
