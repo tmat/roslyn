@@ -750,6 +750,32 @@ namespace Microsoft.CodeAnalysis.CodeGen
             }
         }
 
+        private bool TryEmitStringLiteralAsUtf8Encoded(ConstantValue constantValue, SyntaxNode syntaxNode)
+        {
+            // Emit long strings into data section so they don't overflow the UserString heap.
+            if (constantValue.IsString &&
+                constantValue.StringValue.Length > module.CommonCompilation.DataSectionStringLiteralThreshold)
+            {
+                if (module.CommonCompilation.CommonGetWellKnownTypeMember(WellKnownMember.System_Text_Encoding__get_UTF8) == null ||
+                    module.CommonCompilation.CommonGetWellKnownTypeMember(WellKnownMember.System_Text_Encoding__GetString) == null)
+                {
+                    return false;
+                }
+
+                Cci.IFieldReference field = _module.TryGetOrCreateFieldForStringValue(constantValue.StringValue, syntaxNode, _diagnostics.DiagnosticBag);
+                if (field == null)
+                {
+                    return false;
+                }
+
+                _builder.EmitOpCode(ILOpCode.Ldsfld);
+                _builder.EmitToken(field, syntaxNode);
+                return true;
+            }
+
+            return false;
+        }
+
         internal void EmitUnaligned(sbyte alignment)
         {
             Debug.Assert(alignment is 1 or 2 or 4);

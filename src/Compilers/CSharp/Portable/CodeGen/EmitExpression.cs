@@ -3480,37 +3480,18 @@ namespace Microsoft.CodeAnalysis.CSharp.CodeGen
                 {
                     EmitInitObj(type, used, syntaxNode);
                 }
-                else if (!TryEmitStringLiteralAsUtf8Encoded(constantValue, syntaxNode))
+                else
                 {
+                    // TODO: Dependencies are dropped: https://github.com/dotnet/roslyn/issues/78172
+                    if (constantValue.IsString && constantValue.StringValue.Length > _module.CommonCompilation.DataSectionStringLiteralThreshold)
+                    {
+                        Binder.GetWellKnownTypeMember(_module.Compilation, WellKnownMember.System_Text_Encoding__get_UTF8, _diagnostics, syntax: syntaxNode);
+                        Binder.GetWellKnownTypeMember(_module.Compilation, WellKnownMember.System_Text_Encoding__GetString, _diagnostics, syntax: syntaxNode);
+                    }
+
                     _builder.EmitConstantValue(constantValue, syntaxNode);
                 }
             }
-        }
-
-        private bool TryEmitStringLiteralAsUtf8Encoded(ConstantValue constantValue, SyntaxNode syntaxNode)
-        {
-            // Emit long strings into data section so they don't overflow the UserString heap.
-            if (constantValue.IsString &&
-                constantValue.StringValue.Length > _module.Compilation.DataSectionStringLiteralThreshold)
-            {
-                if (Binder.GetWellKnownTypeMember(_module.Compilation, WellKnownMember.System_Text_Encoding__get_UTF8, _diagnostics, syntax: syntaxNode) == null |
-                    Binder.GetWellKnownTypeMember(_module.Compilation, WellKnownMember.System_Text_Encoding__GetString, _diagnostics, syntax: syntaxNode) == null)
-                {
-                    return false;
-                }
-
-                Cci.IFieldReference field = _module.TryGetOrCreateFieldForStringValue(constantValue.StringValue, syntaxNode, _diagnostics.DiagnosticBag);
-                if (field == null)
-                {
-                    return false;
-                }
-
-                _builder.EmitOpCode(ILOpCode.Ldsfld);
-                _builder.EmitToken(field, syntaxNode);
-                return true;
-            }
-
-            return false;
         }
 
         private void EmitInitObj(TypeSymbol type, bool used, SyntaxNode syntaxNode)
