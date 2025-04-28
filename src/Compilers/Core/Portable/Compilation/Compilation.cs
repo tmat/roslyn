@@ -3462,7 +3462,7 @@ namespace Microsoft.CodeAnalysis
                     getPortablePdbStreamOpt: null,
                     nativePdbWriterOpt: null,
                     pdbPathOpt: null,
-                    metadataTokenRequests: [],
+                    metadataTokenRequests: null,
                     requestedMetadataTokens: null,
                     metadataOnly: true,
                     isDeterministic: true,
