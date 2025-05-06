@@ -141,7 +141,8 @@ public partial class ProjectDependencyGraph
             // This project doesn't have any references currently, so we delegate to WithAdditionalProjectReferences
             return WithAdditionalProjectReferences(projectId, projectReferences);
         }
-        else if (projectReferences.Count == 0)
+
+        if (projectReferences is [])
         {
             // We are removing all project references; do so directly
             return WithAllProjectReferencesRemoved(projectId);
@@ -151,11 +152,10 @@ public partial class ProjectDependencyGraph
         // The only thing we can reuse is our actual map of project references for all the other projects, so we'll do that.
 
         // only include projects contained in the solution:
-        var referencedProjectIds = projectReferences.IsEmpty() ? [] :
-            projectReferences
-                .Where(r => ProjectIds.Contains(r.ProjectId))
-                .Select(r => r.ProjectId)
-                .ToImmutableHashSet();
+        var referencedProjectIds = projectReferences
+            .Where(r => ProjectIds.Contains(r.ProjectId))
+            .Select(r => r.ProjectId)
+            .ToImmutableHashSet();
 
         var referencesMap = referencedProjectIds.IsEmpty ?
             _referencesMap.Remove(projectId) : _referencesMap.SetItem(projectId, referencedProjectIds);

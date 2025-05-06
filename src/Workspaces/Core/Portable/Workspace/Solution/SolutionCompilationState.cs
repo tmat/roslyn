@@ -334,11 +334,12 @@ internal sealed partial class SolutionCompilationState
             dependentProjects.AddRange(newDependencyGraph.GetProjectsThatTransitivelyDependOnThisProject(projectInfo.Id));
 
         var newTrackerMap = CreateCompilationTrackerMap(
-            static (projectId, dependentProjects) => !dependentProjects.Contains(projectId),
-            dependentProjects,
+            canReuse: static (projectId, dependentProjects) => !dependentProjects.Contains(projectId),
+            argCanReuse: dependentProjects,
             // We don't need to do anything here.  Compilation trackers are created on demand.  So we'll just keep the
             // tracker map as-is, and have the trackers for these new projects be created when needed.
-            modifyNewTrackerInfo: static (_, _) => { }, argModifyNewTrackerInfo: default(VoidResult),
+            modifyNewTrackerInfo: static (_, _) => { },
+            argModifyNewTrackerInfo: default(VoidResult),
             skipEmptyCallback: true);
 
         // Add the new projects to the source generator execution version map.  Note: it's ok for us to have entries for
@@ -359,17 +360,31 @@ internal sealed partial class SolutionCompilationState
     /// <inheritdoc cref="SolutionState.RemoveProjects"/>
     public SolutionCompilationState RemoveProjects(ArrayBuilder<ProjectId> projectIds)
     {
-        if (projectIds.Count == 0)
+        if (projectIds is [])
             return this;
 
-        // Now go and remove the projects from teh solution-state itself.
-        var newSolutionState = this.SolutionState.RemoveProjects(projectIds);
+        return Branch(
+            SolutionState.RemoveProjects(projectIds),
+            projectIdToTrackerMap: CreateCompilationTrackerMapForProjectRemoval(projectIds),
+            sourceGeneratorExecutionVersionMap: CreateSourceGeneratorExecutionVersionMapForProjectRemoval(projectIds));
+    }
 
+    private SourceGeneratorExecutionVersionMap CreateSourceGeneratorExecutionVersionMapForProjectRemoval(IEnumerable<ProjectId> removedProjectIds)
+    {
+        var versionMapBuilder = SourceGeneratorExecutionVersionMap.Map.ToBuilder();
+        foreach (var projectId in removedProjectIds)
+            versionMapBuilder.Remove(projectId);
+
+        return new(versionMapBuilder.ToImmutable());
+    }
+
+    private ImmutableSegmentedDictionary<ProjectId, ICompilationTracker> CreateCompilationTrackerMapForProjectRemoval(IEnumerable<ProjectId> removedProjectIds)
+    {
         var originalDependencyGraph = this.SolutionState.GetProjectDependencyGraph();
         using var _ = PooledHashSet<ProjectId>.GetInstance(out var dependentProjects);
 
         // Determine the set of projects that depend on the projects being removed.
-        foreach (var projectId in projectIds)
+        foreach (var projectId in removedProjectIds)
         {
             foreach (var dependentProject in originalDependencyGraph.GetProjectsThatTransitivelyDependOnThisProject(projectId))
                 dependentProjects.Add(dependentProject);
@@ -377,29 +392,54 @@ internal sealed partial class SolutionCompilationState
 
         // Now for each compilation tracker.
         // 1. remove the compilation tracker if we're removing the project.
-        // 2. fork teh compilation tracker if it depended on a removed project.
+        // 2. fork the compilation tracker if it depended on a removed project.
         // 3. do nothing for the rest.
         var newTrackerMap = CreateCompilationTrackerMap(
             // Can reuse the compilation tracker for a project, unless it is some project that had a dependency on one
             // of the projects removed.
-            static (projectId, dependentProjects) => !dependentProjects.Contains(projectId),
-            dependentProjects,
-            static (trackerMap, projectIds) =>
+            canReuse: static (projectId, dependentProjects) => !dependentProjects.Contains(projectId),
+            argCanReuse: dependentProjects,
+            modifyNewTrackerInfo: static (trackerMap, projectIds) =>
             {
                 foreach (var projectId in projectIds)
                     trackerMap.Remove(projectId);
             },
-            projectIds,
+            argModifyNewTrackerInfo: removedProjectIds,
             skipEmptyCallback: true);
 
-        var versionMapBuilder = SourceGeneratorExecutionVersionMap.Map.ToBuilder();
-        foreach (var projectId in projectIds)
-            versionMapBuilder.Remove(projectId);
+        return newTrackerMap;
+    }
 
-        return this.Branch(
+    /// <inheritdoc cref="SolutionState.ReplaceProjects"/>
+    public SolutionCompilationState ReplaceProjects(ImmutableArray<Project> projects)
+    {
+        if (projects is [])
+            return this;
+
+        // Assert all projects from the same solution: projects
+
+        var projectIds = projects.SelectAsArray(static p => p.Id);
+        var newSolutionState = SolutionState.ReplaceProjects(projects);
+        var newCompilationState = projects[0].Solution.CompilationState;
+
+        var newTrackerMap = CreateCompilationTrackerMap(
+            canReuse: static (_, _) => false,
+            argCanReuse: default(VoidResult),
+            modifyNewTrackerInfo: static (trackerMap, arg) =>
+            {
+                foreach (var projectId in arg.projectIds)
+                {
+                    var newProjectState = arg.newSolutionState.GetRequiredProjectState(projectId);
+                    trackerMap[projectId] = arg.newCompilationState.GetCompilationTracker(projectId).Fork(newProjectState, translate: null);
+                }
+            },
+            argModifyNewTrackerInfo: (projectIds, newSolutionState, newCompilationState),
+            skipEmptyCallback: true);
+
+        return Branch(
             newSolutionState,
             projectIdToTrackerMap: newTrackerMap,
-            sourceGeneratorExecutionVersionMap: new(versionMapBuilder.ToImmutable()));
+            sourceGeneratorExecutionVersionMap: CreateSourceGeneratorExecutionVersionMapForProjectRemoval(projectIds));
     }
 
     /// <inheritdoc cref="SolutionState.WithProjectAssemblyName"/>

@@ -388,6 +388,10 @@ public partial class Solution
     internal Solution RemoveProjects(ArrayBuilder<ProjectId> projectIds)
         => WithCompilationState(CompilationState.RemoveProjects(projectIds));
 
+    /// <inheritdoc cref="SolutionCompilationState.RemoveProjects"/>
+    internal Solution ReplaceProjects(ImmutableArray<Project> projects)
+        => WithCompilationState(CompilationState.ReplaceProjects(projects));
+
     /// <summary>
     /// Creates a new solution instance with the project specified updated to have the new
     /// assembly name.

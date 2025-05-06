@@ -47,10 +47,10 @@ internal sealed partial class ProjectState : IComparable<ProjectState>
     private readonly AsyncLazy<VersionStamp> _lazyLatestDocumentVersion;
     private readonly AsyncLazy<VersionStamp> _lazyLatestDocumentTopLevelChangeVersion;
 
-    // Checksums for this solution state (access via LazyChecksums)
+    // Checksums for this proejct state (access via LazyChecksums)
     private AsyncLazy<ProjectStateChecksums>? _lazyChecksums;
 
-    // Mapping from content has to document id (access via LazyContentHashToDocumentId)
+    // Mapping from content hash to document id (access via LazyContentHashToDocumentId)
     private AsyncLazy<Dictionary<ImmutableArray<byte>, DocumentId>>? _lazyContentHashToDocumentId;
 
     /// <summary>

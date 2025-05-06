@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis.PooledObjects;
 
-namespace Microsoft.CodeAnalysis.Utilities;
+namespace Microsoft.CodeAnalysis;
 
 internal static class IReadOnlyListExtensions
 {
@@ -41,5 +43,34 @@ internal static class IReadOnlyListExtensions
         public int Count => list.Count;
         public IEnumerator<T> GetEnumerator() => list.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => list.GetEnumerator();
+    }
+
+    public static bool HasDuplicates<T>(this IReadOnlyList<T> builder)
+        => builder.HasDuplicates(static x => x);
+
+    public static bool HasDuplicates<T, U>(this IReadOnlyList<T> builder, Func<T, U> selector)
+    {
+        switch (builder.Count)
+        {
+            case 0:
+            case 1:
+                return false;
+
+            case 2:
+                return EqualityComparer<U>.Default.Equals(selector(builder[0]), selector(builder[1]));
+
+            default:
+                {
+                    using var _ = PooledHashSet<U>.GetInstance(out var set);
+
+                    foreach (var element in builder)
+                    {
+                        if (!set.Add(selector(element)))
+                            return true;
+                    }
+
+                    return false;
+                }
+        }
     }
 }

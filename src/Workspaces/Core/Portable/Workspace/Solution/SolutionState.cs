@@ -44,7 +44,7 @@ internal sealed partial class SolutionState
     public IReadOnlyList<AnalyzerReference> AnalyzerReferences { get; }
 
     /// <summary>
-    /// Fallback analyzer config options by language. The set of languages does not need to match the set of langauges of projects included in the surrent solution snapshot.
+    /// Fallback analyzer config options by language. The set of languages does not need to match the set of languages of projects included in the surrent solution snapshot.
     /// </summary>
     public ImmutableDictionary<string, StructuredAnalyzerConfigOptions> FallbackAnalyzerOptions { get; } = ImmutableDictionary<string, StructuredAnalyzerConfigOptions>.Empty;
 
@@ -318,18 +318,21 @@ internal sealed partial class SolutionState
         => GetRequiredProjectState(documentId.ProjectId).AnalyzerConfigDocumentStates.GetRequiredState(documentId);
 
     public ProjectState? GetProjectState(ProjectId projectId)
-        => GetProjectState(SortedProjectStates, projectId);
+    {
+        var index = GetProjectStateIndex(SortedProjectStates, projectId);
+        return index >= 0 ? SortedProjectStates[index] : null;
+    }
+
+    private static bool HasProjectState(ImmutableArray<ProjectState> sortedProjectStates, ProjectId projectId)
+        => GetProjectStateIndex(sortedProjectStates, projectId) >= 0;
 
     /// <summary>
     /// Searches for the project state with the specified project id in the given project states.
     /// </summary>
+    /// <returns></returns>
     /// <remarks>Requires the input array to be sorted by Id</remarks>
-    private static ProjectState? GetProjectState(ImmutableArray<ProjectState> sortedPojectStates, ProjectId projectId)
-    {
-        var index = sortedPojectStates.BinarySearch(projectId, static (projectState, projectId) => projectState.Id.CompareTo(projectId));
-
-        return index >= 0 ? sortedPojectStates[index] : null;
-    }
+    private static int GetProjectStateIndex(ImmutableArray<ProjectState> sortedProjectStates, ProjectId projectId)
+        => sortedProjectStates.BinarySearch(projectId, static (projectState, projectId) => projectState.Id.CompareTo(projectId));
 
     public ProjectState GetRequiredProjectState(ProjectId projectId)
     {
@@ -343,12 +346,12 @@ internal sealed partial class SolutionState
     /// </summary>
     public SolutionState AddProjects(ArrayBuilder<ProjectInfo> projectInfos)
     {
-        Contract.ThrowIfTrue(projectInfos.HasDuplicates(static p => p.Id), "Duplicate ProjectId provided");
+        Debug.Assert(!projectInfos.HasDuplicates(static p => p.Id), "Duplicate ProjectId provided");
 
         if (projectInfos.Count == 0)
             return this;
 
-        var langaugeCountDeltas = new TemporaryArray<(string language, int count)>();
+        var languageCountDeltas = new TemporaryArray<(string language, int count)>();
 
         using var _ = ArrayBuilder<ProjectState>.GetInstance(projectInfos.Count, out var projectStates);
         foreach (var projectInfo in projectInfos)
@@ -382,7 +385,7 @@ internal sealed partial class SolutionState
                 fallbackAnalyzerOptions = StructuredAnalyzerConfigOptions.Empty;
             }
 
-            AddLanguageCountDelta(ref langaugeCountDeltas, language, amount: +1);
+            AddLanguageCountDelta(ref languageCountDeltas, language, amount: +1);
 
             var newProject = new ProjectState(languageServices, projectInfo, fallbackAnalyzerOptions);
             return newProject;
@@ -438,7 +441,7 @@ internal sealed partial class SolutionState
                 solutionAttributes: newSolutionAttributes,
                 projectIds: newProjectIds,
                 projectStates: newProjectStates,
-                projectCountByLanguage: AddLanguageCounts(ProjectCountByLanguage, langaugeCountDeltas),
+                projectCountByLanguage: AddLanguageCounts(ProjectCountByLanguage, languageCountDeltas),
                 dependencyGraph: newDependencyGraph);
         }
     }
@@ -448,7 +451,7 @@ internal sealed partial class SolutionState
     /// </summary>
     public SolutionState RemoveProjects(ArrayBuilder<ProjectId> projectIds)
     {
-        Contract.ThrowIfTrue(projectIds.HasDuplicates(), "Duplicate ProjectId provided");
+        Debug.Assert(!projectIds.HasDuplicates(), "Duplicate ProjectId provided");
 
         if (projectIds.Count == 0)
             return this;
@@ -478,6 +481,58 @@ internal sealed partial class SolutionState
             solutionAttributes: newSolutionAttributes,
             projectIds: newProjectIds,
             projectStates: newProjectStates,
+            projectCountByLanguage: AddLanguageCounts(ProjectCountByLanguage, languageCountDeltas),
+            dependencyGraph: newDependencyGraph);
+    }
+
+    /// <summary>
+    /// Replaces projects in the solution with the corresponding <paramref name="newProjects"/> based on project id.
+    /// </summary>
+    public SolutionState ReplaceProjects(ImmutableArray<Project> newProjects)
+    {
+        Debug.Assert(!newProjects.HasDuplicates(static p => p.Id), "Duplicate ProjectId provided");
+
+        if (newProjects is [])
+            return this;
+
+        var newSolutionAttributes = SolutionAttributes.With(version: this.Version.GetNewerVersion());
+
+        var languageCountDeltas = new TemporaryArray<(string language, int count)>();
+
+        using var _1 = ArrayBuilder<ProjectState>.GetInstance(SortedProjectStates.Length, out var newProjectStates);
+        newProjectStates.AddRange(SortedProjectStates);
+
+        var newDependencyGraph = _dependencyGraph;
+
+        foreach (var newProject in newProjects)
+        {
+            var newState = newProject.State;
+
+            var existingStateIndex = GetProjectStateIndex(SortedProjectStates, newState.Id);
+            if (existingStateIndex < 0)
+            {
+                throw new InvalidOperationException();
+            }
+
+            var oldState = newProjectStates[existingStateIndex];
+            if (oldState.Language != newState.Language)
+            {
+                AddLanguageCountDelta(ref languageCountDeltas, oldState.Language, amount: -1);
+                AddLanguageCountDelta(ref languageCountDeltas, newState.Language, amount: +1);
+            }
+
+            if (!oldState.ProjectReferences.SequenceEqual(newState.ProjectReferences))
+            {
+                newDependencyGraph = newDependencyGraph.WithProjectReferences(newState.Id, newState.ProjectReferences);
+            }
+
+            newProjectStates[existingStateIndex] = newState;
+        }
+
+        return Branch(
+            solutionAttributes: newSolutionAttributes,
+            projectIds: ProjectIds,
+            projectStates: newProjectStates.ToImmutable(),
             projectCountByLanguage: AddLanguageCounts(ProjectCountByLanguage, languageCountDeltas),
             dependencyGraph: newDependencyGraph);
     }
@@ -1206,7 +1261,7 @@ internal sealed partial class SolutionState
     {
         var map = sortedNewProjectStates.Select(state => KeyValuePairUtil.Create(
                 state.Id,
-                state.ProjectReferences.Where(pr => GetProjectState(sortedNewProjectStates, pr.ProjectId) != null).Select(pr => pr.ProjectId).ToImmutableHashSet()))
+                state.ProjectReferences.Where(pr => HasProjectState(sortedNewProjectStates, pr.ProjectId)).Select(pr => pr.ProjectId).ToImmutableHashSet()))
                 .ToImmutableDictionary();
 
         return new ProjectDependencyGraph([.. projectIds], map);
