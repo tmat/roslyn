@@ -16,10 +16,9 @@ namespace Microsoft.CodeAnalysis.SemanticSearch;
 
 internal sealed class SemanticSearchEditorWorkspace(
     HostServices services,
-    SemanticSearchProjectConfiguration config,
     IThreadingContext threadingContext,
     IAsynchronousOperationListenerProvider listenerProvider)
-    : SemanticSearchWorkspace(services, config)
+    : SemanticSearchWorkspace(services)
 {
     private readonly IAsynchronousOperationListener _asyncListener = listenerProvider.GetListener(FeatureAttribute.SemanticSearch);
 

@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.SemanticSearch;
 
-internal abstract class SemanticSearchWorkspace(HostServices services, SemanticSearchProjectConfiguration config)
+internal abstract class SemanticSearchWorkspace(HostServices services)
     : Workspace(services, WorkspaceKind.SemanticSearch)
 {
     public override bool CanOpenDocuments
@@ -21,40 +21,14 @@ internal abstract class SemanticSearchWorkspace(HostServices services, SemanticS
 
     public async Task<Document> UpdateQueryDocumentAsync(string? query, CancellationToken cancellationToken)
     {
+        var projectBuilder = Services.GetRequiredService<ISemanticSearchProjectBuilder>();
+
         SourceText? newText = null;
 
         var (_, newSolution) = await SetCurrentSolutionAsync(
             useAsync: true,
-            transformation: oldSolution =>
-            {
-                if (oldSolution.Projects.Any())
-                {
-                    if (query == null)
-                    {
-                        // already have a content, don't reset it to default:
-                        return oldSolution;
-                    }
-
-                    newText = SemanticSearchUtilities.CreateSourceText(query);
-                    return oldSolution.WithDocumentText(SemanticSearchUtilities.GetQueryDocumentId(oldSolution), newText);
-                }
-
-                newText = SemanticSearchUtilities.CreateSourceText(query ?? config.Query);
-                var metadataService = oldSolution.Services.GetRequiredService<IMetadataService>();
-
-                return oldSolution
-                    .AddProject(name: SemanticSearchUtilities.QueryProjectName, assemblyName: SemanticSearchUtilities.QueryProjectName, config.Language)
-                    .WithCompilationOptions(config.CompilationOptions)
-                    .WithParseOptions(config.ParseOptions)
-                    .AddMetadataReferences(SemanticSearchUtilities.GetMetadataReferences(metadataService, SemanticSearchUtilities.ReferenceAssembliesDirectory))
-                    .AddDocument(name: SemanticSearchUtilities.QueryDocumentName, newText, filePath: SemanticSearchUtilities.GetDocumentFilePath(config.Language)).Project
-                    .AddDocument(name: SemanticSearchUtilities.GlobalUsingsAndToolsDocumentName, SemanticSearchUtilities.CreateSourceText(config.GlobalUsingsAndTools), filePath: null).Project
-                    .AddAnalyzerConfigDocument(name: SemanticSearchUtilities.ConfigDocumentName, SemanticSearchUtilities.CreateSourceText(config.EditorConfig), filePath: SemanticSearchUtilities.GetConfigDocumentFilePath()).Project.Solution;
-            },
-            changeKind: (oldSolution, newSolution) =>
-                oldSolution.Projects.Any()
-                    ? (WorkspaceChangeKind.DocumentChanged, projectId: null, documentId: SemanticSearchUtilities.GetQueryDocumentId(newSolution))
-                    : (WorkspaceChangeKind.ProjectAdded, projectId: SemanticSearchUtilities.GetQueryProjectId(newSolution), documentId: null),
+            transformation: oldSolution => projectBuilder.SetQueryText(oldSolution, query, out newText),
+            changeKind: projectBuilder.GetWorkspaceChangeKind,
             onBeforeUpdate: null,
             onAfterUpdate: null,
             cancellationToken).ConfigureAwait(false);
