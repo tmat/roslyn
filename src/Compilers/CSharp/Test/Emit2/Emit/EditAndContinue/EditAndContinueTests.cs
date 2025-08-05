@@ -2257,6 +2257,78 @@ class C
         }
 
         [Fact]
+        public void Lambda_SynthesizedDelegate_DefaultParameterValue()
+        {
+            using var _ = new EditAndContinueTest()
+                .AddBaseline(
+                    source: """
+                        using System;
+
+                        class C
+                        {
+                            void F()
+                            {
+                                var f = (int a = 0, int b = 0) => a + b;
+                                f();
+                            }
+                        }
+                        """,
+                    validator: g =>
+                    {
+                        g.VerifyTableSize(TableIndex.MethodDef, 6);
+                    })
+                .AddGeneration(
+                    // 1
+                    source: """
+                        using System;
+                        
+                        class C
+                        {
+                            void F()
+                            {
+                                var f = (int a = 0, int b = 1) => a + b;
+                                f();
+                            }
+                        }
+                        """,
+                        edits:
+                        [
+                            Edit(SemanticEditKind.Update, c => c.GetMember("C.F"), preserveLocalVariables: true),
+                        ],
+                        validator: g =>
+                        {
+                            g.VerifyIL("""
+
+                                """);
+                        })
+                .AddGeneration(
+                    // 2
+                    source: """
+                        using System;
+                        
+                        class C
+                        {
+                            void F()
+                            {
+                                var f = (int a = 0, int b = 2) => a + b;
+                                f();
+                            }
+                        }
+                        """,
+                        edits:
+                        [
+                            Edit(SemanticEditKind.Update, c => c.GetMember("C.F"), preserveLocalVariables: true),
+                        ],
+                        validator: g =>
+                        {
+                            g.VerifyIL("""
+
+                                """);
+                        })
+                .Verify();
+        }
+
+        [Fact]
         public void Lambda_Delete()
         {
             using var _ = new EditAndContinueTest()
