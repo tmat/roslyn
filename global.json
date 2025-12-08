@@ -1,9 +1,4 @@
 {
-  "sdk": {
-    "version": "10.0.100-rc.2.25502.107",
-    "allowPrerelease": false,
-    "rollForward": "patch"
-  },
   "tools": {
     "dotnet": "10.0.100-rc.2.25502.107",
     "vs": {
