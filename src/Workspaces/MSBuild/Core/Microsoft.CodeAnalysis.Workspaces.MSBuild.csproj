@@ -22,7 +22,9 @@
     </PackageDescription>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Build.Framework" />
+    <!-- Avoid MSBuild package dependencies in the nuspec, so that referencing projects don't copy them to their output directory -->
+    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="Runtime" PrivateAssets="All" />
+
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" />
     <!--
