@@ -217,9 +217,9 @@
     isn't fully supported yet in the new project system. Removal of this hack is tracked
     by https://github.com/dotnet/roslyn/issues/19545. 
   -->
-  <ItemGroup>
+  <!-- <ItemGroup>
     <AdditionalFiles Include="@(PublicAPI)" />
-  </ItemGroup>
+  </ItemGroup> -->
 
   <ItemGroup>
     <!-- Include BannedSymbols covering all product projects -->

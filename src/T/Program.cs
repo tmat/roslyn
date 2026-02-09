@@ -1,13 +1,10 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
-
-while (true)
+﻿while (true)
 {
     F();
-    Thread.Sleep(1000);
+    Thread.Sleep(5000);
 }
 
 void F()
 {
-    Console.WriteLine("X25");
+    Console.WriteLine(".");
 }
