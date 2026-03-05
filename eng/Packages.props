@@ -79,7 +79,7 @@
     <PackageVersion Include="Microsoft.VisualStudio.Shell.Styles" Version="18.0.2188-preview.1" />
     <PackageVersion Include="Microsoft.VisualStudio.WinForms.Interfaces" Version="17.0.0-previews-4-31709-430" />
     <PackageVersion Include="Microsoft.VisualStudio.Workspace.VSIntegration" Version="17.9.29-preview-0001" />
-    <PackageVersion Include="Microsoft.VisualStudio.Copilot.Roslyn.SemanticSearch" Version="18.5.60-alpha-g4b821c651c" />
+    <PackageVersion Include="Microsoft.VisualStudio.Copilot.Roslyn.SemanticSearch" Version="18.5.56-alpha" />
     <PackageVersion Include="VsWebSite.Interop" Version="8.0.50727" />
     <PackageVersion Include="NuGet.VisualStudio" Version="6.0.0-preview.0.15" />
     <PackageVersion Include="NuGet.VisualStudio.Contracts" Version="6.0.0-preview.0.15" />
