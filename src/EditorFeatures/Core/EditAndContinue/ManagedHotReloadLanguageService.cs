@@ -5,37 +5,41 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Composition;
+using System.ComponentModel.Composition;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Contracts.EditAndContinue;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.PooledObjects;
 using Microsoft.CodeAnalysis.Shared.Extensions;
+using Microsoft.ServiceHub.Framework;
+using Microsoft.VisualStudio.Debugger.Contracts.HotReload;
+using Microsoft.VisualStudio.Shell.ServiceBroker;
 using Roslyn.Utilities;
+using InternalContracts = Microsoft.CodeAnalysis.Contracts.EditAndContinue;
 
 namespace Microsoft.CodeAnalysis.EditAndContinue;
 
 /// <summary>
-/// Implementation of a brokered service available in Visual Studio in-proc container and in DevKit.
+/// Brokered service proffered to Visual Studio in-proc container and DevKit.
+/// Provides an implementation of Hot Reload for managed languages to the debugger.
 /// </summary>
-[Shared]
 [Export(typeof(IEditAndContinueSolutionProvider))]
-[Export(typeof(ManagedHotReloadLanguageServiceImpl))]
+[Export(typeof(ManagedHotReloadLanguageService))]
+[ExportBrokeredService(ManagedHotReloadLanguageServiceDescriptor.MonikerName, ManagedHotReloadLanguageServiceDescriptor.ServiceVersion, Audience = ServiceAudience.Local)]
 [method: ImportingConstructor]
 [method: Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
-internal sealed class ManagedHotReloadLanguageServiceImpl(
+internal sealed class ManagedHotReloadLanguageService(
     EditAndContinueSessionState sessionState,
     Lazy<IHostWorkspaceProvider> workspaceProvider,
-    IManagedHotReloadService debuggerService,
+    InternalContracts.IManagedHotReloadService debuggerService,
     ISolutionSnapshotProvider solutionSnapshotProvider,
     PdbMatchingSourceTextProvider sourceTextProvider,
     IActiveStatementTrackingController activeStatementTrackingController,
     IEditAndContinueLogReporter logReporter,
-    IDiagnosticsRefresher diagnosticRefresher) : IManagedHotReloadLanguageService3, IEditAndContinueSolutionProvider
+    IDiagnosticsRefresher diagnosticRefresher) : IManagedHotReloadLanguageService3, IEditAndContinueSolutionProvider, IExportedBrokeredService
 {
     private sealed class NoSessionException : InvalidOperationException
     {
@@ -54,6 +58,12 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
     private Solution? _committedSolution;
 
     public event Action<Solution>? SolutionCommitted;
+
+    public ServiceRpcDescriptor? Descriptor
+        => ManagedHotReloadLanguageServiceDescriptor.Descriptor;
+
+    public Task InitializeAsync(CancellationToken cancellationToken)
+        => Task.CompletedTask;
 
     private DebuggingSessionProxy GetDebuggingSession()
         => _debuggingSession ?? throw new NoSessionException();
@@ -290,7 +300,13 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
     {
         if (_disabled)
         {
-            return new ManagedHotReloadUpdates([], [], [], []);
+            return new ManagedHotReloadUpdates(
+                updates: [],
+                diagnostics: [],
+                projectsToRebuild: [],
+                projectsToRestart: [],
+                projectInstancesToRebuild: [],
+                projectInstancesToRestart: []);
         }
 
         var solution = await solutionSnapshotProvider.GetCurrentSolutionAsync(cancellationToken).ConfigureAwait(false);
@@ -335,10 +351,10 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
         UpdateApplyChangesDiagnostics(applyChangesDiagnostics.ToImmutableOrEmptyAndFree());
 
         return new ManagedHotReloadUpdates(
-            result.ModuleUpdates.Updates,
-            result.GetAllDiagnostics(),
-            ToProjectIntanceIds(result.ProjectsToRebuild),
-            ToProjectIntanceIds(result.ProjectsToRestart.Keys));
+            updates: result.ModuleUpdates.Updates.FromContract(),
+            diagnostics: result.GetAllDiagnostics().FromContract(),
+            projectInstancesToRebuild: ToProjectIntanceIds(result.ProjectsToRebuild),
+            projectInstancesToRestart: ToProjectIntanceIds(result.ProjectsToRestart.Keys));
 
         ImmutableArray<ProjectInstanceId> ToProjectIntanceIds(IEnumerable<ProjectId> ids)
             => ids.SelectAsArray(id =>

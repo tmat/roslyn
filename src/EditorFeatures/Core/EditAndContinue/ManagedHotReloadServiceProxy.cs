@@ -13,6 +13,8 @@ using InternalContracts = Microsoft.CodeAnalysis.Contracts.EditAndContinue;
 
 namespace Microsoft.CodeAnalysis.EditAndContinue;
 
+// TODO: Switch to service broker based implementation like in DevKit (src\VisualStudio\DevKit\Impl\EditAndContinue\ManagedHotReloadServiceProxy.cs)
+// https://devdiv.visualstudio.com/DevDiv/_workitems/edit/2854642
 [Shared]
 [Export(typeof(InternalContracts.IManagedHotReloadService))]
 [method: ImportingConstructor]
