@@ -1,44 +1,54 @@
-# Roslyn Architecture - Project Dependency Diagram
-
-All short names are under `Microsoft.CodeAnalysis.*` unless prefixed with `VS.` (`Microsoft.VisualStudio.LanguageServices.*`).
+# Roslyn Architecture - Project Layering
 
 Arrows point from a project **down to** its dependencies.
 
 ```mermaid
 graph BT
 
-    subgraph Layer0[" "]
-        subgraph L0["Compilers"]
-            Microsoft_CodeAnalysis["Microsoft.CodeAnalysis"]
+    subgraph OSS["OSS-only dependencies"]
+        subgraph Layer0[" "]
+            subgraph L0["Compilers"]
+                Microsoft_CodeAnalysis["Microsoft.CodeAnalysis"]
+            end
+        end
+
+        subgraph Layer1[" "]
+            subgraph L1a["Workspaces"]
+                Microsoft_CodeAnalysis_Workspaces["Workspaces"]
+                Microsoft_CodeAnalysis_Workspaces_BuildHost["Workspaces.BuildHost"]
+                Microsoft_CodeAnalysis_Workspaces_MSBuild["Workspaces.MSBuild"]
+                Microsoft_CodeAnalysis_Workspaces_BuildHost_Contracts["Workspaces.BuildHost.Contracts"]
+            end
+
+            subgraph L1b["CodeStyle"]
+                Microsoft_CodeAnalysis_CodeStyle["CodeStyle"]
+                Microsoft_CodeAnalysis_CodeStyle_Fixes["CodeStyle.Fixes"]
+            end
+
+            subgraph L1c["Scripting"]
+                Microsoft_CodeAnalysis_Scripting["Scripting"]
+                Microsoft_CodeAnalysis_InteractiveHost["InteractiveHost"]
+            end
+        end
+
+        subgraph Layer3[" "]
+            subgraph L3a["Features"]
+                Microsoft_CodeAnalysis_Features["Features"]
+                Microsoft_CodeAnalysis_LanguageServer_Protocol["LanguageServer.Protocol"]
+            end
+        end
+
+        subgraph L6b["Language Server"]
+            Microsoft_CodeAnalysis_LanguageServer["LanguageServer"]
+        end
+
+        subgraph L6e["Compiler Server"]
+            VBCSCompiler["VBCSCompiler"]
         end
     end
 
-    subgraph Layer1[" "]
-        subgraph L1a["Workspaces"]
-            Microsoft_CodeAnalysis_Workspaces["Workspaces"]
-            Microsoft_CodeAnalysis_Workspaces_Desktop["Workspaces.Desktop"]
-            Microsoft_CodeAnalysis_Workspaces_MSBuild["Workspaces.MSBuild"]
-        end
-
-        subgraph L1b["CodeStyle"]
-            Microsoft_CodeAnalysis_CodeStyle["CodeStyle"]
-            Microsoft_CodeAnalysis_CodeStyle_Fixes["CodeStyle.Fixes"]
-        end
-
-        subgraph L1c["Scripting"]
-            Microsoft_CodeAnalysis_Scripting["Scripting"]
-            Microsoft_CodeAnalysis_InteractiveHost["InteractiveHost"]
-        end
-    end
-
-    subgraph Layer3[" "]
-        subgraph L3a["Features"]
-            Microsoft_CodeAnalysis_Features["Features"]
-            Microsoft_CodeAnalysis_Remote_Workspaces["Remote.Workspaces"]
-        end
-        subgraph L3b["LSP Protocol"]
-            Microsoft_CodeAnalysis_LanguageServer_Protocol["LanguageServer.Protocol"]
-        end
+    subgraph L3b["Features"]
+        Microsoft_CodeAnalysis_Remote_Workspaces["Remote.Workspaces"]
     end
 
     subgraph Layer4[" "]
@@ -54,20 +64,12 @@ graph BT
             Microsoft_VisualStudio_LanguageServices_Implementation["VS.Implementation"]
         end
 
-        subgraph L6b["Language Server"]
-            Microsoft_CodeAnalysis_LanguageServer["LanguageServer"]
-        end
-
         subgraph L6c["Visual Studio OOP"]
             Microsoft_CodeAnalysis_Remote_ServiceHub["Remote.ServiceHub"]
         end
 
         subgraph L6d["Interactive Host Executable"]
             InteractiveHost_Exe["InteractiveHost(32|64)"]
-        end
-
-        subgraph L6e["Compiler Server"]
-            VBCSCompiler["VBCSCompiler"]
         end
     end
 
@@ -91,11 +93,14 @@ graph BT
     VBCSCompiler --> Microsoft_CodeAnalysis
     Microsoft_CodeAnalysis_Scripting --> Microsoft_CodeAnalysis
     Microsoft_CodeAnalysis_Workspaces --> Microsoft_CodeAnalysis
-    Microsoft_CodeAnalysis_Workspaces_Desktop --> Microsoft_CodeAnalysis_Workspaces
     Microsoft_CodeAnalysis_Workspaces_MSBuild --> Microsoft_CodeAnalysis_Workspaces
+    Microsoft_CodeAnalysis_Workspaces_MSBuild --> Microsoft_CodeAnalysis_Workspaces_BuildHost
+    Microsoft_CodeAnalysis_Workspaces_MSBuild --> Microsoft_CodeAnalysis_Workspaces_BuildHost_Contracts
+    Microsoft_CodeAnalysis_Workspaces_BuildHost --> Microsoft_CodeAnalysis_Workspaces_BuildHost_Contracts
     Microsoft_VisualStudio_LanguageServices --> Microsoft_CodeAnalysis_EditorFeatures
     Microsoft_VisualStudio_LanguageServices_Implementation --> Microsoft_VisualStudio_LanguageServices
 
+    style OSS fill:#e0ffe0,fill-opacity:0.15,stroke:#00aa00,stroke-width:2px,stroke-dasharray:5 5
     style Layer0 fill:none,stroke:none
     style Layer1 fill:none,stroke:none
     style Layer3 fill:none,stroke:none
