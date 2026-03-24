@@ -58,6 +58,11 @@ graph BT
         end
     end
 
+    subgraph Layer5["Shared Brokered Services"]
+        Brokered_Services_General["General services"]
+        Brokered_Services_Client["Client services"]
+    end
+
     subgraph Layer6[" "]
         subgraph L6a["Visual Studio"]
             Microsoft_VisualStudio_LanguageServices["VS.LanguageServices"]
@@ -70,6 +75,10 @@ graph BT
 
         subgraph L6d["Interactive Host Executable"]
             InteractiveHost_Exe["InteractiveHost(32|64)"]
+        end
+
+        subgraph L6f["C# DevKit"]
+            Microsoft_VisualStudio_LanguageServices_DevKit["VS.LanguageServices.DevKit"]
         end
     end
 
@@ -99,12 +108,19 @@ graph BT
     Microsoft_CodeAnalysis_Workspaces_BuildHost --> Microsoft_CodeAnalysis_Workspaces_BuildHost_Contracts
     Microsoft_VisualStudio_LanguageServices --> Microsoft_CodeAnalysis_EditorFeatures
     Microsoft_VisualStudio_LanguageServices_Implementation --> Microsoft_VisualStudio_LanguageServices
+    Microsoft_VisualStudio_LanguageServices_DevKit --> Microsoft_CodeAnalysis_LanguageServer
+    Microsoft_CodeAnalysis_Remote_ServiceHub --> Brokered_Services_General
+    Microsoft_VisualStudio_LanguageServices --> Brokered_Services_General
+    Microsoft_VisualStudio_LanguageServices_DevKit --> Brokered_Services_General
+    Microsoft_VisualStudio_LanguageServices --> Brokered_Services_Client
+    Microsoft_VisualStudio_LanguageServices_DevKit --> Brokered_Services_Client
 
     style OSS fill:#e0ffe0,fill-opacity:0.15,stroke:#00aa00,stroke-width:2px,stroke-dasharray:5 5
     style Layer0 fill:none,stroke:none
     style Layer1 fill:none,stroke:none
     style Layer3 fill:none,stroke:none
     style Layer4 fill:none,stroke:none
+    style Layer5 fill:orange,fill-opacity:0.15,stroke:orange,stroke-width:2px
     style Layer6 fill:none,stroke:none
     style L0 fill:#00ffc0,fill-opacity:0.15,stroke:#00ffc0,stroke-width:2px
     style L1a fill:#5b9bd5,fill-opacity:0.15,stroke:#5b9bd5,stroke-width:2px
@@ -118,4 +134,5 @@ graph BT
     style L6c fill:#7030a0,fill-opacity:0.15,stroke:#7030a0,stroke-width:2px
     style L6d fill:#7030a0,fill-opacity:0.15,stroke:#7030a0,stroke-width:2px
     style L6e fill:#7030a0,fill-opacity:0.15,stroke:#7030a0,stroke-width:2px
+    style L6f fill:#7030a0,fill-opacity:0.15,stroke:#7030a0,stroke-width:2px
 ```
