@@ -26,6 +26,9 @@ namespace Microsoft.CodeAnalysis.EditAndContinue
 {
     internal abstract class AbstractEditAndContinueAnalyzer : IEditAndContinueAnalyzer
     {
+        // Only enabled in hot-reload clients and tests.
+        internal static bool EnableProjectLevelAnalysis = false;
+
         internal const int DefaultStatementPart = 0;
         private const string CreateNewOnMetadataUpdateAttributeName = "CreateNewOnMetadataUpdateAttribute";
 
