@@ -63,18 +63,6 @@ internal sealed class EditSession
     internal readonly ImmutableDictionary<ManagedMethodId, ImmutableArray<NonRemappableRegion>> NonRemappableRegions;
 
     /// <summary>
-    /// Gets the capabilities of the runtime with respect to applying code changes.
-    /// Retrieved lazily from <see cref="DebuggingSession.DebuggerService"/> since they are only needed when changes are detected in the solution.
-    /// </summary>
-    internal readonly AsyncLazy<EditAndContinueCapabilities> Capabilities;
-
-    /// <summary>
-    /// Map of base active statements.
-    /// Calculated lazily based on info retrieved from <see cref="DebuggingSession.DebuggerService"/> since it is only needed when changes are detected in the solution.
-    /// </summary>
-    internal readonly AsyncLazy<ActiveStatementsMap> BaseActiveStatements;
-
-    /// <summary>
     /// Cache of document EnC analyses.
     /// </summary>
     internal readonly EditAndContinueDocumentAnalysesCache Analyses;
@@ -99,17 +87,17 @@ internal sealed class EditSession
 
         telemetry.SetBreakState(inBreakState);
 
-        BaseActiveStatements = lazyActiveStatementMap ?? (inBreakState
+        var baseActiveStatements = lazyActiveStatementMap ?? (inBreakState
             ? AsyncLazy.Create(static (self, cancellationToken) =>
                 self.GetBaseActiveStatementsAsync(cancellationToken),
                 arg: this)
             : AsyncLazy.Create(ActiveStatementsMap.Empty));
 
-        Capabilities = AsyncLazy.Create(static (self, cancellationToken) =>
+        var capabilities = AsyncLazy.Create(static (self, cancellationToken) =>
             self.GetCapabilitiesAsync(cancellationToken),
             arg: this);
 
-        Analyses = new EditAndContinueDocumentAnalysesCache(BaseActiveStatements, Capabilities, debuggingSession.AnalysisLog);
+        Analyses = new EditAndContinueDocumentAnalysesCache(baseActiveStatements, capabilities, debuggingSession.AnalysisLog);
     }
 
     public TraceLog Log
@@ -119,7 +107,7 @@ internal sealed class EditSession
     /// The compiler has various scenarios that will cause it to synthesize things that might not be covered
     /// by existing rude edits, but we still need to ensure the runtime supports them before we proceed.
     /// </summary>
-    private async Task<Diagnostic?> GetUnsupportedChangesDiagnosticAsync(EmitDifferenceResult emitResult, CancellationToken cancellationToken)
+    private static Diagnostic? GetUnsupportedChangesDiagnostic(EmitDifferenceResult emitResult, EditAndContinueCapabilities capabilities)
     {
         Debug.Assert(emitResult.Success);
         Debug.Assert(emitResult.Baseline is not null);
@@ -130,7 +118,6 @@ internal sealed class EditSession
             return null;
         }
 
-        var capabilities = await Capabilities.GetValueAsync(cancellationToken).ConfigureAwait(false);
         if (!capabilities.HasFlag(EditAndContinueCapabilities.NewTypeDefinition))
         {
             // If the runtime doesn't support adding new types then we expect every row number for any type that is
@@ -646,6 +633,7 @@ internal sealed class EditSession
 
     private async Task<(ImmutableArray<DocumentAnalysisResults> results, Document? staleDocument)> AnalyzeProjectDifferencesAsync(
         Solution newSolution,
+        EditAndContinueDocumentAnalysesCache documentAnalyses,
         ProjectDifferences differences,
         ActiveStatementSpanProvider newDocumentActiveStatementSpanProvider,
         ArrayBuilder<Diagnostic> diagnostics,
@@ -723,7 +711,7 @@ internal sealed class EditSession
         }
 
         // No need to report rude edits if project has any documents that are out of sync. No deltas will be emitted for such project.
-        var analyses = await Analyses.GetDocumentAnalysesAsync(DebuggingSession.LastCommittedSolution, newSolution, documents, newDocumentActiveStatementSpanProvider, cancellationToken).ConfigureAwait(false);
+        var analyses = await documentAnalyses.GetDocumentAnalysesAsync(DebuggingSession.LastCommittedSolution, newSolution, documents, newDocumentActiveStatementSpanProvider, cancellationToken).ConfigureAwait(false);
         return (analyses, staleDocument);
     }
 
@@ -1116,8 +1104,9 @@ internal sealed class EditSession
         public string? StaleDocumentPath { get; } = staleDocumentPath;
     }
 
-    public async ValueTask<SolutionUpdate> EmitSolutionUpdateAsync(
+    public static async ValueTask<SolutionUpdate> EmitSolutionUpdateAsync(
         Solution solution,
+        EditAndContinueDocumentAnalysesCache documentAnalyses,
         ActiveStatementSpanProvider solutionActiveStatementSpanProvider,
         UpdateId updateId,
         ImmutableDictionary<ProjectId, RunningProjectOptions> runningProjects,
@@ -1264,7 +1253,7 @@ internal sealed class EditSession
                     // instead of the true C.M(string).
 
                     var (changedDocumentAnalyses, staleDocument) =
-                        await AnalyzeProjectDifferencesAsync(solution, projectDifferences, solutionActiveStatementSpanProvider, projectDiagnostics, projectSupportsEditAndContinue, cancellationToken).ConfigureAwait(false);
+                        await AnalyzeProjectDifferencesAsync(solution, documentAnalyses, projectDifferences, solutionActiveStatementSpanProvider, projectDiagnostics, projectSupportsEditAndContinue, cancellationToken).ConfigureAwait(false);
 
                     if (staleDocument != null)
                     {
@@ -1399,7 +1388,7 @@ internal sealed class EditSession
 
                     await LogDocumentChangesAsync(projectBaselines.First().Generation + 1, cancellationToken).ConfigureAwait(false);
 
-                    var oldActiveStatementsMap = await BaseActiveStatements.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                    var oldActiveStatementsMap = await documentAnalyses.BaseActiveStatements.GetValueAsync(cancellationToken).ConfigureAwait(false);
                     var projectChanges = await GetProjectChangesAsync(oldActiveStatementsMap, oldCompilation, newCompilation, oldProject, newProject, changedDocumentAnalyses, cancellationToken).ConfigureAwait(false);
 
                     // The compiler only uses this predicate to determine if CS7101: "Member 'X' added during the current debug session
@@ -1410,7 +1399,8 @@ internal sealed class EditSession
                     // Note that the analysis in the compiler detecting the circumstances under which the runtime fails
                     // to apply the change has both false positives (flagged generic updates that shouldn't be flagged) and negatives
                     // (didn't flag cases like https://github.com/dotnet/roslyn/issues/68293).
-                    var capabilities = await Capabilities.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                    var capabilities = await documentAnalyses.Capabilities.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                    Telemetry.LogRuntimeCapabilities(capabilities);
                     var requiredCapabilities = projectChanges.RequiredCapabilities.ToStringArray();
 
                     var isAddedSymbolPredicate = capabilities.HasFlag(EditAndContinueCapabilities.GenericAddMethodToExistingType) ?
@@ -1470,7 +1460,7 @@ internal sealed class EditSession
 
                         Contract.ThrowIfNull(emitResult.Baseline);
 
-                        var unsupportedChangesDiagnostic = await GetUnsupportedChangesDiagnosticAsync(emitResult, cancellationToken).ConfigureAwait(false);
+                        var unsupportedChangesDiagnostic = GetUnsupportedChangesDiagnostic(emitResult, capabilities);
                         if (unsupportedChangesDiagnostic is not null)
                         {
                             projectDiagnostics.Add(unsupportedChangesDiagnostic);
@@ -1580,8 +1570,6 @@ internal sealed class EditSession
             }
 
             var diagnostics = diagnosticBuilders.SelectAsArray(entry => new ProjectDiagnostics(entry.Key, entry.Value.ToImmutableAndFree()));
-
-            Telemetry.LogRuntimeCapabilities(await Capabilities.GetValueAsync(cancellationToken).ConfigureAwait(false));
 
             if (syntaxError != null)
             {

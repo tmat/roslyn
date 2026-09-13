@@ -538,7 +538,7 @@ internal sealed class DebuggingSession : IDisposable
         // Make sure the solution snapshot has all source-generated documents up-to-date.
         solution = solution.WithUpToDateSourceGeneratorDocuments(solution.ProjectIds);
 
-        var solutionUpdate = await EditSession.EmitSolutionUpdateAsync(solution, activeStatementSpanProvider, updateId, runningProjects, cancellationToken).ConfigureAwait(false);
+        var solutionUpdate = await EditSession.EmitSolutionUpdateAsync(solution, EditSession.Analyses, activeStatementSpanProvider, updateId, runningProjects, cancellationToken).ConfigureAwait(false);
 
         solutionUpdate.Log(SessionLog, updateId);
         _lastModuleUpdatesLog = solutionUpdate.ModuleUpdates.Updates;

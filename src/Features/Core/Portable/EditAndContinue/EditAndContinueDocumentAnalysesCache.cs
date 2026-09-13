@@ -25,9 +25,19 @@ internal sealed class EditAndContinueDocumentAnalysesCache(AsyncLazy<ActiveState
 {
     private readonly object _guard = new();
     private readonly Dictionary<DocumentId, (AsyncLazy<DocumentAnalysisResults> results, Project oldProject, Document? newDocument, ImmutableArray<ActiveStatementLineSpan> activeStatementSpans)> _analyses = [];
-    private readonly AsyncLazy<ActiveStatementsMap> _baseActiveStatements = baseActiveStatements;
-    private readonly AsyncLazy<EditAndContinueCapabilities> _capabilities = capabilities;
     private readonly TraceLog _log = log;
+
+    /// <summary>
+    /// Map of base active statements.
+    /// Calculated lazily based on info retrieved from <see cref="DebuggingSession.DebuggerService"/> since it is only needed when changes are detected in the solution.
+    /// </summary>
+    public AsyncLazy<ActiveStatementsMap> BaseActiveStatements => baseActiveStatements;
+
+    /// <summary>
+    /// Gets the capabilities of the runtime with respect to applying code changes.
+    /// Retrieved lazily from <see cref="DebuggingSession.DebuggerService"/> since they are only needed when changes are detected in the solution.
+    /// </summary>
+    public AsyncLazy<EditAndContinueCapabilities> Capabilities => capabilities;
 
     public async ValueTask<ImmutableArray<DocumentAnalysisResults>> GetDocumentAnalysesAsync(
         CommittedSolution oldSolution,
@@ -210,7 +220,7 @@ internal sealed class EditAndContinueDocumentAnalysesCache(AsyncLazy<ActiveState
                         arg.newProject,
                         arg.self._baseActiveStatements,
                         arg.activeStatementSpans,
-                        arg.self._capabilities,
+                        arg.self.Capabilities,
                         arg.self._log,
                         cancellationToken).ConfigureAwait(false);
                 }
