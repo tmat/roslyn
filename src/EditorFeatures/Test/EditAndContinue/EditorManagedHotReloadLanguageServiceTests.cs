@@ -143,7 +143,7 @@ public sealed class EditorManagedHotReloadLanguageServiceTests : EditAndContinue
         var factory = workspace.GetService<ManagedHotReloadLanguageServiceFactory>();
         var serviceBroker = workspace.Services.GetRequiredService<IServiceBrokerProvider>().ServiceBroker;
         var solutionSnapshotProvider = workspace.GetService<ISolutionSnapshotProvider>();
-        languageService = factory.Create(serviceBroker, solutionSnapshotProvider, workspace.GetService<IHostWorkspaceProvider>(), sourceTextProvider);
+        languageService = factory.CreateAsync(serviceBroker, solutionSnapshotProvider, workspace.GetService<IHostWorkspaceProvider>(), sourceTextProvider, CancellationToken.None).AsTask().GetAwaiter().GetResult();
         return workspace;
     }
 
@@ -183,7 +183,7 @@ public sealed class EditorManagedHotReloadLanguageServiceTests : EditAndContinue
             var localBroker = LocalWorkspace.Services.GetRequiredService<IServiceBrokerProvider>().ServiceBroker;
             var localSnapshotProvider = LocalWorkspace.GetService<ISolutionSnapshotProvider>();
             PdbMatchingSourceTextProvider = new PdbMatchingSourceTextProvider(LocalWorkspace);
-            LocalService = localFactory.Create(localBroker, localSnapshotProvider, LocalWorkspace.GetService<IHostWorkspaceProvider>(), PdbMatchingSourceTextProvider);
+            LocalService = localFactory.CreateAsync(localBroker, localSnapshotProvider, LocalWorkspace.GetService<IHostWorkspaceProvider>(), PdbMatchingSourceTextProvider, CancellationToken.None).AsTask().GetAwaiter().GetResult();
         }
 
         public void Dispose()

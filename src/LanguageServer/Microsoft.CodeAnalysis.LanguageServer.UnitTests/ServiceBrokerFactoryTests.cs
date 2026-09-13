@@ -95,12 +95,13 @@ public sealed class ServiceBrokerFactoryTests(ITestOutputHelper testOutputHelper
         await brokeredServiceClient.ConnectAsync(server);
 
         var serverServices = await GetAvailableServerServicesAsync(brokeredServiceClient.ServiceBroker, CancellationToken.None);
-        Assert.Contains(ManagedHotReloadLanguageServiceDescriptor.Descriptor.Moniker, serverServices);
+        Assert.Contains(ManagedHotReloadUpdatesProviderDescriptor.Moniker, serverServices);
 
-        var languageService = await GetRequiredServiceAsync<DebuggerContracts.IManagedHotReloadLanguageService3>(
+        var languageService = await GetRequiredServiceAsync<IManagedHotReloadUpdateProvider>(
             brokeredServiceClient.ServiceBroker,
-            ManagedHotReloadLanguageServiceDescriptor.Descriptor,
+            IManagedHotReloadUpdateProvider.CreateDescriptor(ManagedHotReloadUpdatesProviderDescriptor.Moniker),
             CancellationToken.None);
+
         Assert.NotNull(languageService);
     }
 

@@ -14,7 +14,6 @@ using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.LanguageServer;
 using Microsoft.CodeAnalysis.LanguageServer.Handler;
-using Microsoft.CodeAnalysis.LanguageServer.HostWorkspace;
 using Microsoft.ServiceHub.Framework;
 using Microsoft.VisualStudio.Shell.ServiceBroker;
 using Microsoft.VisualStudio.Utilities.ServiceBroker;
@@ -53,7 +52,7 @@ internal sealed class DevKitHotReloadServiceContributor(
 
     public ImmutableDictionary<ServiceMoniker, ServiceRegistration> ServicesToRegister => new Dictionary<ServiceMoniker, ServiceRegistration>
     {
-        { ManagedHotReloadLanguageServiceDescriptor.Descriptor.Moniker, new ServiceRegistration(ServiceAudience.Local, null, allowGuestClients: false) }
+        { ManagedHotReloadUpdatesProviderDescriptor.Moniker, new ServiceRegistration(ServiceAudience.Local, null, allowGuestClients: false) }
     }.ToImmutableDictionary();
 
     public void Proffer(GlobalBrokeredServiceContainer container)
@@ -62,12 +61,8 @@ internal sealed class DevKitHotReloadServiceContributor(
         var solutionSnapshotProvider = new LspSolutionSnapshotProvider(serviceBroker, solutionSnapshotRegistry);
 
         container.Proffer(
-            ManagedHotReloadLanguageServiceDescriptor.Descriptor,
-            (moniker, options, innerServiceBroker, cancellationToken) =>
-            {
-                var service = factory.Create(serviceBroker, solutionSnapshotProvider, workspaceProvider, _sourceTextProvider);
-                return new ValueTask<object?>(service);
-            });
+            ManagedHotReloadLanguageServiceFactory.ServiceDescriptor,
+            async (_, options, _, cancellationToken) => await factory.CreateAsync(serviceBroker, solutionSnapshotProvider, workspaceProvider, _sourceTextProvider, options, cancellationToken).ConfigureAwait(false));
     }
 
     public void OnServiceBrokerInitialized(IServiceBroker serviceBroker, CancellationToken cancellationToken)

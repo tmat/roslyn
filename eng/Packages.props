@@ -166,8 +166,8 @@
     <!--
       Project System
     -->
-    <PackageVersion Include="Microsoft.VisualStudio.HotReload.Components" Version="18.12.16-g86dda400a8" />
-    <PackageVersion Include="Microsoft.VisualStudio.HotReload.RemoteContracts" Version="18.12.16-g86dda400a8" />
+    <PackageVersion Include="Microsoft.VisualStudio.HotReload.Components" Version="99.0.0-dev" />
+    <PackageVersion Include="Microsoft.VisualStudio.HotReload.RemoteContracts" Version="99.0.0-dev" />
 
     <!--
       VS .NET Runtime

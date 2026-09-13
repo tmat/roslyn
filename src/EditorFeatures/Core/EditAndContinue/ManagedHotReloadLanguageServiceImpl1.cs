@@ -22,7 +22,7 @@ namespace Microsoft.CodeAnalysis.EditAndContinue;
 /// Implementation of a brokered service available in Visual Studio in-proc container and in DevKit.
 /// Created via <see cref="ManagedHotReloadLanguageServiceFactory"/>.
 /// </summary>
-internal sealed class ManagedHotReloadLanguageServiceImpl(
+internal sealed class ManagedHotReloadUpdateProviderImpl(
     EditAndContinueSessionState sessionState,
     IHostWorkspaceProvider workspaceProvider,
     IManagedHotReloadService debuggerService,
@@ -30,8 +30,7 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
     PdbMatchingSourceTextProvider sourceTextProvider,
     IActiveStatementTrackingController activeStatementTrackingController,
     IEditAndContinueLogReporter logReporter,
-    IDiagnosticsRefresher diagnosticRefresher,
-    IManagedHotReloadUpdatesProvider.ICallback callback) : IEditAndContinueSolutionProvider, IHotReloadEventListener
+    IDiagnosticsRefresher diagnosticRefresher) : IManagedHotReloadLanguageService3, IEditAndContinueSolutionProvider, IHotReloadEventListener
 {
     private sealed class NoSessionException : InvalidOperationException
     {
@@ -79,6 +78,10 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
         diagnosticRefresher.RequestWorkspaceRefresh();
     }
 
+    // TODO: remove
+    public ValueTask StartSessionAsync(CancellationToken cancellationToken)
+        => default;
+
     /// <summary>
     /// Called when a Hot Reload session starts.
     /// </summary>
@@ -124,6 +127,15 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
 
     public ValueTask OnManagedCodeUpdateCapabilitiesChangedAsync(ManagedCodeUpdateCapabilitiesChangedEventArgs args, CancellationToken cancellationToken)
         => BreakStateOrCapabilitiesChangedAsync(inBreakState: null, cancellationToken);
+
+    public ValueTask EnterBreakStateAsync(CancellationToken cancellationToken)
+        => default;
+
+    public ValueTask ExitBreakStateAsync(CancellationToken cancellationToken)
+        => default;
+
+    public ValueTask OnCapabilitiesChangedAsync(CancellationToken cancellationToken)
+        => default;
 
     private async ValueTask BreakStateOrCapabilitiesChangedAsync(bool? inBreakState, CancellationToken cancellationToken)
     {
@@ -205,6 +217,16 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
         }
     }
 
+    [Obsolete]
+    public ValueTask UpdateBaselinesAsync(ImmutableArray<string> projectPaths, CancellationToken cancellationToken)
+        => throw new NotImplementedException();
+
+    public ValueTask OnApplyChangesCompletedAsync(ApplyChangesOperationResult result, CancellationToken cancellationToken)
+        => default;
+
+    public ValueTask EndSessionAsync(CancellationToken cancellationToken)
+        => default;
+
     public async ValueTask OnHotReloadDeactivatedAsync(CancellationToken cancellationToken)
     {
         sessionState.IsSessionActive = false;
@@ -266,7 +288,22 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
         }
     }
 
-    public async ValueTask<ManagedHotReloadUpdates> GetUpdatesAsync(CancellationToken cancellationToken)
+    [Obsolete]
+    public ValueTask<ManagedHotReloadUpdates> GetUpdatesAsync(CancellationToken cancellationToken)
+        => throw new NotImplementedException();
+
+    [Obsolete]
+    public ValueTask<ManagedHotReloadUpdates> GetUpdatesAsync(ImmutableArray<string> runningProjects, CancellationToken cancellationToken)
+    {
+        // StreamJsonRpc may use this overload when the method is invoked with empty parameters. Call the new implementation instead.
+
+        if (!runningProjects.IsEmpty)
+            throw new NotImplementedException();
+
+        return GetUpdatesAsync(ImmutableArray<RunningProjectInfo>.Empty, cancellationToken);
+    }
+
+    public async ValueTask<ManagedHotReloadUpdates> GetUpdatesAsync(ImmutableArray<RunningProjectInfo> runningProjects, CancellationToken cancellationToken)
     {
         if (_disabled)
         {
@@ -280,7 +317,6 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
             };
         }
 
-        var runningProjects = await callback.GetRunningProjectsAsync(cancellationToken).ConfigureAwait(false);
         var solution = await solutionSnapshotProvider.GetCurrentSolutionAsync(cancellationToken).ConfigureAwait(false);
         var activeStatementSpanProvider = activeStatementTrackingController.GetSpanProvider(solution);
         var runningProjectOptions = runningProjects.ToRunningProjectOptions(solution, static info => (info.ProjectInstanceId.ProjectFilePath, info.ProjectInstanceId.TargetFramework, info.RestartAutomatically));
@@ -339,13 +375,10 @@ internal sealed class ManagedHotReloadLanguageServiceImpl(
             });
     }
 
-    public ValueTask OnApplyChangesCompletedAsync(ApplyChangesOperationResult result, CancellationToken cancellationToken)
-        => default;
-
     internal TestAccessor GetTestAccessor()
         => new(this);
 
-    internal readonly struct TestAccessor(ManagedHotReloadLanguageServiceImpl instance)
+    internal readonly struct TestAccessor(ManagedHotReloadUpdateProviderImpl instance)
     {
         public Solution? PendingUpdatedSolution => instance._pendingUpdatedSolution;
         public Solution? CommittedSolution => instance.CommittedSolution;
